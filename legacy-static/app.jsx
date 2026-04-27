@@ -134,32 +134,62 @@ function TopBar({ module }) {
   );
 }
 
-function OverviewHero({ module, setModule }) {
+function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
   const D = window.CS_DATA;
-  const shortageAtHorizon = D.supply.demand[D.supply.demand.length - 1] - D.supply.projected[D.supply.projected.length - 1];
+  const shortageAtHorizon = Math.round(
+    (D.supply.demand[D.supply.demand.length - 1] - D.supply.projected[D.supply.projected.length - 1]) * 10
+  ) / 10;
+
+  const riskColor = { LOW: 'var(--ok)', MEDIUM: 'var(--warn)', HIGH: 'var(--risk)', CRITICAL: 'var(--crit)' };
+
+  // ── always-visible compact strip ──────────────────────────────────────────
+  const strip = (
+    <div
+      className="hero-strip"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 0,
+        background: 'var(--bg-1)', borderBottom: '1px solid var(--line)',
+        padding: '7px 18px', cursor: 'pointer', userSelect: 'none',
+      }}
+      onClick={() => setHeroOpen(o => !o)}
+      title={heroOpen ? 'พับ overview' : 'ขยาย overview'}
+    >
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', letterSpacing: '0.12em', marginRight: 16, whiteSpace: 'nowrap' }}>
+        PROTOTYPE OVERVIEW
+      </span>
+      <div style={{ display: 'flex', gap: 20, flex: 1, flexWrap: 'wrap' }}>
+        {[
+          ['Supply', `${D.supply.current} K ตัน`],
+          ['Gap W8', `${shortageAtHorizon.toFixed(1)} K ตัน`],
+          ['ราคาปัจจุบัน', `฿${D.price.actual[0].toLocaleString()}`],
+          ['NDVI', D.province.avgNDVI.toFixed(2)],
+          ['Flood Risk', D.province.floodRisk, riskColor[D.province.floodRisk]],
+          ['PM2.5', `${D.province.pm25} μg/m³`],
+        ].map(([k, v, c]) => (
+          <span key={k} style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'var(--fg-3)', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{k}</span>
+            <strong style={{ color: c || 'var(--fg-0)', fontFamily: 'var(--font-mono)' }}>{v}</strong>
+          </span>
+        ))}
+      </div>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 12 }}>
+        {heroOpen ? '▲' : '▼'}
+      </span>
+    </div>
+  );
+
+  if (!heroOpen) return strip;
+
+  // ── full expanded hero ────────────────────────────────────────────────────
   const modules = [
-    {
-      id: 'm1',
-      code: 'M01',
-      title: 'ข้อมูลอัจฉริยะ',
-      desc: 'จับสัญญาณ NDVI พื้นที่เสี่ยงน้ำท่วม และสภาพ supply ปัจจุบัน',
-    },
-    {
-      id: 'm2',
-      code: 'M02',
-      title: 'คาดการณ์ล่วงหน้า',
-      desc: 'คำนวณแนวโน้มขาดแคลน ราคาผันผวน และ early warning ก่อนวิกฤต',
-    },
-    {
-      id: 'm3',
-      code: 'M03',
-      title: 'คำแนะนำเชิงปฏิบัติ',
-      desc: 'แปลข้อมูลให้เป็น action สำหรับเกษตรกร อปท. และผู้ค้าปลีก',
-    },
+    { id: 'm1', code: 'M01', title: 'ข้อมูลอัจฉริยะ', desc: 'จับสัญญาณ NDVI พื้นที่เสี่ยงน้ำท่วม และสภาพ supply ปัจจุบัน' },
+    { id: 'm2', code: 'M02', title: 'คาดการณ์ล่วงหน้า', desc: 'คำนวณแนวโน้มขาดแคลน ราคาผันผวน และ early warning ก่อนวิกฤต' },
+    { id: 'm3', code: 'M03', title: 'คำแนะนำเชิงปฏิบัติ', desc: 'แปลข้อมูลให้เป็น action สำหรับเกษตรกร อปท. และผู้ค้าปลีก' },
   ];
 
   return (
     <section className="overview-hero">
+      {strip}
       <div className="overview-hero-main">
         <div className="overview-copy">
           <div className="overview-kicker thai">Climate Change & Sustainable Innovation · Prototype Overview</div>
@@ -171,7 +201,7 @@ function OverviewHero({ module, setModule }) {
               <span className="label thai">พันตันอุปทานปัจจุบัน</span>
             </div>
             <div className="overview-proof-item">
-              <span className="value">{shortageAtHorizon}</span>
+              <span className="value">{shortageAtHorizon.toFixed(1)}</span>
               <span className="label thai">พันตัน gap ท้ายช่วงคาดการณ์</span>
             </div>
             <div className="overview-proof-item">
@@ -184,57 +214,25 @@ function OverviewHero({ module, setModule }) {
             climate data และ AI forecasting เพื่อบอกว่า ตอนนี้เกิดอะไรขึ้น จะเกิดอะไรต่อ และควรทำอะไรทันที
           </p>
           <div className="overview-tags">
-            <span className="chip data thai">
-              <span className="dot" />
-              จังหวัดนำร่อง {D.province.nameTh}
-            </span>
-            <span className="chip warn thai">
-              <span className="dot" />
-              พืชหลัก {D.overview.cropLabelTh}
-            </span>
-            <span className="chip risk thai">
-              <span className="dot" />
-              เตือนความเสี่ยงขาดแคลนใน {D.overview.shortageWarningWeeks} สัปดาห์
-            </span>
+            <span className="chip data thai"><span className="dot" />จังหวัดนำร่อง {D.province.nameTh}</span>
+            <span className="chip warn thai"><span className="dot" />พืชหลัก {D.overview.cropLabelTh}</span>
+            <span className="chip risk thai"><span className="dot" />เตือนความเสี่ยงขาดแคลนใน {D.overview.shortageWarningWeeks} สัปดาห์</span>
           </div>
         </div>
 
         <div className="overview-metrics">
-          <div className="overview-stat">
-            <span className="label thai">พื้นที่นาข้าว</span>
-            <strong>{(D.province.totalFarmland / 1_000_000).toFixed(1)} ล้านไร่</strong>
-          </div>
-          <div className="overview-stat">
-            <span className="label thai">NDVI ปัจจุบัน</span>
-            <strong>{D.province.avgNDVI.toFixed(2)}</strong>
-          </div>
-          <div className="overview-stat">
-            <span className="label thai">Supply ปัจจุบัน</span>
-            <strong>{D.supply.current.toLocaleString()} พันตัน</strong>
-          </div>
-          <div className="overview-stat">
-            <span className="label thai">ราคาข้าวล่าสุด</span>
-            <strong>฿{D.price.actual[0].toLocaleString()}</strong>
-          </div>
-          <div className="overview-stat">
-            <span className="label thai">Flood Risk</span>
-            <strong>{D.province.floodRisk}</strong>
-          </div>
-          <div className="overview-stat">
-            <span className="label thai">Gap ณ ปลายช่วงคาดการณ์</span>
-            <strong>{shortageAtHorizon} พันตัน</strong>
-          </div>
+          <div className="overview-stat"><span className="label thai">พื้นที่นาข้าว</span><strong>{(D.province.totalFarmland / 1_000_000).toFixed(1)} ล้านไร่</strong></div>
+          <div className="overview-stat"><span className="label thai">NDVI ปัจจุบัน</span><strong>{D.province.avgNDVI.toFixed(2)}</strong></div>
+          <div className="overview-stat"><span className="label thai">Supply ปัจจุบัน</span><strong>{D.supply.current.toLocaleString()} พันตัน</strong></div>
+          <div className="overview-stat"><span className="label thai">ราคาข้าวล่าสุด</span><strong>฿{D.price.actual[0].toLocaleString()}</strong></div>
+          <div className="overview-stat"><span className="label thai">Flood Risk</span><strong style={{ color: riskColor[D.province.floodRisk] }}>{D.province.floodRisk}</strong></div>
+          <div className="overview-stat"><span className="label thai">Gap ณ ปลายช่วงคาดการณ์</span><strong>{shortageAtHorizon.toFixed(1)} พันตัน</strong></div>
         </div>
       </div>
 
       <div className="overview-flow">
         {modules.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`flow-card ${module === item.id ? 'active' : ''}`}
-            onClick={() => setModule(item.id)}
-          >
+          <button key={item.id} type="button" className={`flow-card ${module === item.id ? 'active' : ''}`} onClick={() => { setModule(item.id); setHeroOpen(false); }}>
             <span className="flow-code">{item.code}</span>
             <div className="flow-title thai">{item.title}</div>
             <div className="flow-desc thai">{item.desc}</div>
@@ -247,6 +245,7 @@ function OverviewHero({ module, setModule }) {
 
 function App() {
   const [module, setModule] = useStateApp(() => localStorage.getItem('cs_mod') || 'm1');
+  const [heroOpen, setHeroOpen] = useStateApp(false);   // collapsed by default → module fills viewport
   // dataVersion increments when real API data arrives → forces re-render of all children
   const [dataVersion, setDataVersion] = useStateApp(0);
 
@@ -281,7 +280,7 @@ function App() {
       >
         <TopBar module={module} />
         <div className="content">
-          <OverviewHero module={module} setModule={setModule} />
+          <OverviewHero module={module} setModule={setModule} heroOpen={heroOpen} setHeroOpen={setHeroOpen} />
           {view}
         </div>
       </main>
