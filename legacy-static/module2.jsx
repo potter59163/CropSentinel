@@ -230,8 +230,8 @@ function Module2() {
   const reset = () => setAlerts(D.alerts);
 
   const currentSupply = D.supply.current;
-  const shortage = D.supply.demand[7] - D.supply.projected[7];
-  const priceDelta = ((D.price.actual[7] - D.price.actual[0]) / D.price.actual[0]) * 100;
+  const shortage    = Math.round((D.supply.demand[7] - D.supply.projected[7]) * 10) / 10;
+  const priceDelta  = Math.round(((D.price.actual[7] - D.price.actual[0]) / D.price.actual[0]) * 1000) / 10;
 
   return (
     <div className="grid mod2-layout">
@@ -244,13 +244,20 @@ function Module2() {
           </div>
           <div className="stat">
             <div className="stat-label thai">คาดการณ์ขาดแคลน สัปดาห์ที่ 8</div>
-            <div className="stat-value" style={{ color: 'var(--risk)' }}>−{shortage}<span className="unit">พันตัน</span></div>
-            <div className="stat-delta negative thai">▲ ต่ำกว่าความต้องการ {((shortage / D.supply.demand[7]) * 100).toFixed(0)}%</div>
+            <div className="stat-value" style={{ color: shortage > 0 ? 'var(--risk)' : 'var(--ok)' }}>
+              {shortage > 0 ? '−' : '+'}{Math.abs(shortage).toFixed(1)}
+              <span className="unit">พันตัน</span>
+            </div>
+            <div className={`stat-delta ${shortage > 0 ? 'negative' : ''} thai`}>
+              {shortage > 0
+                ? `▲ ต่ำกว่าความต้องการ ${((shortage / D.supply.demand[7]) * 100).toFixed(0)}%`
+                : `▼ เกินความต้องการ ${(Math.abs(shortage) / D.supply.demand[7] * 100).toFixed(0)}%`}
+            </div>
           </div>
           <div className="stat">
             <div className="stat-label thai">ราคาคาดการณ์ สัปดาห์ที่ 8</div>
             <div className="stat-value">฿{D.price.actual[7].toLocaleString()}</div>
-            <div className="stat-delta negative thai">▲ เพิ่มขึ้น {priceDelta.toFixed(1)}% จากวันนี้</div>
+            <div className="stat-delta negative thai">▲ เพิ่มขึ้น {priceDelta.toFixed(1)}% จากปัจจุบัน</div>
           </div>
         </div>
 

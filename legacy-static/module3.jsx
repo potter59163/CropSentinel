@@ -63,7 +63,7 @@ function Gauge({ value, max = 100 }) {
         {value}
       </text>
       <text x="80" y="86" textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--fg-3)" letterSpacing="0.1em">
-        PERCENT
+        % OF DEMAND
       </text>
     </svg>
   );
@@ -138,14 +138,15 @@ function Module3() {
     { id: 'retailer', th: 'ผู้ค้าปลีก/โลจิสติกส์', role: 'การค้า/กระจายสินค้า' },
   ];
 
-  const lastWeekIndex = D.supply.projected.length - 1;
-  const currentSupply = D.supply.current;
-  const shortageAtHorizon = D.supply.demand[lastWeekIndex] - D.supply.projected[lastWeekIndex];
-  const supplyLevel = D.supply.readiness;
-  const riskLevel = D.province.floodRisk;
-  const priceStart = D.price.actual[0];
-  const priceNow = D.price.actual[D.price.actual.length - 1];
-  const priceDeltaPct = ((priceNow - priceStart) / priceStart) * 100;
+  const lastWeekIndex     = D.supply.projected.length - 1;
+  const currentSupply     = D.supply.current;
+  const shortageRaw       = D.supply.demand[lastWeekIndex] - D.supply.projected[lastWeekIndex];
+  const shortageAtHorizon = Math.max(0, Math.round(shortageRaw * 10) / 10);  // พันตัน, ≥0
+  const supplyLevel       = Math.min(100, D.supply.readiness);                // % capped at 100
+  const riskLevel         = D.province.floodRisk;
+  const priceStart        = D.price.actual[0];
+  const priceNow          = D.price.actual[D.price.actual.length - 1];
+  const priceDeltaPct     = Math.round(((priceNow - priceStart) / priceStart) * 1000) / 10;
   const flowSummary = [
     { layer: 'Data Layer', explain: 'รู้ว่า "ตอนนี้เกิดอะไรขึ้น"', detail: 'Satellite + NDVI + flood + PM2.5' },
     { layer: 'AI Layer', explain: 'รู้ว่า "จะเกิดอะไรต่อ"', detail: 'Forecast supply shortage และ price volatility' },
@@ -155,7 +156,7 @@ function Module3() {
     {
       role: 'รัฐบาล / อปท.',
       roleEn: 'Policy Command',
-      action: `เตรียมแผนนำเข้า ${shortageAtHorizon.toLocaleString()} พันตัน และตั้ง trigger เพดานราคา`,
+      action: `เตรียมแผนนำเข้า ${shortageAtHorizon.toFixed(0)} พันตัน และตั้ง trigger เพดานราคา`,
       eta: 'ต้องเริ่มใน 7 วัน',
       tone: 'urgent',
     },
@@ -223,7 +224,7 @@ function Module3() {
       titleEn: 'Policy & operations',
       kpis: [
         { k: 'ผลผลิตทั้งจังหวัด', v: `${currentSupply}`, u: 'พันตัน' },
-        { k: 'ขาดแคลน สัปดาห์ 8', v: `${shortageAtHorizon}`, u: 'พันตัน' },
+        { k: 'ขาดแคลน สัปดาห์ 8', v: shortageAtHorizon.toFixed(1), u: 'พันตัน' },
         { k: 'ระยะเวลานำเข้า', v: '6', u: 'สัปดาห์' },
       ],
     },
@@ -233,7 +234,7 @@ function Module3() {
       kpis: [
         { k: 'สต็อกปัจจุบัน', v: '2.8', u: 'สัปดาห์' },
         { k: 'เป้าหมายสต็อก', v: '6', u: 'สัปดาห์' },
-        { k: 'ความเสี่ยงราคา', v: '+18', u: '%' },
+        { k: 'ความเสี่ยงราคา', v: `+${priceDeltaPct.toFixed(1)}`, u: '%' },
       ],
     },
   };
@@ -263,8 +264,8 @@ function Module3() {
         <div className="rt-grid">
           <div className="rt-card">
             <div className="rt-label">SUPPLY LEVEL</div>
-            <div className="rt-value">{supplyLevel}<span>/100</span></div>
-            <div className="rt-desc thai">พอรองรับการบริโภคประมาณ {(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์</div>
+            <div className="rt-value">{supplyLevel}<span>%</span></div>
+            <div className="rt-desc thai">อุปทานครอบคลุม {supplyLevel}% ของอุปสงค์ · ≈{(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์</div>
           </div>
 
           <div className="rt-card">
@@ -276,7 +277,7 @@ function Module3() {
           <div className="rt-card rt-card-price">
             <div className="rt-head">
               <div className="rt-label">PRICE TREND</div>
-              <div className="rt-badge">+{priceDeltaPct.toFixed(1)}%</div>
+              <div className="rt-badge">{priceDeltaPct > 0 ? '+' : ''}{priceDeltaPct.toFixed(1)}%</div>
             </div>
             <PriceTrendMini values={D.price.actual} />
             <div className="rt-desc thai">จาก ฿{priceStart.toLocaleString()} ไป ฿{priceNow.toLocaleString()} ต่อ ตัน ใน 8 สัปดาห์</div>
@@ -360,10 +361,10 @@ function Module3() {
               <div className="gauge-info">
                 <div className="gauge-val">
                   {supplyLevel}
-                  <span className="unit">/ 100</span>
+                  <span className="unit">%</span>
                 </div>
                 <div className="gauge-desc thai">
-                  คลังสินค้าระดับจังหวัดเพียงพอรองรับความต้องการ {(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์ ตามอัตราการใช้ในปัจจุบัน
+                  อุปทานครอบคลุม {supplyLevel}% ของอุปสงค์ เทียบเท่า {(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์การบริโภค
                 </div>
               </div>
             </div>
