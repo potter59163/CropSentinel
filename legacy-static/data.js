@@ -1,4 +1,4 @@
-// CropSentinel — mock data for Pathum Thani rice supply
+// CropSentinel — baseline data for Pathum Thani rice supply (overwritten by api-fetch.js)
 window.CS_DATA = {
   overview: {
     cropLabelTh: "ข้าว · KDML105",
