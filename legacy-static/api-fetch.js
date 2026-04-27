@@ -30,6 +30,9 @@
     return 'LOW';
   }
 
+  // ── helpers for supply/price labels ─────────────────────────────────────
+  function fmt1(v) { return Math.round(v * 10) / 10; }
+
   // ── district base flood susceptibility (0–1) ─────────────────────────────
   // Derived from historic flood-maps and canal density in Pathum Thani
   const FLOOD_SUSC = {
@@ -214,41 +217,43 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Stress index: blend flood rain intensity + average district NDVI deficit
-  const ndviAvg      = D.districts.reduce((s, d) => s + d.ndvi, 0) / D.districts.length;
-  const ndviDeficit  = clamp((0.70 - ndviAvg) / 0.40, 0, 1);   // 0 = healthy, 1 = very stressed
-  const rainStress   = clamp(week1Rain / 120, 0, 1);            // 120mm = max reference
-  const stressIndex  = 0.55 * rainStress + 0.45 * ndviDeficit;  // 0–1
+  const ndviAvg     = D.districts.reduce((s, d) => s + d.ndvi, 0) / D.districts.length;
+  const ndviDeficit = clamp((0.70 - ndviAvg) / 0.40, 0, 1);   // 0 = healthy, 1 = very stressed
+  const rainStress  = clamp(week1Rain / 120, 0, 1);            // 120 mm = max reference
+  const stressIndex = 0.55 * rainStress + 0.45 * ndviDeficit;  // 0–1
 
-  // Weekly supply decline rate (2.5 % base + up to 2.5 % stress bonus)
-  const weeklyDecline = 1 - (0.025 + stressIndex * 0.025);
+  // Weekly supply decline: 1.5 % base + up to 2 % stress bonus → realistic 10–25 % 8-week drop
+  const weeklyDecline = 1 - (0.015 + stressIndex * 0.020);
 
-  const current = D.supply.current;   // keep OAE-anchored starting point
-  D.supply.projected = Array.from({ length: 8 }, (_, i) =>
-    Math.round(current * Math.pow(weeklyDecline, i + 1) * 10) / 10
-  );
-  D.supply.projected.unshift(current);
-  D.supply.projected.length = 8;     // keep exactly 8 weeks
+  const current = D.supply.current;   // keep OAE-anchored starting point (พันตัน)
 
-  // Recompute readiness (% of demand met at current supply)
-  D.supply.readiness = Math.round((current / D.supply.demand[0]) * 100);
+  // Build 8-week supply array: index 0 = W1 (current), index 7 = W8 (horizon)
+  const projArr = [current];
+  for (let i = 1; i < 8; i++) {
+    projArr.push(fmt1(current * Math.pow(weeklyDecline, i)));
+  }
+  D.supply.projected = projArr;
 
-  // Price projection: OAE KDML105 paddy anchor + supply-demand gap elasticity
-  // Elasticity: 1% supply gap → ~1.8% price premium (Thai rice market estimate)
+  // Readiness: % of W1 demand that current supply covers (capped display at 100)
+  D.supply.readiness = Math.min(100, Math.round((current / D.supply.demand[0]) * 100));
+
+  // Price projection: OAE KDML105 paddy anchor + mild supply-demand gap elasticity
+  // Calibrated so a 20 % supply gap at week 8 → ~16 % price premium (Thai rice market)
   const anchorPrice = D.price.actual[0];
   D.price.actual = D.supply.projected.map((supply, i) => {
-    const gap      = (D.supply.demand[i] - supply) / D.supply.demand[i];
-    const markup   = 1 + gap * 1.8 * (i + 1) / 4;   // compound over weeks
+    const gap    = Math.max(0, (D.supply.demand[i] - supply) / D.supply.demand[i]);
+    const markup = 1 + gap * 0.80 * (i / 7);   // linear ramp, tops at week 8
     return Math.round(anchorPrice * markup);
   });
-  D.price.band_low  = D.price.actual.map(p => Math.round(p * 0.967));
-  D.price.band_high = D.price.actual.map(p => Math.round(p * 1.052));
+  D.price.band_low  = D.price.actual.map(p => Math.round(p * 0.968));
+  D.price.band_high = D.price.actual.map(p => Math.round(p * 1.045));
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ALERTS — regenerated from live data
   // ═══════════════════════════════════════════════════════════════════════════
   const critNames  = D.districts.filter(d => d.risk === 'CRITICAL').map(d => d.nameTh);
   const highNames  = D.districts.filter(d => d.risk === 'HIGH').map(d => d.nameTh);
-  const shortageW8 = Math.round(D.supply.demand[7] - D.supply.projected[7]);
+  const shortageW8 = Math.max(0, Math.round((D.supply.demand[7] - D.supply.projected[7]) * 10) / 10);
   const priceW8    = D.price.actual[7];
   const priceUpPct = Math.round(((priceW8 - anchorPrice) / anchorPrice) * 100);
 
