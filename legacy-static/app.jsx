@@ -120,8 +120,15 @@ function TopBar({ module }) {
         </div>
         <span className="chip ok thai">
           <span className="dot" />
-          ระบบปกติ
+          {D.province.dataSource === 'LIVE' ? 'ข้อมูลจริง LIVE' : 'กำลังโหลดข้อมูล…'}
         </span>
+        {D.province.dataSource === 'LIVE' && (
+          <span className="chip data" style={{ fontSize: 11, gap: 4 }}>
+            🌧 {D.province.weekRain ?? '--'} มม./สัปดาห์ &nbsp;·&nbsp;
+            🌡 {D.province.weatherTemp ?? '--'}°C &nbsp;·&nbsp;
+            💨 PM2.5 {D.province.pm25}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -240,15 +247,28 @@ function OverviewHero({ module, setModule }) {
 
 function App() {
   const [module, setModule] = useStateApp(() => localStorage.getItem('cs_mod') || 'm1');
+  // dataVersion increments when real API data arrives → forces re-render of all children
+  const [dataVersion, setDataVersion] = useStateApp(0);
 
   useEffectApp(() => {
     localStorage.setItem('cs_mod', module);
   }, [module]);
 
+  useEffectApp(() => {
+    // If api-fetch.js already finished before React mounted, refresh immediately
+    if (window.CS_DATA_LOADED && dataVersion === 0) {
+      setDataVersion(1);
+      return;
+    }
+    const handler = () => setDataVersion(v => v + 1);
+    window.addEventListener('cs-data-ready', handler);
+    return () => window.removeEventListener('cs-data-ready', handler);
+  }, []);
+
   let view = null;
-  if (module === 'm1') view = <window.Module1 />;
-  if (module === 'm2') view = <window.Module2 />;
-  if (module === 'm3') view = <window.Module3 />;
+  if (module === 'm1') view = <window.Module1 key={dataVersion} />;
+  if (module === 'm2') view = <window.Module2 key={dataVersion} />;
+  if (module === 'm3') view = <window.Module3 key={dataVersion} />;
 
   return (
     <div className="app">
