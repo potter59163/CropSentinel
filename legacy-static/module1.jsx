@@ -20,13 +20,19 @@ function pmColor(v) {
   if (v >= 35) return 'oklch(0.65 0.12 330 / 0.3)';
   return 'oklch(0.7 0.08 330 / 0.18)';
 }
+function droughtColor(v) {
+  if (v >= 0.75) return 'oklch(0.58 0.19 55 / 0.76)';
+  if (v >= 0.55) return 'oklch(0.66 0.17 65 / 0.62)';
+  if (v >= 0.35) return 'oklch(0.76 0.14 82 / 0.48)';
+  return 'oklch(0.72 0.1 120 / 0.30)';
+}
 function riskChip(r) {
   const map = { LOW: 'ok', MEDIUM: 'warn', HIGH: 'risk', CRITICAL: 'risk' };
   return map[r] || 'warn';
 }
 
 function MapView() {
-  const [layer, setLayer] = useState('ndvi'); // ndvi | flood | pm25
+  const [layer, setLayer] = useState('ndvi'); // ndvi | flood | drought | pm25
   const [hover, setHover] = useState(null);
   const [selected, setSelected] = useState(null);
   const [cursor, setCursor] = useState({ x: 100.52, y: 14.02 });
@@ -47,6 +53,7 @@ function MapView() {
   const districtFill = (d) => {
     if (layer === 'ndvi') return ndviColor(d.ndvi);
     if (layer === 'flood') return floodColor(d.flood);
+    if (layer === 'drought') return droughtColor(d.drought ?? 0);
     return pmColor(d.pm25);
   };
 
@@ -109,6 +116,7 @@ function MapView() {
               <text x={cx} y={cy + 10} textAnchor="middle" fontFamily="var(--font-mono)" fontSize="9" fill="var(--fg-2)" letterSpacing="0.5">
                 {layer === 'ndvi' && `NDVI ${d.ndvi.toFixed(2)}`}
                 {layer === 'flood' && `FLOOD ${(d.flood * 100).toFixed(0)}%`}
+                {layer === 'drought' && `DRY ${(d.drought * 100).toFixed(0)}%`}
                 {layer === 'pm25' && `PM2.5 ${d.pm25}`}
               </text>
             </g>
@@ -135,6 +143,7 @@ function MapView() {
         <div className="toggle-group">
           <button className={layer === 'ndvi' ? 'on' : ''} onClick={() => setLayer('ndvi')}>NDVI</button>
           <button className={layer === 'flood' ? 'on' : ''} onClick={() => setLayer('flood')}>FLOOD</button>
+          <button className={layer === 'drought' ? 'on' : ''} onClick={() => setLayer('drought')}>DROUGHT</button>
           <button className={layer === 'pm25' ? 'on' : ''} onClick={() => setLayer('pm25')}>PM2.5</button>
         </div>
       </div>
@@ -167,6 +176,13 @@ function MapView() {
             <div><span className="sw" style={{ background: 'oklch(0.5 0.2 330 / 0.6)' }}/> &gt; 55 <span className="thai">(อันตราย)</span></div>
           </>
         )}
+        {layer === 'drought' && (
+          <>
+            <div><span className="sw" style={{ background: 'oklch(0.72 0.1 120 / 0.30)' }}/> <span className="thai">ต่ำ</span> &lt; 35%</div>
+            <div><span className="sw" style={{ background: 'oklch(0.76 0.14 82 / 0.48)' }}/> <span className="thai">เฝ้าระวัง</span> 35–55%</div>
+            <div><span className="sw" style={{ background: 'oklch(0.66 0.17 65 / 0.62)' }}/> <span className="thai">สูง</span> &gt; 55%</div>
+          </>
+        )}
       </div>
 
       {/* Popup */}
@@ -186,13 +202,15 @@ function DistrictPopup({ d, layer, onClose }) {
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>{d.name}</div>
           <div className="thai" style={{ fontSize: 12, color: 'var(--fg-2)' }}>{d.nameTh}</div>
         </div>
-        <span className={`chip ${riskChip(d.risk)}`} style={{ marginLeft: 'auto' }}>
-          <span className="dot"/> {d.risk}
+        <span className={`chip ${riskChip(layer === 'drought' ? d.droughtRisk : d.risk)}`} style={{ marginLeft: 'auto' }}>
+          <span className="dot"/> {layer === 'drought' ? d.droughtRisk : d.risk}
         </span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
         <Metric k="NDVI" v={d.ndvi.toFixed(2)} sub={d.ndvi > 0.65 ? 'ปกติ' : 'พืชเครียด'} />
         <Metric k="ความเสี่ยงน้ำท่วม" v={`${(d.flood * 100).toFixed(0)}%`} sub={d.flood > 0.5 ? 'ต้องเฝ้าระวัง' : 'ปกติ'} />
+        <Metric k="ภัยแล้ง" v={`${(d.drought * 100).toFixed(0)}%`} sub={d.droughtRisk || 'LOW'} />
+        <Metric k="Water stress" v={`${d.waterStress ?? 0}%`} sub={`soil ${d.soilMoisture?.toFixed?.(2) ?? '--'}`} />
         <Metric k="PM2.5" v={`${d.pm25}`} sub="μg/m³" />
         <Metric k="พื้นที่เพาะปลูก" v={`${(d.farmland/1000).toFixed(0)}k`} sub="ไร่" />
       </div>
@@ -256,7 +274,7 @@ function Module1() {
           </div>
           <table className="tbl">
             <thead>
-              <tr><th className="thai">อำเภอ</th><th>NDVI</th><th className="thai">น้ำท่วม</th><th>PM2.5</th><th className="thai">พื้นที่</th><th className="thai">ความเสี่ยง</th></tr>
+              <tr><th className="thai">อำเภอ</th><th>NDVI</th><th className="thai">น้ำท่วม</th><th className="thai">ภัยแล้ง</th><th>PM2.5</th><th className="thai">พื้นที่</th><th className="thai">ความเสี่ยง</th></tr>
             </thead>
             <tbody>
               {window.CS_DATA.districts.map(d => (
@@ -267,9 +285,13 @@ function Module1() {
                   </td>
                   <td className="mono" style={{ color: ndviColor(d.ndvi) }}>{d.ndvi.toFixed(2)}</td>
                   <td className="mono">{(d.flood * 100).toFixed(0)}%</td>
+                  <td className="mono" style={{ color: droughtColor(d.drought) }}>{(d.drought * 100).toFixed(0)}%</td>
                   <td className="mono">{d.pm25}</td>
                   <td className="mono">{(d.farmland/1000).toFixed(0)}k ไร่</td>
-                  <td><span className={`chip ${riskChip(d.risk)}`}><span className="dot"/>{d.risk}</span></td>
+                  <td>
+                    <span className={`chip ${riskChip(d.risk)}`}><span className="dot"/>F {d.risk}</span>
+                    <span className={`chip ${riskChip(d.droughtRisk)}`} style={{ marginLeft: 6 }}><span className="dot"/>D {d.droughtRisk}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

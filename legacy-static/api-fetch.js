@@ -29,6 +29,12 @@
     if (mm7 >  30) return 'MEDIUM';
     return 'LOW';
   }
+  function droughtLevel(score) {
+    if (score >= 0.78) return 'CRITICAL';
+    if (score >= 0.52) return 'HIGH';
+    if (score >= 0.32) return 'MEDIUM';
+    return 'LOW';
+  }
 
   // ── helpers for supply/price labels ─────────────────────────────────────
   function fmt1(v) { return Math.round(v * 10) / 10; }
@@ -43,6 +49,27 @@
     'lat-lum-kaeo': 0.33,   // terrain slightly higher
     'samkhok':      0.48,
     'rangsit':      0.95,   // คลองรังสิต — lowest elevation
+  };
+
+  // District sensitivity to water stress (0-1), higher = dries out faster.
+  const DROUGHT_SUSC = {
+    'mueang':       0.58,
+    'khlongluang':  0.68,
+    'thanyaburi':   0.74,
+    'nongsuea':     0.82,
+    'lat-lum-kaeo': 0.46,
+    'samkhok':      0.54,
+    'rangsit':      0.86,
+  };
+
+  const SOIL_OFFSET = {
+    'mueang':       +0.03,
+    'khlongluang':  -0.03,
+    'thanyaburi':   -0.06,
+    'nongsuea':     -0.08,
+    'lat-lum-kaeo': +0.07,
+    'samkhok':      +0.02,
+    'rangsit':      -0.10,
   };
 
   // ── per-district PM2.5 offset from province centroid ──────────────────────
@@ -72,6 +99,8 @@
   // https://open-meteo.com  (free, no API key, CORS-OK)
   // ═══════════════════════════════════════════════════════════════════════════
   let week1Rain = 0, week2Rain = 0, currentTemp = 30, currentHumidity = 78;
+  let dryDays = D.province.dryDays ?? 9;
+  let soilMoistureBase = D.province.soilMoisture ?? 0.42;
 
   try {
     const meteoURL =
@@ -89,6 +118,7 @@
     const dp = meteo.daily?.precipitation_sum ?? [];
     week1Rain = dp.slice(0, 7).reduce((s, v) => s + (v ?? 0), 0);  // mm next 7 days
     week2Rain = dp.slice(7, 14).reduce((s, v) => s + (v ?? 0), 0); // mm days 8-14
+    dryDays = dp.slice(0, 14).filter(v => (v ?? 0) < 1).length;
 
     // Province-level flood risk from real precipitation
     D.province.floodRisk = floodLevel(week1Rain);
@@ -105,6 +135,7 @@
     D.province.weatherTemp     = Math.round(currentTemp);
     D.province.weatherHumidity = Math.round(currentHumidity);
     D.province.weekRain        = Math.round(week1Rain);
+    D.province.dryDays         = dryDays;
     D.province.dataSource      = 'LIVE';
 
     console.info('[CS] Open-Meteo ✓', { week1Rain: Math.round(week1Rain), floodRisk: D.province.floodRisk });
@@ -178,6 +209,8 @@
       const avgGwet  = avg(gwetArr)  ?? 0.55;   // 0–1 soil wetness
       const avgSolar = avg(solarArr) ?? 16;     // MJ/m²/day
       const avgTemp  = avg(tempArr)  ?? 30;     // °C
+      soilMoistureBase = round2(clamp(avgGwet, 0.15, 0.90));
+      D.province.soilMoisture = soilMoistureBase;
 
       // NDVI proxy for rice in tropical wet season:
       //   • soil wetness: optimal 0.55–0.80 for rice (paddy needs water but not waterlogged)
@@ -204,6 +237,7 @@
     }
   } catch (e) {
     console.warn('[CS] NASA POWER fetch failed, using mock NDVI:', e.message);
+    D.province.soilMoisture = soilMoistureBase;
     // Still apply offsets from mock base
     D.districts.forEach(d => {
       d.ndvi = round2(clamp(D.province.avgNDVI + (NDVI_OFFSET[d.id] ?? 0), 0.20, 0.92));
@@ -213,14 +247,45 @@
   // ═══════════════════════════════════════════════════════════════════════════
   // DERIVED — Supply & Price Projection (weather-adjusted)
   // OAE 2024-25 anchor: KDML105 paddy ≈ ฿9,200/ton current season
-  // Supply model: weekly decline driven by real flood risk + NDVI
+  // Supply model: weekly decline driven by water risk + NDVI
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Stress index: blend flood rain intensity + average district NDVI deficit
+  // Stress index: blend flood rain intensity + drought pressure + average district NDVI deficit
   const ndviAvg     = D.districts.reduce((s, d) => s + d.ndvi, 0) / D.districts.length;
   const ndviDeficit = clamp((0.70 - ndviAvg) / 0.40, 0, 1);   // 0 = healthy, 1 = very stressed
   const rainStress  = clamp(week1Rain / 120, 0, 1);            // 120 mm = max reference
-  const stressIndex = 0.55 * rainStress + 0.45 * ndviDeficit;  // 0–1
+  const droughtRainStress = 1 - clamp((week1Rain + week2Rain * 0.5) / 80, 0, 1);
+  const soilDryness = 1 - clamp(soilMoistureBase / 0.70, 0, 1);
+  const heatStress = clamp((currentTemp - 32) / 8, 0, 1);
+  const droughtScore = clamp(
+    0.35 * droughtRainStress +
+    0.30 * soilDryness +
+    0.20 * ndviDeficit +
+    0.15 * heatStress,
+    0,
+    1
+  );
+
+  D.province.droughtRisk = droughtLevel(droughtScore);
+  D.province.waterStress = Math.round(droughtScore * 100);
+
+  D.districts.forEach(d => {
+    const districtSoil = clamp(soilMoistureBase + (SOIL_OFFSET[d.id] ?? 0), 0.12, 0.90);
+    const localNdviDeficit = clamp((0.70 - d.ndvi) / 0.40, 0, 1);
+    const localDrought = clamp(
+      droughtScore * (0.72 + (DROUGHT_SUSC[d.id] ?? 0.60) * 0.42) +
+      localNdviDeficit * 0.16 -
+      districtSoil * 0.10,
+      0,
+      1
+    );
+    d.soilMoisture = round2(districtSoil);
+    d.drought = round2(localDrought);
+    d.waterStress = Math.round(localDrought * 100);
+    d.droughtRisk = droughtLevel(localDrought);
+  });
+
+  const stressIndex = clamp(0.45 * rainStress + 0.30 * droughtScore + 0.25 * ndviDeficit, 0, 1);  // 0–1
 
   // Weekly supply decline: 1.5 % base + up to 2 % stress bonus → realistic 10–25 % 8-week drop
   const weeklyDecline = 1 - (0.015 + stressIndex * 0.020);
@@ -253,6 +318,8 @@
   // ═══════════════════════════════════════════════════════════════════════════
   const critNames  = D.districts.filter(d => d.risk === 'CRITICAL').map(d => d.nameTh);
   const highNames  = D.districts.filter(d => d.risk === 'HIGH').map(d => d.nameTh);
+  const droughtCritNames = D.districts.filter(d => d.droughtRisk === 'CRITICAL').map(d => d.nameTh);
+  const droughtHighNames = D.districts.filter(d => d.droughtRisk === 'HIGH').map(d => d.nameTh);
   const shortageW8 = Math.max(0, Math.round((D.supply.demand[7] - D.supply.projected[7]) * 10) / 10);
   const priceW8    = D.price.actual[7];
   const priceUpPct = Math.round(((priceW8 - anchorPrice) / anchorPrice) * 100);
@@ -268,6 +335,20 @@
       titleEn: `Flood Risk — ${Math.round(week1Rain)} mm/week rain (Open-Meteo Live)`,
       body: `ฝนสะสม 7 วันข้างหน้า ${Math.round(week1Rain)} มม. อุณหภูมิ ${D.province.weatherTemp ?? '--'}°C · ความชื้น ${D.province.weatherHumidity ?? '--'}% — พื้นที่เสี่ยง: ${floodZones || 'ไม่มี'}`,
       tag: 'น้ำท่วม',
+    });
+  }
+
+  // Drought alert (heuristic from rain deficit + soil moisture + NDVI)
+  if (D.province.droughtRisk !== 'LOW' || dryDays >= 5 || soilMoistureBase < 0.55) {
+    const droughtZones = [...droughtCritNames, ...droughtHighNames].slice(0, 3).join(', ') || 'พื้นที่นอกเขตชลประทาน';
+    newAlerts.push({
+      id: 'a5',
+      level: D.province.droughtRisk === 'CRITICAL' ? 'crit' : D.province.droughtRisk === 'HIGH' ? 'risk' : 'warn',
+      confidence: 0.72,
+      title: `${D.province.droughtRisk === 'LOW' ? 'เฝ้าระวังภัยแล้ง' : 'เสี่ยงภัยแล้งสะสม'} — water stress ${D.province.waterStress}%`,
+      titleEn: `Drought stress ${D.province.waterStress}% — heuristic water-risk score`,
+      body: `ฝน 7 วัน ${Math.round(week1Rain)} มม. · วันฝนน้อย ${dryDays}/14 วัน · soil moisture ${soilMoistureBase.toFixed(2)} — พื้นที่ที่ควรเฝ้าระวัง: ${droughtZones}`,
+      tag: 'ภัยแล้ง',
     });
   }
 
@@ -295,11 +376,12 @@
 
   // PM2.5 alert (driven by WAQI)
   if (D.province.pm25 > 35) {
+    const pmPeak = [...D.districts].sort((a,b)=>b.pm25-a.pm25)[0];
     newAlerts.push({
       id: 'a4', level: D.province.pm25 > 55 ? 'risk' : 'warn', confidence: 0.92,
       title: `PM2.5 ${D.province.pm25} μg/m³ สูงเกินมาตรฐาน (WAQI Live)`,
       titleEn: `PM2.5 ${D.province.pm25} μg/m³ elevated (WAQI Live)`,
-      body: `ค่าฝุ่น PM2.5 ปัจจุบัน ${D.province.pm25} μg/m³ (WHO ≤15) — คาดผลผลิตลด 4-6% หากสภาพนี้ต่อเนื่อง 2 สัปดาห์ สูงสุด: ${D.districts.sort((a,b)=>b.pm25-a.pm25)[0].nameTh} (${D.districts.sort((a,b)=>b.pm25-a.pm25)[0].pm25} μg/m³)`,
+      body: `ค่าฝุ่น PM2.5 ปัจจุบัน ${D.province.pm25} μg/m³ (WHO ≤15) — คาดผลผลิตลด 4-6% หากสภาพนี้ต่อเนื่อง 2 สัปดาห์ สูงสุด: ${pmPeak.nameTh} (${pmPeak.pm25} μg/m³)`,
       tag: 'อากาศ',
     });
   }
@@ -310,13 +392,26 @@
   // RECOMMENDATIONS — urgency updated from live risk assessment
   // ═══════════════════════════════════════════════════════════════════════════
   const urgentZonesTh = [...critNames, ...highNames].slice(0, 3).join(' · ') || 'ทุกอำเภอ';
+  const droughtZonesTh = [...droughtCritNames, ...droughtHighNames].slice(0, 3).join(' · ') || 'แปลงนอกเขตชลประทาน';
 
   D.recommendations.farmer[0] = {
-    urgency: critNames.length ? 'urgent' : 'soft',
+    urgency: critNames.length ? 'urgent' : D.province.droughtRisk === 'HIGH' || D.province.droughtRisk === 'CRITICAL' ? 'urgent' : 'soft',
     icon: '!',
-    title: `เร่งเก็บเกี่ยวในพื้นที่ ${urgentZonesTh}`,
-    desc: `ฝนคาดสะสม ${Math.round(week1Rain)} มม./สัปดาห์ เลื่อนการเก็บเกี่ยวให้เร็วขึ้น 10-14 วัน เพื่อหลีกเลี่ยงน้ำท่วมช่วงสัปดาห์ที่ 2-3 ติดต่อสหกรณ์เพื่อใช้รถเกี่ยวร่วมกัน`,
-    meta: [`พื้นที่เสี่ยง: ${critNames.length + highNames.length} เขต`, `ฝน: ${Math.round(week1Rain)} มม./สัปดาห์`, `ระดับ: ${D.province.floodRisk}`],
+    title: critNames.length ? `เร่งเก็บเกี่ยวในพื้นที่ ${urgentZonesTh}` : `ปรับรอบให้น้ำในพื้นที่ ${droughtZonesTh}`,
+    desc: critNames.length
+      ? `ฝนคาดสะสม ${Math.round(week1Rain)} มม./สัปดาห์ เลื่อนการเก็บเกี่ยวให้เร็วขึ้น 10-14 วัน เพื่อหลีกเลี่ยงน้ำท่วมช่วงสัปดาห์ที่ 2-3 ติดต่อสหกรณ์เพื่อใช้รถเกี่ยวร่วมกัน`
+      : `water stress ${D.province.waterStress}% และ soil moisture ${soilMoistureBase.toFixed(2)} ควรเพิ่มการตรวจน้ำในแปลง ลดการปล่อยน้ำทิ้งกลางวัน และเตรียมน้ำสำรองใน 7 วัน`,
+    meta: critNames.length
+      ? [`พื้นที่เสี่ยงน้ำท่วม: ${critNames.length + highNames.length} เขต`, `ฝน: ${Math.round(week1Rain)} มม./สัปดาห์`, `ระดับ: ${D.province.floodRisk}`]
+      : [`พื้นที่เสี่ยงแล้ง: ${droughtCritNames.length + droughtHighNames.length} เขต`, `dry days: ${dryDays}/14`, `ระดับ: ${D.province.droughtRisk}`],
+  };
+
+  D.recommendations.farmer[1] = {
+    urgency: D.province.droughtRisk === 'LOW' ? 'good' : 'soft',
+    icon: D.province.droughtRisk === 'LOW' ? '✓' : '!',
+    title: 'ติดตามความชื้นดินและ NDWI ก่อนรอบให้น้ำถัดไป',
+    desc: `พื้นที่ที่ soil moisture ต่ำกว่า 0.40 ให้ปรับรอบให้น้ำแบบสั้นลงและติดตาม NDVI/NDWI หากดัชนียังลดต่อเนื่องให้แจ้งสหกรณ์เพื่อประสานน้ำสำรอง`,
+    meta: [`soil moisture: ${soilMoistureBase.toFixed(2)}`, `water stress: ${D.province.waterStress}%`, `dry days: ${dryDays}`],
   };
 
   D.recommendations.lgu[0] = {
@@ -325,6 +420,14 @@
     title: `เริ่มพิจารณาโควตานำเข้าข้าว — gap ${shortageW8} พันตัน`,
     desc: `คาดว่าจะขาดแคลน ${shortageW8} พันตัน ในสัปดาห์ที่ 8 แนะนำให้เริ่มเจรจารัฐต่อรัฐ (เวียดนาม เมียนมา) โดยทันที ระยะเวลานำเข้า ~6 สัปดาห์`,
     meta: [`ขาดแคลน: ${shortageW8} พันตัน`, 'ระยะเวลานำเข้า: 6 สัปดาห์', `ราคาคาด: ฿${priceW8.toLocaleString()}`],
+  };
+
+  D.recommendations.lgu[1] = {
+    urgency: D.province.droughtRisk === 'CRITICAL' || D.province.droughtRisk === 'HIGH' ? 'urgent' : 'soft',
+    icon: '!',
+    title: `เตรียมแผนจัดสรรน้ำ — ภัยแล้ง ${D.province.droughtRisk}`,
+    desc: `ติดตามพื้นที่ ${droughtZonesTh} หากฝนต่ำต่อเนื่องและ soil moisture ต่ำกว่า 0.40 ให้เตรียมรอบส่งน้ำสำรอง พร้อมสื่อสารคำแนะนำลดการใช้น้ำกับเกษตรกร`,
+    meta: [`water stress: ${D.province.waterStress}%`, `dry days: ${dryDays}/14`, `soil moisture: ${soilMoistureBase.toFixed(2)}`],
   };
 
   D.recommendations.retailer[0] = {

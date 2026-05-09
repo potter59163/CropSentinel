@@ -17,6 +17,10 @@ window.CS_DATA = {
     lastUpdate: "2026-04-22 08:14 ICT",
     pm25: 45,
     floodRisk: "HIGH",
+    droughtRisk: "MEDIUM",
+    dryDays: 9,
+    soilMoisture: 0.42,
+    waterStress: 58,
   },
 
   // Districts — simplified polygons on a 600x440 canvas,
@@ -24,43 +28,43 @@ window.CS_DATA = {
   districts: [
     {
       id: "mueang", name: "Mueang Pathum Thani", nameTh: "เมืองปทุมธานี",
-      ndvi: 0.71, flood: 0.35, pm25: 42,
+      ndvi: 0.71, flood: 0.35, drought: 0.38, droughtRisk: "MEDIUM", waterStress: 42, soilMoisture: 0.46, pm25: 42,
       farmland: 168_000, risk: "MEDIUM",
       poly: "310,180 360,168 410,182 430,220 408,260 366,268 330,258 305,226",
     },
     {
       id: "khlongluang", name: "Khlong Luang", nameTh: "คลองหลวง",
-      ndvi: 0.62, flood: 0.55, pm25: 48,
+      ndvi: 0.62, flood: 0.55, drought: 0.52, droughtRisk: "HIGH", waterStress: 55, soilMoisture: 0.39, pm25: 48,
       farmland: 204_000, risk: "HIGH",
       poly: "410,182 484,170 520,190 522,244 476,262 430,260 408,260 430,220",
     },
     {
       id: "thanyaburi", name: "Thanyaburi", nameTh: "ธัญบุรี",
-      ndvi: 0.58, flood: 0.48, pm25: 51,
+      ndvi: 0.58, flood: 0.48, drought: 0.57, droughtRisk: "HIGH", waterStress: 61, soilMoisture: 0.36, pm25: 51,
       farmland: 132_000, risk: "HIGH",
       poly: "430,260 476,262 522,244 540,282 516,318 470,328 436,310",
     },
     {
       id: "nongsuea", name: "Nong Suea", nameTh: "หนองเสือ",
-      ndvi: 0.54, flood: 0.72, pm25: 44,
+      ndvi: 0.54, flood: 0.72, drought: 0.62, droughtRisk: "HIGH", waterStress: 66, soilMoisture: 0.34, pm25: 44,
       farmland: 216_000, risk: "CRITICAL",
       poly: "484,170 556,156 596,186 590,236 552,254 522,244 520,190",
     },
     {
       id: "lat-lum-kaeo", name: "Lat Lum Kaeo", nameTh: "ลาดหลุมแก้ว",
-      ndvi: 0.74, flood: 0.22, pm25: 39,
+      ndvi: 0.74, flood: 0.22, drought: 0.28, droughtRisk: "LOW", waterStress: 33, soilMoisture: 0.50, pm25: 39,
       farmland: 178_000, risk: "LOW",
       poly: "210,178 310,180 305,226 330,258 298,288 244,280 212,244",
     },
     {
       id: "samkhok", name: "Sam Khok", nameTh: "สามโคก",
-      ndvi: 0.68, flood: 0.31, pm25: 41,
+      ndvi: 0.68, flood: 0.31, drought: 0.41, droughtRisk: "MEDIUM", waterStress: 45, soilMoisture: 0.44, pm25: 41,
       farmland: 148_000, risk: "MEDIUM",
       poly: "298,288 330,258 366,268 386,300 370,340 322,352 290,328",
     },
     {
       id: "rangsit", name: "Rangsit (Khlong Rangsit)", nameTh: "รังสิต",
-      ndvi: 0.49, flood: 0.82, pm25: 57,
+      ndvi: 0.49, flood: 0.82, drought: 0.69, droughtRisk: "HIGH", waterStress: 72, soilMoisture: 0.31, pm25: 57,
       farmland: 140_400, risk: "CRITICAL",
       poly: "366,268 408,260 436,310 470,328 458,376 410,388 378,362 370,340 386,300",
     },
@@ -110,16 +114,25 @@ window.CS_DATA = {
       body: "PM2.5 เฉลี่ย 45 μg/m³ คาดว่าผลผลิตในพื้นที่เสี่ยงจะลดลง 4-6% หากสภาพนี้ต่อเนื่อง 2 สัปดาห์ขึ้นไป",
       tag: "อากาศ",
     },
+    {
+      id: "a5", level: "warn", confidence: 0.73,
+      title: "เสี่ยงภัยแล้งสะสม — ดินเริ่มขาดความชื้น",
+      titleEn: "Drought stress — soil moisture below normal",
+      body: "ฝนสะสมต่ำและความชื้นดินเฉลี่ย 0.42 ทำให้บางอำเภอเริ่มมี water stress ควรติดตามแหล่งน้ำและรอบให้น้ำใน 2 สัปดาห์ข้างหน้า",
+      tag: "ภัยแล้ง",
+    },
   ],
 
   recommendations: {
     farmer: [
       { urgency: "urgent", icon: "!", title: "เร่งเก็บเกี่ยวในพื้นที่รังสิตและหนองเสือ", desc: "เลื่อนการเก็บเกี่ยวให้เร็วขึ้น 10-14 วัน เพื่อหลีกเลี่ยงน้ำท่วมช่วงสัปดาห์ที่ 3 ติดต่อสหกรณ์เพื่อใช้รถเกี่ยวร่วมกัน", meta: ["พื้นที่: 2 เขต", "กำหนด: 7 วัน", "ผลผลิตลดลง ~6%"] },
+      { urgency: "soft", icon: "!", title: "ปรับรอบให้น้ำในแปลงที่ดินเริ่มแห้ง", desc: "พื้นที่ที่มี soil moisture ต่ำกว่า 0.40 ควรเพิ่มการติดตามน้ำในแปลงและลดการปล่อยน้ำทิ้งช่วงกลางวัน เพื่อลด water stress", meta: ["ภัยแล้ง: MEDIUM", "soil moisture: 0.42", "dry days: 9"] },
       { urgency: "soft", icon: "◐", title: "พิจารณาเปลี่ยนพันธุ์ KDML105 → กข79", desc: "สำหรับฤดูกาลเพาะปลูกหน้าในแปลงเสี่ยงน้ำท่วม พันธุ์ กข79 ทนน้ำท่วมได้ 14 วัน เทียบกับ 5 วันของพันธุ์เดิม", meta: ["ฤดู: ถัดไป", "รัฐอุดหนุน: มี"] },
       { urgency: "good", icon: "✓", title: "NDVI ในลาดหลุมแก้วอยู่ในเกณฑ์ดี", desc: "ไม่ต้องดำเนินการ รักษาตารางการให้น้ำแบบเปียกสลับแห้งตามปกติ", meta: ["NDVI: 0.74", "สถานะ: คงที่"] },
     ],
     lgu: [
       { urgency: "urgent", icon: "!", title: "เริ่มพิจารณาโควตานำเข้าข้าว", desc: "คาดว่าจะขาดแคลน 46,000 ตัน ในสัปดาห์ที่ 8 แนะนำให้เริ่มเจรจารัฐต่อรัฐ (เวียดนาม เมียนมา) โดยทันที", meta: ["ขาดแคลน: 46,000 ตัน", "ระยะเวลานำเข้า: 6 สัปดาห์"] },
+      { urgency: "soft", icon: "!", title: "เตรียมแผนจัดสรรน้ำหากฝนต่ำต่อเนื่อง", desc: "ติดตาม dry days และ soil moisture รายอำเภอ หากพื้นที่เสี่ยงสูงเกิน 3 อำเภอ ให้เตรียมรอบส่งน้ำสำรองและประกาศคำแนะนำลดการใช้น้ำ", meta: ["dry days: 9", "water stress: 58%", "หน่วยงานน้ำ: เฝ้าระวัง"] },
       { urgency: "soft", icon: "◐", title: "เตรียมความพร้อมรับมือน้ำท่วมรังสิต", desc: "จัดวางกระสอบทรายและเครื่องสูบน้ำที่คลังคลองหลวงและธัญบุรีก่อนสัปดาห์ที่ 2", meta: ["งบประมาณ: 24 ล้านบาท", "อำเภอ: 2"] },
       { urgency: "soft", icon: "◐", title: "หารือมาตรการเพดานราคา", desc: "เชิญกระทรวงพาณิชย์ประชุมหากราคาเกิน 10,500 บาท/ตัน เพื่อป้องกันผลกระทบต่อผู้บริโภค", meta: ["กระตุ้น: สัปดาห์ที่ 6", "ความเชื่อมั่น: 76%"] },
     ],

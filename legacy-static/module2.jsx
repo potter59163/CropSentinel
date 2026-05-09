@@ -286,7 +286,7 @@ function Module2() {
             {[
               ['Supply LSTM', 0.89, 'var(--ok)'],
               ['Price XGBoost', 0.82, 'var(--data)'],
-              ['Flood CNN', 0.91, 'var(--ok)'],
+              ['Flood/Drought Risk', 0.86, 'var(--ok)'],
               ['Yield Prophet', 0.74, 'var(--warn)'],
             ].map(([name, v, c]) => (
               <div key={name} style={{ padding: 10, background: 'var(--bg-2)', borderRadius: 6 }}>
@@ -327,9 +327,10 @@ function Module2() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              ['กรณีพื้นฐาน — ขาดแคลนเล็กน้อย', 0.52, 'var(--warn)'],
-              ['วิกฤติน้ำท่วมรุนแรง', 0.31, 'var(--risk)'],
-              ['ฟื้นตัว — นำเข้าชดเชยได้', 0.12, 'var(--ok)'],
+              ['กรณีพื้นฐาน — ขาดแคลนเล็กน้อย', 0.42, 'var(--warn)'],
+              ['วิกฤติน้ำท่วมรุนแรง', 0.26, 'var(--risk)'],
+              ['ภัยแล้งต่อเนื่อง — ผลผลิตลด', 0.17, 'var(--warn)'],
+              ['ฟื้นตัว — นำเข้าชดเชยได้', 0.10, 'var(--ok)'],
               ['เหตุการณ์ไม่คาดคิด — พายุไต้ฝุ่น', 0.05, 'var(--crit)'],
             ].map(([name, p, c]) => (
               <div key={name}>
