@@ -143,12 +143,16 @@ function Module3() {
   const shortageRaw       = D.supply.demand[lastWeekIndex] - D.supply.projected[lastWeekIndex];
   const shortageAtHorizon = Math.max(0, Math.round(shortageRaw * 10) / 10);  // พันตัน, ≥0
   const supplyLevel       = Math.min(100, D.supply.readiness);                // % capped at 100
-  const riskLevel         = D.province.floodRisk;
+  const riskRank         = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+  const floodRiskLevel   = D.province.floodRisk;
+  const droughtRiskLevel = D.province.droughtRisk ?? 'LOW';
+  const riskLevel        = riskRank[droughtRiskLevel] > riskRank[floodRiskLevel] ? droughtRiskLevel : floodRiskLevel;
+  const leadingRiskLabel = riskRank[droughtRiskLevel] > riskRank[floodRiskLevel] ? 'ภัยแล้ง' : 'น้ำท่วม';
   const priceStart        = D.price.actual[0];
   const priceNow          = D.price.actual[D.price.actual.length - 1];
   const priceDeltaPct     = Math.round(((priceNow - priceStart) / priceStart) * 1000) / 10;
   const flowSummary = [
-    { layer: 'Data Layer', explain: 'รู้ว่า "ตอนนี้เกิดอะไรขึ้น"', detail: 'Satellite + NDVI + flood + PM2.5' },
+    { layer: 'Data Layer', explain: 'รู้ว่า "ตอนนี้เกิดอะไรขึ้น"', detail: 'Satellite + NDVI + flood + drought + PM2.5' },
     { layer: 'AI Layer', explain: 'รู้ว่า "จะเกิดอะไรต่อ"', detail: 'Forecast supply shortage และ price volatility' },
     { layer: 'Decision Layer', explain: 'รู้ว่า "ควรทำอะไร"', detail: 'Action plan รายกลุ่มเป้าหมายแบบเรียลไทม์' },
   ];
@@ -156,7 +160,7 @@ function Module3() {
     {
       role: 'รัฐบาล / อปท.',
       roleEn: 'Policy Command',
-      action: `เตรียมแผนนำเข้า ${shortageAtHorizon.toFixed(0)} พันตัน และตั้ง trigger เพดานราคา`,
+      action: `เตรียมแผนนำเข้า ${shortageAtHorizon.toFixed(0)} พันตัน พร้อมแผนจัดสรรน้ำหากภัยแล้งสูงขึ้น`,
       eta: 'ต้องเริ่มใน 7 วัน',
       tone: 'urgent',
     },
@@ -170,7 +174,7 @@ function Module3() {
     {
       role: 'โลจิสติกส์',
       roleEn: 'Route & Distribution',
-      action: 'เปลี่ยนเส้นทางส่งออกจากโซนเสี่ยงน้ำท่วม และย้าย hub ไปคลังสำรอง',
+      action: 'เปลี่ยนเส้นทางจากโซนน้ำท่วมหรือแล้งจัด และย้าย hub ไปคลังสำรอง',
       eta: 're-route ภายใน 72 ชั่วโมง',
       tone: 'risk',
     },
@@ -182,7 +186,7 @@ function Module3() {
     },
     lgu: {
       title: 'ส่งแผนตอบสนองให้หน่วยงานแล้ว',
-      detail: 'แจ้งเตือนถึง อปท. 7 หน่วยงาน และศูนย์ป้องกันภัย 2 จุด เพื่อเตรียมรับมือน้ำท่วม',
+      detail: 'แจ้งเตือนถึง อปท. 7 หน่วยงาน และศูนย์ป้องกันภัย 2 จุด เพื่อเตรียมรับมือน้ำท่วม/ภัยแล้ง',
     },
     retailer: {
       title: 'ปล่อย advisory ให้คู่ค้าปลีกแล้ว',
@@ -216,7 +220,7 @@ function Module3() {
       kpis: [
         { k: 'แปลงของคุณ', v: '4', u: 'แปลง' },
         { k: 'ผลผลิตคาดการณ์', v: '3.8', u: 'ตัน/ไร่' },
-        { k: 'เวลาเก็บเกี่ยว', v: '7', u: 'วัน' },
+        { k: 'Water stress', v: `${D.province.waterStress ?? 0}`, u: '%' },
       ],
     },
     lgu: {
@@ -268,10 +272,12 @@ function Module3() {
             <div className="rt-desc thai">อุปทานครอบคลุม {supplyLevel}% ของอุปสงค์ · ≈{(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์</div>
           </div>
 
-          <div className="rt-card">
-            <div className="rt-label">RISK LEVEL</div>
-            <div className={`rt-value risk-${riskLevel.toLowerCase()}`}>{riskLevel}</div>
-            <div className="rt-desc thai">ความเสี่ยงน้ำท่วมโซนเหนือจังหวัดอยู่ในระดับสูง</div>
+            <div className="rt-card">
+              <div className="rt-label">RISK LEVEL</div>
+              <div className={`rt-value risk-${riskLevel.toLowerCase()}`}>{riskLevel}</div>
+              <div className="rt-desc thai">
+                ความเสี่ยงหลักคือ{leadingRiskLabel} · Flood {floodRiskLevel} / Drought {droughtRiskLevel}
+              </div>
           </div>
 
           <div className="rt-card rt-card-price">
@@ -381,11 +387,12 @@ function Module3() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                ['การเผชิญน้ำท่วม (รังสิต)', 0.34, 'var(--risk)'],
-                ['NDVI ลดลง', 0.26, 'var(--warn)'],
-                ['ระยะเวลานำเข้า', 0.18, 'var(--warn)'],
-                ['ฝุ่น PM2.5 สะสม', 0.12, 'oklch(0.6 0.18 330)'],
-                ['ความยืดหยุ่นของราคา', 0.1, 'var(--data)'],
+                ['การเผชิญน้ำท่วม (รังสิต)', 0.28, 'var(--risk)'],
+                ['ฝนต่ำกว่าค่าเฉลี่ย / dry days', 0.22, 'var(--warn)'],
+                ['soil moisture ต่ำ', 0.18, 'oklch(0.72 0.16 70)'],
+                ['NDVI ลดลง', 0.16, 'var(--warn)'],
+                ['ฝุ่น PM2.5 สะสม', 0.09, 'oklch(0.6 0.18 330)'],
+                ['ความยืดหยุ่นของราคา', 0.07, 'var(--data)'],
               ].map(([n, v, c]) => (
                 <div key={n}>
                   <div className="row space-between" style={{ marginBottom: 4 }}>

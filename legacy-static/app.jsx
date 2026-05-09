@@ -164,6 +164,7 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
           ['ราคาปัจจุบัน', `฿${D.price.actual[0].toLocaleString()}`],
           ['NDVI', D.province.avgNDVI.toFixed(2)],
           ['Flood Risk', D.province.floodRisk, riskColor[D.province.floodRisk]],
+          ['Drought', D.province.droughtRisk, riskColor[D.province.droughtRisk]],
           ['PM2.5', `${D.province.pm25} μg/m³`],
         ].map(([k, v, c]) => (
           <span key={k} style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>
@@ -226,6 +227,7 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
           <div className="overview-stat"><span className="label thai">Supply ปัจจุบัน</span><strong>{D.supply.current.toLocaleString()} พันตัน</strong></div>
           <div className="overview-stat"><span className="label thai">ราคาข้าวล่าสุด</span><strong>฿{D.price.actual[0].toLocaleString()}</strong></div>
           <div className="overview-stat"><span className="label thai">Flood Risk</span><strong style={{ color: riskColor[D.province.floodRisk] }}>{D.province.floodRisk}</strong></div>
+          <div className="overview-stat"><span className="label thai">Drought Risk</span><strong style={{ color: riskColor[D.province.droughtRisk] }}>{D.province.droughtRisk}</strong></div>
           <div className="overview-stat"><span className="label thai">Gap ณ ปลายช่วงคาดการณ์</span><strong>{shortageAtHorizon.toFixed(1)} พันตัน</strong></div>
         </div>
       </div>
