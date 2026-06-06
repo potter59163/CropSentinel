@@ -79,7 +79,7 @@ export function App() {
       checkProtected(lat, lng).catch(() => null),
     ]);
     setClimate(clim); setProt(pa); setSat(satContext(lat, lng));
-    setSystems(buildSystems(input, clim));
+    setSystems(buildSystems(input, clim, pa));
     setBusy(false);
   };
 

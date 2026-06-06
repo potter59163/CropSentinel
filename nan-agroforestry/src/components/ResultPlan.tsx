@@ -71,6 +71,7 @@ export function ResultPlan({ sys, rank }: { sys: SystemPlan; rank: number }) {
         <ScorePart label="Suitability" value={sys.scoreParts.suitability} />
         <ScorePart label="Economics" value={sys.scoreParts.economics} />
         <ScorePart label="Water fit" value={sys.scoreParts.waterFit} />
+        <ScorePart label="GISTDA risk" value={sys.scoreParts.riskFit} />
         <ScorePart label="Carbon" value={sys.scoreParts.carbon} />
       </div>
 

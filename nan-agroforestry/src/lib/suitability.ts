@@ -2,8 +2,25 @@
 import model from '../data/sdm_model.json';
 import type { Climate } from './climate';
 import type { Plant } from '../data/types';
+import type { ProtectedArea } from './gistda';
 
-interface SpeciesModel { w: number[]; b: number; auc: number; aucGBM?: number; n: number }
+interface GbmTree {
+  children_left: number[];
+  children_right: number[];
+  feature: number[];
+  threshold: number[];
+  value: number[];
+}
+interface SpeciesModel {
+  w: number[];
+  b: number;
+  auc: number;
+  aucGBM?: number;
+  aucLogitSpatial?: number;
+  preferred?: 'logit' | 'gbm';
+  gbm?: { learningRate: number; init: number; trees: GbmTree[] };
+  n: number;
+}
 const M = model as unknown as {
   base: string[]; sq: string[]; features: string[];
   mean: number[]; std: number[]; median: number[];
@@ -22,9 +39,21 @@ function envelope(plant: Plant, elev: number): number {
 }
 
 // build the model's feature vector from a plot's climate (impute missing with training median)
-function vector(c: Climate): number[] {
+export function disasterFeatureContext(risk: ProtectedArea | null) {
+  const layers = risk?.disasterDroughtLayers?.length ?? 0;
+  return {
+    fire7d_near: Math.log1p(Math.max(risk?.disasterFire7dNear ?? risk?.fireNearby ?? 0, 0)),
+    burn_freq_near: Math.log1p(Math.max(risk?.disasterBurnFreqNear ?? 0, 0)),
+    flood7d_near: Math.log1p(Math.max(risk?.disasterFlood7dNear ?? 0, 0)),
+    flood_freq_near: Math.log1p(Math.max(risk?.disasterFloodFreqNear ?? 0, 0)),
+    drought_layers: layers,
+  };
+}
+
+function vector(c: Climate, risk: ProtectedArea | null): number[] {
+  const disaster = disasterFeatureContext(risk);
   const base = M.base.map((n, i) => {
-    const v = (c as any)[n] as number;
+    const v = ((c as any)[n] ?? (disaster as any)[n]) as number;
     return Number.isFinite(v) ? v : M.median[i];
   });
   const sq = M.sq.map((n) => base[M.base.indexOf(n)] ** 2);
@@ -40,13 +69,37 @@ const confidence = (auc?: number): SuitConfidence => {
 
 export interface Suit { score: number; source: 'model' | 'envelope'; auc?: number; confidence: SuitConfidence }
 
-export function plantSuitability(plant: Plant, c: Climate | null): Suit {
+function sigmoid(v: number) {
+  return 1 / (1 + Math.exp(-v));
+}
+
+function logitPredict(sp: SpeciesModel, x: number[]) {
+  let lin = sp.b;
+  for (let i = 0; i < x.length; i++) lin += sp.w[i] * ((x[i] - M.mean[i]) / (M.std[i] || 1));
+  return sigmoid(lin);
+}
+
+function treeValue(tree: GbmTree, x: number[]) {
+  let node = 0;
+  while (tree.children_left[node] !== -1 && tree.children_right[node] !== -1) {
+    node = x[tree.feature[node]] <= tree.threshold[node] ? tree.children_left[node] : tree.children_right[node];
+  }
+  return tree.value[node] ?? 0;
+}
+
+function gbmPredict(sp: SpeciesModel, x: number[]) {
+  if (!sp.gbm) return logitPredict(sp, x);
+  let raw = sp.gbm.init;
+  for (const tree of sp.gbm.trees) raw += sp.gbm.learningRate * treeValue(tree, x);
+  return sigmoid(raw);
+}
+
+export function plantSuitability(plant: Plant, c: Climate | null, risk: ProtectedArea | null = null): Suit {
   const sp = READY && plant.sdmId ? M.species[plant.sdmId] : undefined;
   if (sp && sp.auc >= AUC_MIN && c) {
-    const x = vector(c);
-    let lin = sp.b;
-    for (let i = 0; i < x.length; i++) lin += sp.w[i] * ((x[i] - M.mean[i]) / (M.std[i] || 1));
-    return { score: 1 / (1 + Math.exp(-lin)), source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };
+    const x = vector(c, risk);
+    const score = sp.preferred === 'gbm' && sp.gbm ? gbmPredict(sp, x) : logitPredict(sp, x);
+    return { score, source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };
   }
   return { score: envelope(plant, c?.elev ?? plant.elevMin), source: 'envelope', auc: sp?.auc, confidence: sp ? 'low' : 'expert' };
 }

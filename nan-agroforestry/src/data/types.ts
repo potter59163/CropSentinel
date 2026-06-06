@@ -54,6 +54,7 @@ export interface LayerPick {
     suitability: number;
     economics: number;
     waterFit: number;
+    riskFit: number;
     carbon: number;
   };
 }
@@ -73,6 +74,7 @@ export interface SystemPlan {
     suitability: number;
     economics: number;
     waterFit: number;
+    riskFit: number;
     carbon: number;
     farmerFit: number;
   };
