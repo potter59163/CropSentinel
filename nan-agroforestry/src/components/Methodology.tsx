@@ -7,7 +7,7 @@ const nameTh = (id: string) => PLANTS.find((p) => p.sdmId === id)?.nameTh ?? id;
 
 const SOURCES = [
   ['Google Earth Engine', 'ดาวเทียม', 'Hansen Global Forest Change (ป่าหายรายปี) · ESA WorldCover 2021 (ประเภทที่ดิน) · Sentinel-2 (NDVI) — ดึงทั้งจังหวัดน่านเป็น grid'],
-  ['GISTDA', 'ภูมิสารสนเทศ', 'ชั้นเขตอุทยานแห่งชาติ + เขตรักษาพันธุ์สัตว์ป่า (ArcGIS) — ตรวจแปลงอยู่ใน/ใกล้พื้นที่อนุรักษ์'],
+  ['GISTDA', 'ภูมิสารสนเทศ', 'เขตอนุรักษ์ + แม่น้ำ + FR_Fire ArcGIS + Disaster Open API (VIIRS, flood, burn scar/frequency, DRIPlus/NDWI/SMAP) — ตรวจแปลงอยู่ใน/ใกล้พื้นที่เสี่ยงและภัยจากดาวเทียม'],
   ['NASA POWER', 'ภูมิอากาศ', 'Climatology รายเดือน → อุณหภูมิ ฝน ฤดูแล้ง ความชื้นดิน — เป็น feature ของโมเดล'],
   ['GBIF', 'ชีววิทยา', 'จุดพบพืชจริงทั่วโลก (taxonKey) — ใช้เป็น label ฝึกโมเดล SDM'],
   ['Open-Meteo', 'ภูมิประเทศ', 'ระดับความสูง (DEM) รายพิกัด'],
@@ -33,8 +33,8 @@ export function Methodology() {
 
       <h2 className="thai">ขั้นตอนการทำงาน (Pipeline)</h2>
       <div className="method-pipe">
-        {['ดาวเทียม + ภูมิอากาศ + จุดพบพืช', 'สร้าง feature (bioclim + ดาวเทียม)', 'ฝึกโมเดล SDM (logistic)',
-          'ให้คะแนนความเหมาะสมรายชนิด', 'ประกอบระบบวนเกษตร 4 ชั้น', 'คำนวณกำไร + คาร์บอน → 3 แผน'].map((s, i, a) => (
+        {['ดาวเทียม + GISTDA + ภูมิอากาศ + จุดพบพืช', 'ตรวจเขตป่า/ลำน้ำ/ไฟป่า/น้ำท่วม/ภัยแล้ง + สร้าง feature', 'ฝึกโมเดล SDM (logistic)',
+          'ให้คะแนนความเหมาะสมรายชนิด', 'ประกอบระบบวนเกษตร 4 ชั้น', 'คำนวณกำไร + คาร์บอน + fire/flood/water/drought buffer → 3 แผน'].map((s, i, a) => (
           <span key={s} style={{ display: 'contents' }}>
             <span className="step thai">{i + 1}. {s}</span>{i < a.length - 1 && <span className="arrow">→</span>}
           </span>
@@ -47,20 +47,22 @@ export function Methodology() {
         ({(M.base ?? []).join(', ')} + พจน์กำลังสอง) · วัดด้วย <b>5-fold cross-validated ROC-AUC</b> ·
         เทียบ benchmark กับ Gradient Boosting
       </p>
-      <table className="method-tbl">
-        <thead><tr><th className="thai">ไม้ยืนต้น</th><th>จุดฝึก (GBIF)</th><th>AUC (logistic)</th><th></th><th>AUC (GBM)</th></tr></thead>
-        <tbody>
-          {species.sort((a, b) => b[1].auc - a[1].auc).map(([id, s]) => (
-            <tr key={id}>
-              <td className="thai">{nameTh(id)}</td>
-              <td className="num">{s.n}</td>
-              <td className="num" style={{ color: s.auc >= 0.75 ? 'var(--ok)' : s.auc >= 0.6 ? 'var(--warn)' : 'var(--risk)' }}>{s.auc.toFixed(2)}</td>
-              <td style={{ width: 110 }}><div className="method-bar"><i style={{ width: `${Math.round(s.auc * 100)}%` }} /></div></td>
-              <td className="num">{s.aucGBM?.toFixed(2) ?? '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="method-table-wrap">
+        <table className="method-tbl">
+          <thead><tr><th className="thai">ไม้ยืนต้น</th><th>จุดฝึก (GBIF)</th><th>AUC (logistic)</th><th></th><th>AUC (GBM)</th></tr></thead>
+          <tbody>
+            {species.sort((a, b) => b[1].auc - a[1].auc).map(([id, s]) => (
+              <tr key={id}>
+                <td className="thai">{nameTh(id)}</td>
+                <td className="num">{s.n}</td>
+                <td className="num" style={{ color: s.auc >= 0.75 ? 'var(--ok)' : s.auc >= 0.6 ? 'var(--warn)' : 'var(--risk)' }}>{s.auc.toFixed(2)}</td>
+                <td style={{ width: 110 }}><div className="method-bar"><i style={{ width: `${Math.round(s.auc * 100)}%` }} /></div></td>
+                <td className="num">{s.aucGBM?.toFixed(2) ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <h2 className="thai">ความครอบคลุมข้อมูลดาวเทียม</h2>
       <p className="method-note thai">

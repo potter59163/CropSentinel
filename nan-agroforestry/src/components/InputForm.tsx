@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { FarmInput, Goal } from '../data/types';
-import { CANOPY } from '../data/plants';
+import type { FarmInput, Goal, Layer } from '../data/types';
+import { byLayer, LAYER_META } from '../data/plants';
 import { NAN_AMPHOE } from '../data/nan';
 import { Card, Field, SelectChips } from './ui';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
@@ -12,15 +12,23 @@ const goals: Array<{ id: Goal; label: string; desc: string }> = [
 ];
 
 const CURRENT_CROPS = ['ข้าวโพดเลี้ยงสัตว์', 'ข้าวไร่', 'ยางพารา', 'มันสำปะหลัง', 'พื้นที่ว่าง/เพิ่งถาง'];
+const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 
 export function InputForm({ value, onChange, onSubmit, busy }: {
   value: FarmInput; onChange: (v: FarmInput) => void; onSubmit: () => void; busy: boolean;
 }) {
   const [gps, setGps] = useState<'idle' | 'loading' | 'error'>('idle');
   const set = (patch: Partial<FarmInput>) => onChange({ ...value, ...patch });
-  const toggleCanopy = (id: string) => {
-    const a = value.selectedCanopyIds;
-    set({ selectedCanopyIds: a.includes(id) ? a.filter((x) => x !== id) : [...a, id] });
+  const selectedByLayer = value.selectedByLayer ?? { canopy: [], shrub: [], groundcover: [], root: [] };
+  const selectedTotal = LAYERS.reduce((sum, layer) => sum + (selectedByLayer[layer]?.length ?? 0), 0);
+  const togglePlant = (layer: Layer, id: string) => {
+    const a = selectedByLayer[layer] ?? [];
+    set({
+      selectedByLayer: {
+        ...selectedByLayer,
+        [layer]: a.includes(id) ? a.filter((x) => x !== id) : [...a, id],
+      },
+    });
   };
 
   const useGps = async () => {
@@ -71,10 +79,25 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
         </div>
       </Field>
 
-      <Field label="ไม้ยืนต้นที่สนใจ" hint="เลือกได้หลายอย่าง · เว้นว่าง = ให้ระบบเลือกที่เหมาะที่สุด (บังคับ ≥2 ชนิดในแผน)">
-        <SelectChips items={CANOPY} selected={value.selectedCanopyIds} onToggle={toggleCanopy}
-          label={(t) => <>{t.emoji} {t.nameTh}</>} />
-      </Field>
+      <div className="agro-palette">
+        <div className="agro-palette-head">
+          <div>
+            <div className="agro-palette-title thai">พืชที่อยากให้ระบบนำไปออกแบบ</div>
+            <div className="agro-palette-sub thai">เลือกได้ทุกชั้น · เว้นว่างชั้นไหน ระบบจะเติมชนิดที่เหมาะกับพื้นที่ให้</div>
+          </div>
+          <span className="agro-selected-count">{selectedTotal} selected</span>
+        </div>
+        {LAYERS.map((layer) => {
+          const m = LAYER_META[layer];
+          const selected = selectedByLayer[layer] ?? [];
+          return (
+            <Field key={layer} label={`${m.emoji} ${m.th}`} hint={m.desc}>
+              <SelectChips items={byLayer(layer)} selected={selected} onToggle={(id) => togglePlant(layer, id)}
+                label={(t) => <>{t.emoji} {t.nameTh}</>} />
+            </Field>
+          );
+        })}
+      </div>
 
       <Field label="เป้าหมายของคุณ">
         <div className="agro-goals">

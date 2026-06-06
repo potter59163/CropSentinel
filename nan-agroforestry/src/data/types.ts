@@ -35,7 +35,7 @@ export interface FarmInput {
   locationLabel: string;
   lat?: number;
   lng?: number;
-  selectedCanopyIds: string[]; // optional preference for canopy trees
+  selectedByLayer: Record<Layer, string[]>; // farmer preferences by forest layer
   goal: Goal;
 }
 
@@ -48,6 +48,7 @@ export interface LayerPick {
   source: 'model' | 'envelope'; // model = trained SDM, envelope = expert range
   auc?: number;
   shareRai: number;
+  pickedBy: 'farmer' | 'system';
 }
 
 export interface SystemPlan {
