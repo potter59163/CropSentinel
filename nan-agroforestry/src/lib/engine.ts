@@ -1,7 +1,8 @@
 import type { Plant, Layer, FarmInput, SystemPlan, LayerPick, CashflowPoint, Goal } from '../data/types';
 import { PLANTS, co2Of } from '../data/plants';
-import { plantSuitability } from './suitability';
+import { disasterFeatureContext, plantSuitability } from './suitability';
 import type { Climate } from './climate';
+import type { ProtectedArea } from './gistda';
 import { clamp, pct } from './format';
 
 const HORIZON = 10;
@@ -18,13 +19,15 @@ interface Scored {
   confidence: 'high' | 'medium' | 'low' | 'expert';
   value: number;
   waterFit: number;
+  riskFit: number;
   carbonFit: number;
 }
 
-function waterFit(p: Plant, climate: Climate | null): number {
+function waterFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null): number {
+  const disaster = disasterFeatureContext(risk);
   if (!climate) return 0.7;
-  const dryStress = climate.drym >= 5 || climate.gwet < 0.46 || climate.rh < 68;
-  const wetStress = climate.prec > 1600 || climate.gwet > 0.62;
+  const dryStress = climate.drym >= 5 || climate.gwet < 0.46 || climate.rh < 68 || disaster.drought_layers >= 2;
+  const wetStress = climate.prec > 1600 || climate.gwet > 0.62 || disaster.flood_freq_near >= Math.log1p(10);
   if (dryStress) {
     if (p.water === 'low') return 1;
     if (p.water === 'med') return 0.76;
@@ -39,12 +42,31 @@ function waterFit(p: Plant, climate: Climate | null): number {
   return 0.78;
 }
 
-function scoreAll(climate: Climate | null): Record<Layer, Scored[]> {
+function riskFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null): number {
+  const d = disasterFeatureContext(risk);
+  let score = 0.82;
+  if (d.fire7d_near > 0 || d.burn_freq_near >= Math.log1p(20)) {
+    score += p.water === 'low' ? 0.08 : p.water === 'med' ? 0.03 : -0.06;
+    score += p.perennial ? 0.05 : -0.02;
+    score += p.nFixing ? 0.04 : 0;
+  }
+  if (d.flood7d_near > 0 || d.flood_freq_near >= Math.log1p(20)) {
+    score += p.water === 'high' ? 0.1 : p.water === 'med' ? 0.04 : -0.08;
+    score += p.layer === 'groundcover' ? 0.03 : 0;
+  }
+  if ((climate?.drym ?? 0) >= 5 || d.drought_layers >= 2) {
+    score += p.water === 'low' ? 0.08 : p.water === 'med' ? 0.02 : -0.1;
+  }
+  return clamp(score, 0.35, 1);
+}
+
+function scoreAll(climate: Climate | null, risk: ProtectedArea | null): Record<Layer, Scored[]> {
   const out = { canopy: [], shrub: [], groundcover: [], root: [] } as Record<Layer, Scored[]>;
   for (const p of PLANTS) {
-    const s = plantSuitability(p, climate);
-    const water = waterFit(p, climate);
-    const deploySuit = clamp((s.score * 0.78) + (water * 0.14) + ((co2Of(p.id) / MAX_CARBON) * 0.08), 0, 1);
+    const s = plantSuitability(p, climate, risk);
+    const water = waterFit(p, climate, risk);
+    const riskScore = riskFit(p, climate, risk);
+    const deploySuit = clamp((s.score * 0.68) + (water * 0.13) + (riskScore * 0.11) + ((co2Of(p.id) / MAX_CARBON) * 0.08), 0, 1);
     out[p.layer].push({
       plant: p,
       suit: deploySuit,
@@ -53,6 +75,7 @@ function scoreAll(climate: Climate | null): Record<Layer, Scored[]> {
       confidence: s.confidence,
       value: (p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear) / MAX_VALUE,
       waterFit: water,
+      riskFit: riskScore,
       carbonFit: co2Of(p.id) / MAX_CARBON,
     });
   }
@@ -61,9 +84,9 @@ function scoreAll(climate: Climate | null): Record<Layer, Scored[]> {
 
 function goalRank(goal: Goal, s: Scored): number {
   const fast = s.plant.perennial ? clamp(1 - (s.plant.yearsToYield - 1) / 9, 0, 1) : 1;
-  if (goal === 'fast') return 0.34 * s.suit + 0.34 * fast + 0.18 * s.value + 0.14 * s.waterFit;
-  if (goal === 'profit') return 0.28 * s.suit + 0.52 * s.value + 0.12 * s.waterFit + 0.08 * s.carbonFit;
-  return 0.42 * s.suit + 0.24 * s.value + 0.2 * s.waterFit + 0.14 * s.carbonFit;
+  if (goal === 'fast') return 0.3 * s.suit + 0.32 * fast + 0.16 * s.value + 0.12 * s.waterFit + 0.1 * s.riskFit;
+  if (goal === 'profit') return 0.24 * s.suit + 0.48 * s.value + 0.1 * s.waterFit + 0.1 * s.riskFit + 0.08 * s.carbonFit;
+  return 0.36 * s.suit + 0.22 * s.value + 0.17 * s.waterFit + 0.13 * s.riskFit + 0.12 * s.carbonFit;
 }
 
 const selectedIds = (input: FarmInput, layer: Layer) => input.selectedByLayer?.[layer] ?? [];
@@ -138,6 +161,7 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
         suitability: s.suit,
         economics: s.value,
         waterFit: s.waterFit,
+        riskFit: s.riskFit,
         carbon: s.carbonFit,
       },
     });
@@ -173,12 +197,13 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   const suitability = picks.reduce((s, p) => s + p.suitability, 0) / picks.length;
   const economics = clamp(cum / 8_000_000, 0, 1);
   const water = picks.reduce((s, p) => s + p.scoreParts.waterFit, 0) / picks.length;
+  const disaster = picks.reduce((s, p) => s + p.scoreParts.riskFit, 0) / picks.length;
   const carbonScore = clamp(carbon10 / Math.max(1, sizeRai * 42), 0, 1);
   const farmerTotal = Object.values(input.selectedByLayer ?? {}).reduce((s, ids) => s + ids.length, 0);
   const farmerUsed = picks.filter((p) => p.pickedBy === 'farmer').length;
   const farmerFit = farmerTotal ? farmerUsed / farmerTotal : 0.72;
-  const scoreParts = { suitability, economics, waterFit: water, carbon: carbonScore, farmerFit };
-  const score = scoreParts.suitability * 0.38 + scoreParts.economics * 0.24 + scoreParts.waterFit * 0.17 + scoreParts.carbon * 0.13 + scoreParts.farmerFit * 0.08;
+  const scoreParts = { suitability, economics, waterFit: water, riskFit: disaster, carbon: carbonScore, farmerFit };
+  const score = scoreParts.suitability * 0.34 + scoreParts.economics * 0.22 + scoreParts.waterFit * 0.14 + scoreParts.riskFit * 0.14 + scoreParts.carbon * 0.1 + scoreParts.farmerFit * 0.06;
 
   return {
     picks, canopy: picks.filter((p) => p.layer === 'canopy'),
@@ -194,7 +219,7 @@ function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: Syst
   const layerCount = new Set(picks.map((p) => p.layer)).size;
   r.push(`โครงสร้าง ${layerCount} ชั้น (${picks.length} ชนิด): เรือนยอด ${canopy}` +
     picks.filter((p) => p.layer !== 'canopy').map((p) => ` · ${p.plant.nameTh}`).join(''));
-  r.push(`คะแนนแผน: เหมาะสม ${pct(scoreParts.suitability)} · เศรษฐกิจ ${pct(scoreParts.economics)} · น้ำ/แล้ง ${pct(scoreParts.waterFit)} · คาร์บอน ${pct(scoreParts.carbon)}`);
+  r.push(`คะแนนแผน: เหมาะสม ${pct(scoreParts.suitability)} · เศรษฐกิจ ${pct(scoreParts.economics)} · น้ำ/แล้ง ${pct(scoreParts.waterFit)} · GISTDA risk ${pct(scoreParts.riskFit)} · คาร์บอน ${pct(scoreParts.carbon)}`);
   const shadeLover = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol >= 0.55);
   if (shadeLover) r.push(`${shadeLover.plant.nameTh}ทนร่มเงา ปลูกใต้เรือนยอดได้ดีระยะยาว`);
   if (picks.some((p) => p.plant.nFixing)) r.push('มีพืชตระกูลถั่วคลุมดิน ตรึงไนโตรเจนบำรุงดินทั้งระบบ');
@@ -221,8 +246,8 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number): string[] {
   return w;
 }
 
-export function buildSystems(input: FarmInput, climate: Climate | null): SystemPlan[] {
-  const scored = scoreAll(climate);
+export function buildSystems(input: FarmInput, climate: Climate | null, risk: ProtectedArea | null = null): SystemPlan[] {
+  const scored = scoreAll(climate, risk);
   // honour farmer preferences in every stratum while still keeping suitability visible.
   for (const layer of Object.keys(scored) as Layer[]) {
     const ids = selectedIds(input, layer);
