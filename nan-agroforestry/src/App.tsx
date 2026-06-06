@@ -106,35 +106,6 @@ export function App() {
       {tab === 'method' && <Methodology />}
 
       {tab === 'planner' && (<>
-      <div className="agro-intro thai">
-        ระบบออกแบบ <strong>วนเกษตร 4 ชั้น</strong> (ไม้ยืนต้น ≥2 · ไม้พุ่ม · ไม้คลุมดิน · ไม้ลงดิน) ให้เหมาะกับแปลงของคุณ —
-        วิเคราะห์ <strong>ความเหมาะสมจากภูมิอากาศจริง</strong> (โมเดล SDM ฝึกด้วย GBIF + NASA POWER), ตรวจ <strong>พื้นที่อนุรักษ์ ลำน้ำ ไฟป่า น้ำท่วม และภัยแล้งจาก GISTDA</strong>,
-        แล้วคำนวณ <strong>ผลผลิต · ราคา · กำไร</strong> เสนอ 3 แบบ (อันดับ 1 = ดีที่สุด)
-      </div>
-
-      <section className="agro-proof" aria-label="Space technology workflow">
-        <div className="agro-proof-card">
-          <span className="agro-proof-k">Satellite</span>
-          <b className="thai">อ่านบริบทป่า</b>
-          <p className="thai">Hansen forest loss · ESA WorldCover · Sentinel-2 NDVI ผ่าน Google Earth Engine</p>
-        </div>
-        <div className="agro-proof-card">
-          <span className="agro-proof-k">GISTDA</span>
-          <b className="thai">กันรุกป่า + เฝ้าระวังภัย</b>
-          <p className="thai">ตรวจเขตอนุรักษ์ ลำน้ำ ไฟป่า น้ำท่วม และภัยแล้งจาก Disaster Open API ก่อนเสนอแผนปลูก</p>
-        </div>
-        <div className="agro-proof-card">
-          <span className="agro-proof-k">Climate AI</span>
-          <b className="thai">เลือกชนิดที่เหมาะจริง</b>
-          <p className="thai">SDM ใช้ GBIF + NASA POWER เพื่อให้คะแนนไม้ยืนต้นตามสภาพพื้นที่</p>
-        </div>
-        <div className="agro-proof-card">
-          <span className="agro-proof-k">Impact</span>
-          <b className="thai">วัดผลที่จับต้องได้</b>
-          <p className="thai">สรุปคาร์บอน กำไร คืนทุน และบทบาทต่อป่าในหน้าเดียว</p>
-        </div>
-      </section>
-
       <InputForm value={input} onChange={setInput} onSubmit={run} busy={busy} />
 
       {prot && (
