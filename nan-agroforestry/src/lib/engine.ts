@@ -27,6 +27,9 @@ function goalRank(goal: Goal, s: Scored): number {
   return 0.55 * s.suit + 0.45 * s.value;
 }
 
+const selectedIds = (input: FarmInput, layer: Layer) => input.selectedByLayer?.[layer] ?? [];
+const isFarmerPick = (input: FarmInput, id: string, layer: Layer) => selectedIds(input, layer).includes(id);
+
 // per-plant 10-year net cashflow contribution
 function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean, canopyShadeMature: number, canopyMatureYears: number): number[] {
   const net: number[] = [];
@@ -48,19 +51,34 @@ function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean
   return net;
 }
 
-function buildSystem(scored: Record<Layer, Scored[]>, goal: Goal, sizeRai: number, forcedPrimary: Scored): SystemPlan {
+function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Goal, forcedPrimary: Scored): SystemPlan {
+  const sizeRai = input.sizeRai;
   const rank = (arr: Scored[]) => [...arr].sort((a, b) => goalRank(goal, b) - goalRank(goal, a));
   const canopyRanked = rank(scored.canopy);
   const primary = forcedPrimary;
-  const second = canopyRanked.find((s) => s.plant.id !== primary.plant.id && s.suit >= 0.38)
-    ?? canopyRanked.find((s) => s.plant.id !== primary.plant.id)!;
-  const canopyPicks = [primary, second].filter(Boolean);
+  const selectedCanopy = selectedIds(input, 'canopy')
+    .map((id) => canopyRanked.find((s) => s.plant.id === id))
+    .filter(Boolean) as Scored[];
+  const canopyPicks = [...selectedCanopy];
+  if (!canopyPicks.some((s) => s.plant.id === primary.plant.id)) canopyPicks.unshift(primary);
+  while (canopyPicks.length < 2) {
+    const next = canopyRanked.find((s) => !canopyPicks.some((p) => p.plant.id === s.plant.id) && s.suit >= 0.38)
+      ?? canopyRanked.find((s) => !canopyPicks.some((p) => p.plant.id === s.plant.id));
+    if (!next) break;
+    canopyPicks.push(next);
+  }
 
-  const pickTop = (layer: Layer) => {
+  const pickLayer = (layer: Layer) => {
+    const farmer = selectedIds(input, layer)
+      .map((id) => scored[layer].find((s) => s.plant.id === id))
+      .filter(Boolean) as Scored[];
+    if (farmer.length) return farmer;
     const r = rank(scored[layer]).filter((s) => s.suit > 0.2);
-    return (r.length ? r : rank(scored[layer]))[0];
+    return [(r.length ? r : rank(scored[layer]))[0]].filter(Boolean);
   };
-  const shrub = pickTop('shrub'); const ground = pickTop('groundcover'); const root = pickTop('root');
+  const shrubs = pickLayer('shrub');
+  const grounds = pickLayer('groundcover');
+  const roots = pickLayer('root');
 
   // the canopy that casts the most shade governs when the understory gets shaded
   // (tiebreak: the one that closes its canopy soonest) — prevents a slow-maturing
@@ -71,16 +89,19 @@ function buildSystem(scored: Record<Layer, Scored[]>, goal: Goal, sizeRai: numbe
 
   const picks: LayerPick[] = [];
   const flows: number[][] = [];
-  const addPick = (s: Scored, layer: Layer, understory: boolean) => {
-    const share = layer === 'canopy' ? (LAYER_SHARE.canopy / canopyPicks.length) : LAYER_SHARE[layer];
+  const addPick = (s: Scored, layer: Layer, layerCount: number, understory: boolean) => {
+    const share = LAYER_SHARE[layer] / Math.max(1, layerCount);
     const shareRai = sizeRai * share;
-    picks.push({ layer, plant: s.plant, suitability: s.suit, source: s.source, auc: s.auc, shareRai });
+    picks.push({
+      layer, plant: s.plant, suitability: s.suit, source: s.source, auc: s.auc, shareRai,
+      pickedBy: isFarmerPick(input, s.plant.id, layer) ? 'farmer' : 'system',
+    });
     flows.push(plantFlow(s.plant, shareRai, s.suit, understory, understory ? canopyShadeMature : 0, canopyMatureYears));
   };
-  canopyPicks.forEach((c) => addPick(c, 'canopy', false));
-  if (shrub) addPick(shrub, 'shrub', true);
-  if (ground) addPick(ground, 'groundcover', true);
-  if (root) addPick(root, 'root', true);
+  canopyPicks.forEach((c) => addPick(c, 'canopy', canopyPicks.length, false));
+  shrubs.forEach((s) => addPick(s, 'shrub', shrubs.length, true));
+  grounds.forEach((s) => addPick(s, 'groundcover', grounds.length, true));
+  roots.forEach((s) => addPick(s, 'root', roots.length, true));
 
   // combine cashflow
   const cashflow: CashflowPoint[] = [];
@@ -118,12 +139,15 @@ function buildSystem(scored: Record<Layer, Scored[]>, goal: Goal, sizeRai: numbe
 function reasonsFor(picks: LayerPick[], payback: number | null): string[] {
   const r: string[] = [];
   const canopy = picks.filter((p) => p.layer === 'canopy').map((p) => p.plant.nameTh).join(' + ');
-  r.push(`โครงสร้าง ${picks.length} ชั้น: เรือนยอด ${canopy}` +
+  const layerCount = new Set(picks.map((p) => p.layer)).size;
+  r.push(`โครงสร้าง ${layerCount} ชั้น (${picks.length} ชนิด): เรือนยอด ${canopy}` +
     picks.filter((p) => p.layer !== 'canopy').map((p) => ` · ${p.plant.nameTh}`).join(''));
   const shadeLover = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol >= 0.55);
   if (shadeLover) r.push(`${shadeLover.plant.nameTh}ทนร่มเงา ปลูกใต้เรือนยอดได้ดีระยะยาว`);
   if (picks.some((p) => p.plant.nFixing)) r.push('มีพืชตระกูลถั่วคลุมดิน ตรึงไนโตรเจนบำรุงดินทั้งระบบ');
   if (picks.some((p) => p.plant.id === 'banana' || !p.plant.perennial)) r.push('มีชั้นที่ให้รายได้เร็วตั้งแต่ปีแรก ขณะรอไม้ยืนต้นโต');
+  const farmer = picks.filter((p) => p.pickedBy === 'farmer');
+  if (farmer.length) r.push(`นำพืชที่คุณเลือกเข้าแผนจริง ${farmer.length} ชนิด: ${farmer.map((p) => p.plant.nameTh).join(', ')}`);
   const modelTrees = picks.filter((p) => p.layer === 'canopy' && p.source === 'model');
   if (modelTrees.length) r.push(`ความเหมาะสมไม้ยืนต้นจากโมเดล SDM (ฝึกด้วยข้อมูลจริง GBIF + NASA)`);
   if (payback) r.push(`คืนทุนประมาณปีที่ ${payback}`);
@@ -142,9 +166,10 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number): string[] {
 
 export function buildSystems(input: FarmInput, climate: Climate | null): SystemPlan[] {
   const scored = scoreAll(climate);
-  // honour the farmer's canopy preference by boosting selected species to the front
-  if (input.selectedCanopyIds.length) {
-    scored.canopy.forEach((s) => { if (input.selectedCanopyIds.includes(s.plant.id)) s.suit = Math.min(1, s.suit + 0.25); });
+  // honour farmer preferences in every stratum while still keeping suitability visible.
+  for (const layer of Object.keys(scored) as Layer[]) {
+    const ids = selectedIds(input, layer);
+    if (ids.length) scored[layer].forEach((s) => { if (ids.includes(s.plant.id)) s.suit = Math.min(1, s.suit + 0.18); });
   }
   // candidate primary canopy species (suitable first), then build a grid of
   // candidate systems over primary × goal, and label 3 by their REAL metrics.
@@ -154,7 +179,7 @@ export function buildSystems(input: FarmInput, climate: Climate | null): SystemP
   for (const s of [...decent, ...baseRank]) { if (primaries.length >= 5) break; if (!primaries.some((p) => p.plant.id === s.plant.id)) primaries.push(s); }
 
   const cands: SystemPlan[] = [];
-  for (const p of primaries) for (const g of ['balanced', 'fast', 'profit'] as Goal[]) cands.push(buildSystem(scored, g, input.sizeRai, p));
+  for (const p of primaries) for (const g of ['balanced', 'fast', 'profit'] as Goal[]) cands.push(buildSystem(scored, input, g, p));
   const sig = (s: SystemPlan) => s.picks.map((p) => p.plant.id).sort().join('|');
 
   // 3 distinct systems, strongest first

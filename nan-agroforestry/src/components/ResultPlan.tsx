@@ -38,6 +38,7 @@ export function ResultPlan({ sys, rank }: { sys: SystemPlan; rank: number }) {
                       <div className="agro-plant-name thai">{p.plant.nameTh}</div>
                       <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
                     </div>
+                    {p.pickedBy === 'farmer' && <span className="agro-picked thai">คุณเลือก</span>}
                     {suitBadge(p)}
                   </div>
                 ))}
