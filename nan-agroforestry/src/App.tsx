@@ -100,7 +100,7 @@ export function App() {
           <button className={tab === 'planner' ? 'on' : ''} onClick={() => setTab('planner')}>แพลนเนอร์</button>
           <button className={tab === 'method' ? 'on' : ''} onClick={() => setTab('method')}>วิธีการ &amp; ความน่าเชื่อถือ</button>
         </div>
-        <span className="chip data thai agro-model-chip"><span className="dot" />SDM {mm.count} ชนิด · AUC เฉลี่ย {mm.avgAuc.toFixed(2)}</span>
+        <span className="chip data thai agro-model-chip"><span className="dot" />SDM reliable {mm.count} ชนิด · AUC เฉลี่ย {mm.avgAuc.toFixed(2)}{mm.weakCount ? ` · weak ${mm.weakCount}` : ''}</span>
       </header>
 
       {tab === 'method' && <Methodology />}
@@ -108,7 +108,7 @@ export function App() {
       {tab === 'planner' && (<>
       <div className="agro-intro thai">
         ระบบออกแบบ <strong>วนเกษตร 4 ชั้น</strong> (ไม้ยืนต้น ≥2 · ไม้พุ่ม · ไม้คลุมดิน · ไม้ลงดิน) ให้เหมาะกับแปลงของคุณ —
-        วิเคราะห์ <strong>ความเหมาะสมจากภูมิอากาศจริง</strong> (โมเดล SDM ฝึกด้วย GBIF + NASA POWER), ตรวจ <strong>พื้นที่อนุรักษ์ ลำน้ำ และไฟป่าจาก GISTDA</strong>,
+        วิเคราะห์ <strong>ความเหมาะสมจากภูมิอากาศจริง</strong> (โมเดล SDM ฝึกด้วย GBIF + NASA POWER), ตรวจ <strong>พื้นที่อนุรักษ์ ลำน้ำ ไฟป่า น้ำท่วม และภัยแล้งจาก GISTDA</strong>,
         แล้วคำนวณ <strong>ผลผลิต · ราคา · กำไร</strong> เสนอ 3 แบบ (อันดับ 1 = ดีที่สุด)
       </div>
 

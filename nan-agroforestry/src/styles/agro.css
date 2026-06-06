@@ -135,6 +135,12 @@ select.agro-input { cursor: pointer; }
 .agro-kpi-k { font-size: 10px; color: var(--fg-3); }
 .agro-kpi-v { font-size: 16px; font-weight: 800; color: var(--fg-0); font-family: var(--font-mono); letter-spacing: 0; margin-top: 2px; overflow-wrap: anywhere; }
 
+.agro-score-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.agro-score-part { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line-soft); background: var(--bg-1); overflow: hidden; }
+.agro-score-part div { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--fg-3); font: 700 10px/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
+.agro-score-part b { color: var(--fg-0); font-size: 11px; letter-spacing: 0; }
+.agro-score-part i { display: block; height: 5px; margin-top: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--warn), var(--ok)); }
+
 .agro-chart { width: 100%; height: auto; display: block; aspect-ratio: 320 / 120; background: var(--bg-1); border-radius: 12px; border: 1px solid var(--line-soft); }
 .agro-axis { font-family: var(--font-mono); font-size: 8px; fill: var(--fg-3); }
 
@@ -271,6 +277,7 @@ select.agro-input { cursor: pointer; }
   .agro-plant-row { align-items: flex-start; }
   .agro-suit { margin-top: 1px; }
   .agro-kpis { grid-template-columns: 1fr; }
+  .agro-score-parts { grid-template-columns: 1fr; }
   .agro-gistda { padding: 12px; border-radius: 14px; }
   .agro-gistda-icon { font-size: 24px; }
   .method-grid { grid-template-columns: 1fr; }

@@ -6,10 +6,23 @@ import { bahtK, pct, nf0 } from '../lib/format';
 
 const ORDER: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 
-function suitBadge(p: { suitability: number; source: 'model' | 'envelope'; auc?: number }) {
+function suitBadge(p: { suitability: number; source: 'model' | 'envelope'; auc?: number; modelConfidence: 'high' | 'medium' | 'low' | 'expert' }) {
   const cls = p.suitability >= 0.6 ? 'ok' : p.suitability >= 0.4 ? 'warn' : 'risk';
-  const tag = p.source === 'model' ? `โมเดล AUC ${p.auc?.toFixed(2)}` : 'เกณฑ์ผู้เชี่ยวชาญ';
+  const tag = p.source === 'model'
+    ? `SDM ${p.modelConfidence} · AUC ${p.auc?.toFixed(2)}`
+    : p.modelConfidence === 'low'
+      ? `AUC ${p.auc?.toFixed(2)} ต่ำ · ใช้เกณฑ์`
+      : 'เกณฑ์ผู้เชี่ยวชาญ';
   return <span className={`agro-suit ${cls}`}>{pct(p.suitability)} <i>{tag}</i></span>;
+}
+
+function ScorePart({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="agro-score-part">
+      <div><span>{label}</span><b>{pct(value)}</b></div>
+      <i style={{ width: `${Math.round(value * 100)}%` }} />
+    </div>
+  );
 }
 
 export function ResultPlan({ sys, rank }: { sys: SystemPlan; rank: number }) {
@@ -52,6 +65,13 @@ export function ResultPlan({ sys, rank }: { sys: SystemPlan; rank: number }) {
         <div className="agro-kpi"><div className="agro-kpi-k thai">คืนทุน</div><div className="agro-kpi-v">{sys.paybackYear ? `ปีที่ ${sys.paybackYear}` : '> 10 ปี'}</div></div>
         <div className="agro-kpi"><div className="agro-kpi-k thai">กำไรสะสม 10 ปี</div><div className="agro-kpi-v" style={{ color: sys.profit10 >= 0 ? 'var(--ok)' : 'var(--risk)' }}>{bahtK(sys.profit10)}</div></div>
         <div className="agro-kpi"><div className="agro-kpi-k thai">เฉลี่ย/ปี</div><div className="agro-kpi-v">{bahtK(sys.annualAvg)}</div></div>
+      </div>
+
+      <div className="agro-score-parts">
+        <ScorePart label="Suitability" value={sys.scoreParts.suitability} />
+        <ScorePart label="Economics" value={sys.scoreParts.economics} />
+        <ScorePart label="Water fit" value={sys.scoreParts.waterFit} />
+        <ScorePart label="Carbon" value={sys.scoreParts.carbon} />
       </div>
 
       <div className="agro-carbon">

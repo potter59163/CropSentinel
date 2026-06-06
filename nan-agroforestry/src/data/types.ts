@@ -47,8 +47,15 @@ export interface LayerPick {
   suitability: number;          // 0..1
   source: 'model' | 'envelope'; // model = trained SDM, envelope = expert range
   auc?: number;
+  modelConfidence: 'high' | 'medium' | 'low' | 'expert';
   shareRai: number;
   pickedBy: 'farmer' | 'system';
+  scoreParts: {
+    suitability: number;
+    economics: number;
+    waterFit: number;
+    carbon: number;
+  };
 }
 
 export interface SystemPlan {
@@ -62,6 +69,13 @@ export interface SystemPlan {
   carbonPerYear: number;        // tCO2e/yr sequestered at maturity
   carbon10: number;             // cumulative tCO2e over 10 yr
   score: number;
+  scoreParts: {
+    suitability: number;
+    economics: number;
+    waterFit: number;
+    carbon: number;
+    farmerFit: number;
+  };
   badge: string;                // ดีที่สุด / เห็นผลไว / กำไรสูงสุด
   reasons: string[];
   warnings: string[];

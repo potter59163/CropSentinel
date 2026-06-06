@@ -2,29 +2,68 @@ import type { Plant, Layer, FarmInput, SystemPlan, LayerPick, CashflowPoint, Goa
 import { PLANTS, co2Of } from '../data/plants';
 import { plantSuitability } from './suitability';
 import type { Climate } from './climate';
-import { clamp } from './format';
+import { clamp, pct } from './format';
 
 const HORIZON = 10;
 // vertical land-share per layer (rai-equivalent of monoculture yield in the mixed stand)
 const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.3, groundcover: 0.4, root: 0.4 };
+const MAX_VALUE = Math.max(...PLANTS.map((p) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear));
+const MAX_CARBON = Math.max(...PLANTS.map((p) => co2Of(p.id)));
 
-interface Scored { plant: Plant; suit: number; source: 'model' | 'envelope'; auc?: number; value: number }
+interface Scored {
+  plant: Plant;
+  suit: number;
+  source: 'model' | 'envelope';
+  auc?: number;
+  confidence: 'high' | 'medium' | 'low' | 'expert';
+  value: number;
+  waterFit: number;
+  carbonFit: number;
+}
+
+function waterFit(p: Plant, climate: Climate | null): number {
+  if (!climate) return 0.7;
+  const dryStress = climate.drym >= 5 || climate.gwet < 0.46 || climate.rh < 68;
+  const wetStress = climate.prec > 1600 || climate.gwet > 0.62;
+  if (dryStress) {
+    if (p.water === 'low') return 1;
+    if (p.water === 'med') return 0.76;
+    return 0.46;
+  }
+  if (wetStress) {
+    if (p.water === 'high') return 1;
+    if (p.water === 'med') return 0.84;
+    return 0.62;
+  }
+  if (p.water === 'med') return 0.92;
+  return 0.78;
+}
 
 function scoreAll(climate: Climate | null): Record<Layer, Scored[]> {
-  const maxValue = Math.max(...PLANTS.map((p) => p.pricePerKg * p.yieldKgPerRai));
   const out = { canopy: [], shrub: [], groundcover: [], root: [] } as Record<Layer, Scored[]>;
   for (const p of PLANTS) {
     const s = plantSuitability(p, climate);
-    out[p.layer].push({ plant: p, suit: s.score, source: s.source, auc: s.auc, value: (p.pricePerKg * p.yieldKgPerRai) / maxValue });
+    const water = waterFit(p, climate);
+    const deploySuit = clamp((s.score * 0.78) + (water * 0.14) + ((co2Of(p.id) / MAX_CARBON) * 0.08), 0, 1);
+    out[p.layer].push({
+      plant: p,
+      suit: deploySuit,
+      source: s.source,
+      auc: s.auc,
+      confidence: s.confidence,
+      value: (p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear) / MAX_VALUE,
+      waterFit: water,
+      carbonFit: co2Of(p.id) / MAX_CARBON,
+    });
   }
   return out;
 }
 
 function goalRank(goal: Goal, s: Scored): number {
   const fast = s.plant.perennial ? clamp(1 - (s.plant.yearsToYield - 1) / 9, 0, 1) : 1;
-  if (goal === 'fast') return 0.45 * s.suit + 0.35 * fast + 0.2 * s.value;
-  if (goal === 'profit') return 0.32 * s.suit + 0.68 * s.value;
-  return 0.55 * s.suit + 0.45 * s.value;
+  if (goal === 'fast') return 0.34 * s.suit + 0.34 * fast + 0.18 * s.value + 0.14 * s.waterFit;
+  if (goal === 'profit') return 0.28 * s.suit + 0.52 * s.value + 0.12 * s.waterFit + 0.08 * s.carbonFit;
+  return 0.42 * s.suit + 0.24 * s.value + 0.2 * s.waterFit + 0.14 * s.carbonFit;
 }
 
 const selectedIds = (input: FarmInput, layer: Layer) => input.selectedByLayer?.[layer] ?? [];
@@ -93,8 +132,14 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
     const share = LAYER_SHARE[layer] / Math.max(1, layerCount);
     const shareRai = sizeRai * share;
     picks.push({
-      layer, plant: s.plant, suitability: s.suit, source: s.source, auc: s.auc, shareRai,
+      layer, plant: s.plant, suitability: s.suit, source: s.source, auc: s.auc, modelConfidence: s.confidence, shareRai,
       pickedBy: isFarmerPick(input, s.plant.id, layer) ? 'farmer' : 'system',
+      scoreParts: {
+        suitability: s.suit,
+        economics: s.value,
+        waterFit: s.waterFit,
+        carbon: s.carbonFit,
+      },
     });
     flows.push(plantFlow(s.plant, shareRai, s.suit, understory, understory ? canopyShadeMature : 0, canopyMatureYears));
   };
@@ -126,22 +171,30 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   }
 
   const suitability = picks.reduce((s, p) => s + p.suitability, 0) / picks.length;
-  const score = suitability * 0.45 + clamp(cum / 8_000_000, 0, 1) * 0.35 + goalRank(goal, primary) * 0.2;
+  const economics = clamp(cum / 8_000_000, 0, 1);
+  const water = picks.reduce((s, p) => s + p.scoreParts.waterFit, 0) / picks.length;
+  const carbonScore = clamp(carbon10 / Math.max(1, sizeRai * 42), 0, 1);
+  const farmerTotal = Object.values(input.selectedByLayer ?? {}).reduce((s, ids) => s + ids.length, 0);
+  const farmerUsed = picks.filter((p) => p.pickedBy === 'farmer').length;
+  const farmerFit = farmerTotal ? farmerUsed / farmerTotal : 0.72;
+  const scoreParts = { suitability, economics, waterFit: water, carbon: carbonScore, farmerFit };
+  const score = scoreParts.suitability * 0.38 + scoreParts.economics * 0.24 + scoreParts.waterFit * 0.17 + scoreParts.carbon * 0.13 + scoreParts.farmerFit * 0.08;
 
   return {
     picks, canopy: picks.filter((p) => p.layer === 'canopy'),
     cashflow, paybackYear, profit10: Math.round(cum), annualAvg: Math.round(cum / HORIZON),
     suitability, carbonPerYear: Math.round(carbonPerYear * 10) / 10, carbon10: Math.round(carbon10),
-    score, badge: '', reasons: reasonsFor(picks, paybackYear), warnings: warningsFor(picks, canopyShadeMature),
+    score, scoreParts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts), warnings: warningsFor(picks, canopyShadeMature),
   };
 }
 
-function reasonsFor(picks: LayerPick[], payback: number | null): string[] {
+function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: SystemPlan['scoreParts']): string[] {
   const r: string[] = [];
   const canopy = picks.filter((p) => p.layer === 'canopy').map((p) => p.plant.nameTh).join(' + ');
   const layerCount = new Set(picks.map((p) => p.layer)).size;
   r.push(`โครงสร้าง ${layerCount} ชั้น (${picks.length} ชนิด): เรือนยอด ${canopy}` +
     picks.filter((p) => p.layer !== 'canopy').map((p) => ` · ${p.plant.nameTh}`).join(''));
+  r.push(`คะแนนแผน: เหมาะสม ${pct(scoreParts.suitability)} · เศรษฐกิจ ${pct(scoreParts.economics)} · น้ำ/แล้ง ${pct(scoreParts.waterFit)} · คาร์บอน ${pct(scoreParts.carbon)}`);
   const shadeLover = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol >= 0.55);
   if (shadeLover) r.push(`${shadeLover.plant.nameTh}ทนร่มเงา ปลูกใต้เรือนยอดได้ดีระยะยาว`);
   if (picks.some((p) => p.plant.nFixing)) r.push('มีพืชตระกูลถั่วคลุมดิน ตรึงไนโตรเจนบำรุงดินทั้งระบบ');
@@ -149,7 +202,10 @@ function reasonsFor(picks: LayerPick[], payback: number | null): string[] {
   const farmer = picks.filter((p) => p.pickedBy === 'farmer');
   if (farmer.length) r.push(`นำพืชที่คุณเลือกเข้าแผนจริง ${farmer.length} ชนิด: ${farmer.map((p) => p.plant.nameTh).join(', ')}`);
   const modelTrees = picks.filter((p) => p.layer === 'canopy' && p.source === 'model');
-  if (modelTrees.length) r.push(`ความเหมาะสมไม้ยืนต้นจากโมเดล SDM (ฝึกด้วยข้อมูลจริง GBIF + NASA)`);
+  if (modelTrees.length) {
+    const auc = modelTrees.map((p) => p.auc ?? 0).filter(Boolean);
+    r.push(`ไม้ยืนต้นใช้ SDM ${modelTrees.length} ชนิด · AUC ${Math.min(...auc).toFixed(2)}-${Math.max(...auc).toFixed(2)} จาก GBIF + NASA POWER`);
+  }
   if (payback) r.push(`คืนทุนประมาณปีที่ ${payback}`);
   return r;
 }
@@ -158,6 +214,7 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number): string[] {
   const w: string[] = [];
   for (const p of picks) {
     if (p.suitability < 0.45) w.push(`${p.plant.nameTh} เหมาะกับพื้นที่นี้ปานกลาง (${Math.round(p.suitability * 100)}%) — พิจารณาชนิดอื่นเสริม`);
+    if (p.modelConfidence === 'low') w.push(`${p.plant.nameTh} มีข้อมูลโมเดลน้อย/ความแม่นยำต่ำ จึงใช้เกณฑ์พื้นที่แทนการจัดอันดับจาก SDM`);
   }
   const sun = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol < 0.35);
   if (sun && canopyShadeMature > 0.55) w.push(`${sun.plant.nameTh}ชอบแดด เมื่อเรือนยอดปิด ควรย้ายไปขอบแปลงหรือเปลี่ยนเป็นพืชทนร่มในปีท้ายๆ`);
