@@ -164,7 +164,11 @@ select.agro-input { cursor: pointer; }
 .agro-reason { display: flex; gap: 8px; font-size: 12.5px; color: var(--fg-2); line-height: 1.45; }
 .agro-reason-icon { flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; margin-top: 1px; }
 .agro-reason-icon.ok { background: var(--ok-bg); color: var(--ok); }
+.agro-reason-icon.data { background: var(--data-bg); color: var(--data); }
 .agro-reason-icon.warn { background: var(--warn-bg); color: var(--warn); }
+.agro-compare { display: flex; flex-direction: column; gap: 10px; }
+.agro-compare-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--line-soft); }
+.agro-compare-head b { color: var(--fg-0); font-size: 14px; line-height: 1.25; text-align: right; }
 
 .agro-animal { display: flex; gap: 10px; align-items: flex-start; background: var(--bg-1); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: var(--fg-2); }
 .agro-animal b { color: var(--fg-0); }
