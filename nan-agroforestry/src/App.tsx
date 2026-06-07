@@ -309,7 +309,7 @@ export function App() {
       </>)}
 
       <footer className="agro-foot thai">
-        ข้อมูล: GISTDA (พื้นที่อนุรักษ์ + ลำน้ำ + Disaster Open API ไฟป่า/น้ำท่วม/ภัยแล้ง) · NASA POWER + Open-Meteo (ภูมิอากาศ/ความสูง) · GBIF (จุดพบพืช) — ต้นแบบ space tech for forest
+        ข้อมูล: OpenStreetMap (เลือกพิกัดแปลง) · GISTDA (พื้นที่อนุรักษ์ + ลำน้ำ + Disaster Open API ไฟป่า/น้ำท่วม/ภัยแล้ง) · NASA POWER + Open-Meteo (ภูมิอากาศ/ความสูง) · GBIF (จุดพบพืช) — ต้นแบบ space tech for forest
       </footer>
     </div>
   );

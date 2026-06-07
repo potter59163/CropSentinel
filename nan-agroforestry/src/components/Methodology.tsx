@@ -6,6 +6,7 @@ const M = model as any;
 const nameTh = (id: string) => PLANTS.find((p) => p.sdmId === id)?.nameTh ?? id;
 
 const SOURCES = [
+  ['OpenStreetMap', 'พิกัดแปลง', 'แผนที่ฐานสำหรับเลือก lat/lng ของแปลงจริง ก่อนส่งต่อให้ GISTDA, NASA POWER, Open-Meteo และโมเดลวนเกษตร'],
   ['Google Earth Engine', 'ดาวเทียม', 'Hansen Global Forest Change (ป่าหายรายปี) · ESA WorldCover 2021 (ประเภทที่ดิน) · Sentinel-2 (NDVI) — ดึงทั้งจังหวัดน่านเป็น grid'],
   ['GISTDA', 'ภูมิสารสนเทศ', 'เขตอนุรักษ์ + แม่น้ำ + FR_Fire ArcGIS + Disaster Open API (VIIRS, flood, burn scar/frequency, DRIPlus/NDWI/SMAP) — ตรวจแปลงอยู่ใน/ใกล้พื้นที่เสี่ยงและภัยจากดาวเทียม'],
   ['NASA POWER', 'ภูมิอากาศ', 'Climatology รายเดือน → อุณหภูมิ ฝน ฤดูแล้ง ความชื้นดิน — เป็น feature ของโมเดล'],
