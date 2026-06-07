@@ -54,6 +54,10 @@ export function Methodology() {
         runtime ใช้ GBM เมื่อ spatial AUC ดีกว่า logistic · ใช้โมเดลจัดอันดับเฉพาะชนิดที่ <b>AUC ≥ 0.65</b>
       </p>
       <p className="method-note thai">
+        เพื่อกันคำแนะนำผิดบริบท โมเดลทุกชนิดถูกคุมด้วย <b>agronomic elevation guardrail</b> อีกชั้น:
+        ถ้าพื้นที่ต่ำ/สูงเกินช่วงปลูกจริง คะแนนจะถูกลดและถูก cap แม้ SDM จะให้คะแนนสูง เช่น กาแฟอาราบิก้า/มะแขว่นต้องเป็นพื้นที่สูง
+      </p>
+      <p className="method-note thai">
         Reliable SDM <b>{reliable.length}</b> ชนิด · AUC เฉลี่ย <b>{(reliable.reduce((s, [, v]) => s + v.auc, 0) / Math.max(1, reliable.length)).toFixed(2)}</b>
         {weak.length ? <> · Weak model <b>{weak.length}</b> ชนิด ({weak.map(([id]) => nameTh(id)).join(', ')}) จะ fallback เป็นเกณฑ์พื้นที่/ความสูง</> : null}
       </p>
@@ -83,7 +87,7 @@ export function Methodology() {
       <h2 className="thai">ข้อจำกัด (พูดตรงไปตรงมา)</h2>
       <div className="method-note thai">
         • Prediction สุดท้ายเป็นระดับระบบวนเกษตร: SDM รายชนิด + system score (4-layer, diversity, shade, soil cover, income continuity, disaster buffer)<br />
-        • พืชที่ AUC ต่ำกว่า 0.65 หรือข้อมูลไม่พอจะ fallback เป็นเกณฑ์ช่วงความสูง + water fit จากภูมิอากาศ<br />
+        • SDM ทุกชนิดถูกถ่วงด้วยเกณฑ์ปลูกจริงด้านความสูงจากระดับน้ำทะเล; พืชที่ AUC ต่ำกว่า 0.65 หรือข้อมูลไม่พอจะ fallback เป็นเกณฑ์ช่วงความสูง + water fit จากภูมิอากาศ<br />
         • ผลผลิต/ราคา/ต้นทุน เป็นค่าประมาณการ (ไม่มี API ราคาพืชไทยเรียลไทม์ฟรี) — ใช้ช่วยเปรียบเทียบ ไม่ใช่ตัวเลขรับประกัน<br />
         • คาร์บอนเป็นค่าประเมินจากงานวิจัย (tCO₂e/ไร่/ปี) · soil ตัดออกจากโมเดลเพราะ SoilGrids เข้าถึงจากเบราว์เซอร์ไม่ได้ (รักษาความสอดคล้อง train/runtime)<br />
         • ควรตรวจสอบภาคสนาม + ปรึกษาเกษตรอำเภอก่อนลงมือจริง
