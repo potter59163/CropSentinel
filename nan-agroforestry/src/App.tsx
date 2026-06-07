@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FarmInput, SystemPlan } from './data/types';
 import { buildSystems } from './lib/engine';
 import { fetchClimate, type Climate } from './lib/climate';
@@ -64,12 +64,15 @@ function selectedRows(input: FarmInput) {
 export function App() {
   const [input, setInput] = useState<FarmInput>(DEFAULT_INPUT);
   const [systems, setSystems] = useState<SystemPlan[] | null>(null);
+  const [activePlan, setActivePlan] = useState(0);
   const [climate, setClimate] = useState<Climate | null>(null);
   const [prot, setProt] = useState<ProtectedArea | null>(null);
   const [sat, setSat] = useState<SatContext | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'planner' | 'method'>('planner');
+  const resultsRef = useRef<HTMLElement | null>(null);
   const mm = modelMeta();
+  const activeSystem = systems?.[Math.min(activePlan, Math.max(systems.length - 1, 0))] ?? null;
 
   const run = async () => {
     setBusy(true);
@@ -78,9 +81,14 @@ export function App() {
       fetchClimate(lat, lng, input.elevationM).catch(() => null),
       checkProtected(lat, lng).catch(() => null),
     ]);
+    const nextSystems = buildSystems(input, clim, pa);
     setClimate(clim); setProt(pa); setSat(satContext(lat, lng));
-    setSystems(buildSystems(input, clim, pa));
+    setActivePlan(0);
+    setSystems(nextSystems);
     setBusy(false);
+    window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
   };
 
   return (
@@ -206,8 +214,8 @@ export function App() {
         </div>
       )}
 
-      {systems && (
-        <section className="agro-results">
+      {systems && activeSystem && (
+        <section className="agro-results" ref={resultsRef}>
           {selectedRows(input).length > 0 && (
             <div className="agro-selection-summary">
               <div>
@@ -250,15 +258,15 @@ export function App() {
               </div>
               <div>
                 <span>Agroforest fit</span>
-                <b>{systems[0].scoreParts.agroforestry ? `${Math.round(systems[0].scoreParts.agroforestry * 100)}% system` : '—'}</b>
+                <b>{activeSystem.scoreParts.agroforestry ? `${Math.round(activeSystem.scoreParts.agroforestry * 100)}% system` : '—'}</b>
               </div>
               <div>
                 <span>Carbon 10 yr</span>
-                <b>{systems[0].carbon10.toLocaleString('en-US')} tCO₂e</b>
+                <b>{activeSystem.carbon10.toLocaleString('en-US')} tCO₂e</b>
               </div>
               <div>
                 <span>Profit 10 yr</span>
-                <b>{bahtK(systems[0].profit10)}</b>
+                <b>{bahtK(activeSystem.profit10)}</b>
               </div>
             </div>
           </div>
@@ -273,8 +281,25 @@ export function App() {
               {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
             </div>
           </div>
-          <div className="agro-plans">
-            {systems.map((s, i) => <ResultPlan key={i} sys={s} rank={i + 1} />)}
+          <div className="agro-plan-tabs" role="tablist" aria-label="เลือกแผนวนเกษตร">
+            {systems.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={activePlan === i}
+                className={activePlan === i ? 'on' : ''}
+                onClick={() => setActivePlan(i)}
+              >
+                <span className="thai">แผน {i + 1}</span>
+                <b className="thai">{s.badge}</b>
+                <em>{bahtK(s.profit10)} · agroforest {Math.round(s.scoreParts.agroforestry * 100)}%</em>
+              </button>
+            ))}
+          </div>
+
+          <div className="agro-plan-panel" role="tabpanel">
+            <ResultPlan sys={activeSystem} rank={activePlan + 1} />
           </div>
           <div className="agro-disclaimer thai">
             * ความเหมาะสมไม้ยืนต้นจากโมเดล SDM (logistic regression ฝึกด้วยจุดพบจริง GBIF + ภูมิอากาศ NASA POWER) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอก่อนลงมือจริง
