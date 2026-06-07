@@ -60,6 +60,38 @@ function riskFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null):
   return clamp(score, 0.35, 1);
 }
 
+function agroforestryFit(picks: LayerPick[], cashflow: CashflowPoint[], canopyShadeMature: number) {
+  const layers = new Set(picks.map((p) => p.layer));
+  const canopy = picks.filter((p) => p.layer === 'canopy');
+  const understory = picks.filter((p) => p.layer !== 'canopy');
+  const strata = clamp((layers.size / 4) * 0.65 + (canopy.length >= 2 ? 0.35 : 0), 0, 1);
+  const diversity = clamp((new Set(picks.map((p) => p.plant.category)).size / 6) * 0.55 + (new Set(picks.map((p) => p.plant.id)).size / 7) * 0.45, 0, 1);
+  const shade = understory.length
+    ? understory.reduce((sum, p) => sum + clamp(1 - Math.max(0, canopyShadeMature * 0.72 - p.plant.shadeTol) / 0.7, 0, 1), 0) / understory.length
+    : 0.45;
+  const hasGround = picks.some((p) => p.layer === 'groundcover');
+  const hasRoot = picks.some((p) => p.layer === 'root');
+  const hasNFix = picks.some((p) => p.plant.nFixing);
+  const woodyShare = picks.filter((p) => p.plant.perennial).reduce((sum, p) => sum + p.shareRai, 0) / Math.max(1, picks.reduce((sum, p) => sum + p.shareRai, 0));
+  const soilCover = clamp((hasGround ? 0.38 : 0) + (hasRoot ? 0.16 : 0) + (hasNFix ? 0.24 : 0) + woodyShare * 0.22, 0, 1);
+  const positiveYears = cashflow.filter((p) => p.net > 0).length / HORIZON;
+  const hasQuickCrop = picks.some((p) => !p.plant.perennial || p.plant.yearsToYield <= 2);
+  const hasLongCrop = picks.some((p) => p.plant.perennial && p.plant.yearsToMature >= 6);
+  const incomeContinuity = clamp(positiveYears * 0.55 + (hasQuickCrop ? 0.25 : 0) + (hasLongCrop ? 0.2 : 0), 0, 1);
+  const riskBuffer = clamp(
+    picks.reduce((sum, p) => sum + p.scoreParts.riskFit, 0) / Math.max(1, picks.length) * 0.5 +
+    picks.reduce((sum, p) => sum + p.scoreParts.waterFit, 0) / Math.max(1, picks.length) * 0.25 +
+    soilCover * 0.25,
+    0,
+    1,
+  );
+  const score = strata * 0.22 + diversity * 0.18 + shade * 0.16 + soilCover * 0.18 + incomeContinuity * 0.12 + riskBuffer * 0.14;
+  return {
+    score,
+    parts: { strata, diversity, shade, soilCover, incomeContinuity, riskBuffer },
+  };
+}
+
 function scoreAll(climate: Climate | null, risk: ProtectedArea | null): Record<Layer, Scored[]> {
   const out = { canopy: [], shrub: [], groundcover: [], root: [] } as Record<Layer, Scored[]>;
   for (const p of PLANTS) {
@@ -202,14 +234,15 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   const farmerTotal = Object.values(input.selectedByLayer ?? {}).reduce((s, ids) => s + ids.length, 0);
   const farmerUsed = picks.filter((p) => p.pickedBy === 'farmer').length;
   const farmerFit = farmerTotal ? farmerUsed / farmerTotal : 0.72;
-  const scoreParts = { suitability, economics, waterFit: water, riskFit: disaster, carbon: carbonScore, farmerFit };
-  const score = scoreParts.suitability * 0.34 + scoreParts.economics * 0.22 + scoreParts.waterFit * 0.14 + scoreParts.riskFit * 0.14 + scoreParts.carbon * 0.1 + scoreParts.farmerFit * 0.06;
+  const agro = agroforestryFit(picks, cashflow, canopyShadeMature);
+  const scoreParts = { agroforestry: agro.score, suitability, economics, waterFit: water, riskFit: disaster, carbon: carbonScore, farmerFit };
+  const score = scoreParts.agroforestry * 0.22 + scoreParts.suitability * 0.26 + scoreParts.economics * 0.18 + scoreParts.waterFit * 0.1 + scoreParts.riskFit * 0.11 + scoreParts.carbon * 0.08 + scoreParts.farmerFit * 0.05;
 
   return {
     picks, canopy: picks.filter((p) => p.layer === 'canopy'),
     cashflow, paybackYear, profit10: Math.round(cum), annualAvg: Math.round(cum / HORIZON),
     suitability, carbonPerYear: Math.round(carbonPerYear * 10) / 10, carbon10: Math.round(carbon10),
-    score, scoreParts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts), warnings: warningsFor(picks, canopyShadeMature),
+    score, scoreParts, agroforestryParts: agro.parts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts), warnings: warningsFor(picks, canopyShadeMature, agro.parts),
   };
 }
 
@@ -219,7 +252,7 @@ function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: Syst
   const layerCount = new Set(picks.map((p) => p.layer)).size;
   r.push(`โครงสร้าง ${layerCount} ชั้น (${picks.length} ชนิด): เรือนยอด ${canopy}` +
     picks.filter((p) => p.layer !== 'canopy').map((p) => ` · ${p.plant.nameTh}`).join(''));
-  r.push(`คะแนนแผน: เหมาะสม ${pct(scoreParts.suitability)} · เศรษฐกิจ ${pct(scoreParts.economics)} · น้ำ/แล้ง ${pct(scoreParts.waterFit)} · GISTDA risk ${pct(scoreParts.riskFit)} · คาร์บอน ${pct(scoreParts.carbon)}`);
+  r.push(`คะแนนระบบวนเกษตร ${pct(scoreParts.agroforestry)} · เหมาะสมพืช ${pct(scoreParts.suitability)} · เศรษฐกิจ ${pct(scoreParts.economics)} · GISTDA risk ${pct(scoreParts.riskFit)}`);
   const shadeLover = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol >= 0.55);
   if (shadeLover) r.push(`${shadeLover.plant.nameTh}ทนร่มเงา ปลูกใต้เรือนยอดได้ดีระยะยาว`);
   if (picks.some((p) => p.plant.nFixing)) r.push('มีพืชตระกูลถั่วคลุมดิน ตรึงไนโตรเจนบำรุงดินทั้งระบบ');
@@ -235,7 +268,7 @@ function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: Syst
   return r;
 }
 
-function warningsFor(picks: LayerPick[], canopyShadeMature: number): string[] {
+function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: SystemPlan['agroforestryParts']): string[] {
   const w: string[] = [];
   for (const p of picks) {
     if (p.suitability < 0.45) w.push(`${p.plant.nameTh} เหมาะกับพื้นที่นี้ปานกลาง (${Math.round(p.suitability * 100)}%) — พิจารณาชนิดอื่นเสริม`);
@@ -243,6 +276,9 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number): string[] {
   }
   const sun = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol < 0.35);
   if (sun && canopyShadeMature > 0.55) w.push(`${sun.plant.nameTh}ชอบแดด เมื่อเรือนยอดปิด ควรย้ายไปขอบแปลงหรือเปลี่ยนเป็นพืชทนร่มในปีท้ายๆ`);
+  if (agro.strata < 0.9) w.push('โครงสร้างวนเกษตรยังไม่ครบชั้น ควรมีไม้ยืนต้นอย่างน้อย 2 ชนิดและพืชคลุมดิน/พืชหัวช่วยปิดหน้าดิน');
+  if (agro.shade < 0.62) w.push('ความเข้ากันของร่มเงายังปานกลาง ควรจัดพืชชอบแดดไว้ขอบแปลงหรือใช้ชนิดทนร่มกว่าในระยะเรือนยอดปิด');
+  if (agro.soilCover < 0.6) w.push('คะแนนคลุมดิน/บำรุงดินยังต่ำ ควรเพิ่มพืชคลุมดินหรือตระกูลถั่วเพื่อลดการชะล้าง');
   return w;
 }
 

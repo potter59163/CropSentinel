@@ -140,6 +140,8 @@ select.agro-input { cursor: pointer; }
 .agro-score-part div { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--fg-3); font: 700 10px/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
 .agro-score-part b { color: var(--fg-0); font-size: 11px; letter-spacing: 0; }
 .agro-score-part i { display: block; height: 5px; margin-top: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--warn), var(--ok)); }
+.agro-system-fit { display: flex; flex-wrap: wrap; gap: 6px; }
+.agro-system-fit span { color: var(--data); background: var(--data-bg); border: 1px solid oklch(0.72 0.13 222 / 0.24); border-radius: 999px; padding: 4px 8px; font: 700 10px/1.25 var(--font-mono); overflow-wrap: anywhere; }
 
 .agro-chart { width: 100%; height: auto; display: block; aspect-ratio: 320 / 120; background: var(--bg-1); border-radius: 12px; border: 1px solid var(--line-soft); }
 .agro-axis { font-family: var(--font-mono); font-size: 8px; fill: var(--fg-3); }

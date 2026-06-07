@@ -32,7 +32,7 @@ export function ResultPlan({ sys, rank }: { sys: SystemPlan; rank: number }) {
       <div className="agro-plan-head">
         <span className={`agro-rank ${best ? 'best' : ''}`}>อันดับ {rank}</span>
         <span className="agro-badge thai">{sys.badge}</span>
-        <span className="agro-compat">เหมาะสมรวม {pct(sys.suitability)}</span>
+        <span className="agro-compat">วนเกษตร fit {pct(sys.scoreParts.agroforestry)}</span>
       </div>
 
       <div className="agro-stack">
@@ -68,11 +68,20 @@ export function ResultPlan({ sys, rank }: { sys: SystemPlan; rank: number }) {
       </div>
 
       <div className="agro-score-parts">
+        <ScorePart label="Agroforest" value={sys.scoreParts.agroforestry} />
         <ScorePart label="Suitability" value={sys.scoreParts.suitability} />
         <ScorePart label="Economics" value={sys.scoreParts.economics} />
         <ScorePart label="Water fit" value={sys.scoreParts.waterFit} />
         <ScorePart label="GISTDA risk" value={sys.scoreParts.riskFit} />
         <ScorePart label="Carbon" value={sys.scoreParts.carbon} />
+      </div>
+
+      <div className="agro-system-fit">
+        <span>4-layer {pct(sys.agroforestryParts.strata)}</span>
+        <span>Diversity {pct(sys.agroforestryParts.diversity)}</span>
+        <span>Shade {pct(sys.agroforestryParts.shade)}</span>
+        <span>Soil cover {pct(sys.agroforestryParts.soilCover)}</span>
+        <span>Buffer {pct(sys.agroforestryParts.riskBuffer)}</span>
       </div>
 
       <div className="agro-carbon">

@@ -35,19 +35,23 @@ export function Methodology() {
 
       <h2 className="thai">ขั้นตอนการทำงาน (Pipeline)</h2>
       <div className="method-pipe">
-        {['ดาวเทียม + GISTDA + ภูมิอากาศ + จุดพบพืช', 'ตรวจเขตป่า/ลำน้ำ/ไฟป่า/น้ำท่วม/ภัยแล้ง + สร้าง feature', 'ฝึกโมเดล SDM (logistic)',
-          'ให้คะแนนความเหมาะสมรายชนิด', 'ประกอบระบบวนเกษตร 4 ชั้น', 'คำนวณกำไร + คาร์บอน + fire/flood/water/drought buffer → 3 แผน'].map((s, i, a) => (
+        {['ดาวเทียม + GISTDA + ภูมิอากาศ + จุดพบพืช', 'สร้าง feature พื้นที่: ป่า/ลำน้ำ/ไฟป่า/น้ำท่วม/ภัยแล้ง', 'ฝึก SDM รายชนิด (spatial split + GBM/logit)',
+          'ประกอบ candidate ระบบวนเกษตร 4 ชั้น', 'ทำนาย Agroforestry fit: ชั้นพืช/ร่มเงา/คลุมดิน/รายได้/ภัยพิบัติ', 'จัดอันดับ 3 ระบบด้วย system score + กำไร + คาร์บอน'].map((s, i, a) => (
           <span key={s} style={{ display: 'contents' }}>
             <span className="step thai">{i + 1}. {s}</span>{i < a.length - 1 && <span className="arrow">→</span>}
           </span>
         ))}
       </div>
 
-      <h2 className="thai">โมเดล Species Distribution Model — ความแม่นยำจริง</h2>
+      <h2 className="thai">โมเดล SDM + Agroforestry System Score</h2>
       <p className="method-note thai">
-        ประเภท: <b>Binary classification (logistic regression)</b> · feature {M.features?.length ?? '—'} ตัว
-        ({(M.base ?? []).join(', ')} + พจน์กำลังสอง) · วัดด้วย <b>5-fold cross-validated ROC-AUC</b> ·
-        เทียบ benchmark กับ Gradient Boosting · ใช้โมเดลจัดอันดับเฉพาะชนิดที่ <b>AUC ≥ 0.65</b>
+        SDM รายชนิดเป็น input ของระบบ ไม่ใช่คำตอบสุดท้าย: จากนั้นระบบจะ optimize เป็น <b>วนเกษตร 4 ชั้น</b>
+        โดยให้คะแนนชั้นพืช ความหลากหลาย ความเข้ากันของร่มเงา พืชคลุมดิน รายได้ต่อเนื่อง และ buffer ต่อไฟ/น้ำ/แล้ง
+      </p>
+      <p className="method-note thai">
+        Model v{M.version ?? 2}: feature {M.features?.length ?? '—'} ตัว
+        ({(M.base ?? []).join(', ')} + พจน์กำลังสอง) · validation: <b>{M.validation ?? '5-fold ROC-AUC'}</b> ·
+        runtime ใช้ GBM เมื่อ spatial AUC ดีกว่า logistic · ใช้โมเดลจัดอันดับเฉพาะชนิดที่ <b>AUC ≥ 0.65</b>
       </p>
       <p className="method-note thai">
         Reliable SDM <b>{reliable.length}</b> ชนิด · AUC เฉลี่ย <b>{(reliable.reduce((s, [, v]) => s + v.auc, 0) / Math.max(1, reliable.length)).toFixed(2)}</b>
@@ -55,7 +59,7 @@ export function Methodology() {
       </p>
       <div className="method-table-wrap">
         <table className="method-tbl">
-          <thead><tr><th className="thai">ไม้ยืนต้น</th><th>จุดฝึก (GBIF)</th><th>AUC (logistic)</th><th></th><th>AUC (GBM)</th></tr></thead>
+          <thead><tr><th className="thai">พืช</th><th>จุดฝึก (GBIF)</th><th>AUC ใช้งาน</th><th></th><th>โมเดล</th></tr></thead>
           <tbody>
             {species.sort((a, b) => b[1].auc - a[1].auc).map(([id, s]) => (
               <tr key={id}>
@@ -63,7 +67,7 @@ export function Methodology() {
                 <td className="num">{s.n}</td>
                 <td className="num" style={{ color: s.auc >= 0.82 ? 'var(--ok)' : s.auc >= 0.65 ? 'var(--warn)' : 'var(--risk)' }}>{s.auc.toFixed(2)}</td>
                 <td style={{ width: 110 }}><div className="method-bar"><i style={{ width: `${Math.round(s.auc * 100)}%` }} /></div></td>
-                <td className="num">{s.aucGBM?.toFixed(2) ?? '—'}</td>
+                <td className="num">{s.preferred ?? 'logit'}{s.aucGBM ? ` · GBM ${s.aucGBM.toFixed(2)}` : ''}</td>
               </tr>
             ))}
           </tbody>
@@ -78,7 +82,8 @@ export function Methodology() {
 
       <h2 className="thai">ข้อจำกัด (พูดตรงไปตรงมา)</h2>
       <div className="method-note thai">
-        • ความเหมาะสมไม้ยืนต้น = โมเดลจริงเฉพาะชนิดที่ AUC ≥ 0.65; ชนิดที่ต่ำกว่านี้และพืชชั้นล่าง (พุ่ม/คลุมดิน/หัว) ใช้เกณฑ์ช่วงความสูง + water fit จากภูมิอากาศ<br />
+        • Prediction สุดท้ายเป็นระดับระบบวนเกษตร: SDM รายชนิด + system score (4-layer, diversity, shade, soil cover, income continuity, disaster buffer)<br />
+        • พืชที่ AUC ต่ำกว่า 0.65 หรือข้อมูลไม่พอจะ fallback เป็นเกณฑ์ช่วงความสูง + water fit จากภูมิอากาศ<br />
         • ผลผลิต/ราคา/ต้นทุน เป็นค่าประมาณการ (ไม่มี API ราคาพืชไทยเรียลไทม์ฟรี) — ใช้ช่วยเปรียบเทียบ ไม่ใช่ตัวเลขรับประกัน<br />
         • คาร์บอนเป็นค่าประเมินจากงานวิจัย (tCO₂e/ไร่/ปี) · soil ตัดออกจากโมเดลเพราะ SoilGrids เข้าถึงจากเบราว์เซอร์ไม่ได้ (รักษาความสอดคล้อง train/runtime)<br />
         • ควรตรวจสอบภาคสนาม + ปรึกษาเกษตรอำเภอก่อนลงมือจริง
