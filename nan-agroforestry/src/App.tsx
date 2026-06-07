@@ -299,7 +299,7 @@ export function App() {
           </div>
 
           <div className="agro-plan-panel" role="tabpanel">
-            <ResultPlan sys={activeSystem} rank={activePlan + 1} />
+            <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
           </div>
           <div className="agro-disclaimer thai">
             * ความเหมาะสมไม้ยืนต้นจากโมเดล SDM (logistic regression ฝึกด้วยจุดพบจริง GBIF + ภูมิอากาศ NASA POWER) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอก่อนลงมือจริง
