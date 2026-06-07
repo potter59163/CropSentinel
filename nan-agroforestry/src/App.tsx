@@ -249,6 +249,10 @@ export function App() {
                 <b>{prot?.disasterDroughtLayers?.length ? prot.disasterDroughtLayers.join(' / ') : 'รอ layer'}</b>
               </div>
               <div>
+                <span>Agroforest fit</span>
+                <b>{systems[0].scoreParts.agroforestry ? `${Math.round(systems[0].scoreParts.agroforestry * 100)}% system` : '—'}</b>
+              </div>
+              <div>
                 <span>Carbon 10 yr</span>
                 <b>{systems[0].carbon10.toLocaleString('en-US')} tCO₂e</b>
               </div>

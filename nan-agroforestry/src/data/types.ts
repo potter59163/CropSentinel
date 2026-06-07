@@ -24,7 +24,7 @@ export interface Plant {
   establishCostPerRai: number;
   annualCostPerRai: number;
   cyclesPerYear: number;
-  sdmId?: string;       // key into the trained SDM (woody species only)
+  sdmId?: string;       // key into the trained SDM when GBIF data is sufficient
   note: string;
 }
 
@@ -71,12 +71,21 @@ export interface SystemPlan {
   carbon10: number;             // cumulative tCO2e over 10 yr
   score: number;
   scoreParts: {
+    agroforestry: number;
     suitability: number;
     economics: number;
     waterFit: number;
     riskFit: number;
     carbon: number;
     farmerFit: number;
+  };
+  agroforestryParts: {
+    strata: number;
+    diversity: number;
+    shade: number;
+    soilCover: number;
+    incomeContinuity: number;
+    riskBuffer: number;
   };
   badge: string;                // ดีที่สุด / เห็นผลไว / กำไรสูงสุด
   reasons: string[];
