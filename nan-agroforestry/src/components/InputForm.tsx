@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { FarmInput, Goal, Layer } from '../data/types';
 import { byLayer, LAYER_META } from '../data/plants';
-import { NAN_AMPHOE } from '../data/nan';
+import { NAN_AMPHOE, NAN_CENTER } from '../data/nan';
 import { Card, Field, SelectChips } from './ui';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
+import { OsmPicker } from './OsmPicker';
 
 const goals: Array<{ id: Goal; label: string; desc: string }> = [
   { id: 'balanced', label: 'สมดุล', desc: 'เห็นผลไว + กำไรดี' },
@@ -18,6 +19,7 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
   value: FarmInput; onChange: (v: FarmInput) => void; onSubmit: () => void; busy: boolean;
 }) {
   const [gps, setGps] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [osm, setOsm] = useState<'idle' | 'loading' | 'error'>('idle');
   const set = (patch: Partial<FarmInput>) => onChange({ ...value, ...patch });
   const selectedByLayer = value.selectedByLayer ?? { canopy: [], shrub: [], groundcover: [], root: [] };
   const selectedTotal = LAYERS.reduce((sum, layer) => sum + (selectedByLayer[layer]?.length ?? 0), 0);
@@ -39,6 +41,18 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
       set({ lat, lng, elevationM: elev, locationLabel: `GPS (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
       setGps('idle');
     } catch { setGps('error'); }
+  };
+
+  const useOsmPoint = async (lat: number, lng: number) => {
+    setOsm('loading');
+    try {
+      const elev = await fetchElevation(lat, lng);
+      set({ lat, lng, elevationM: elev, locationLabel: `OSM (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
+      setOsm('idle');
+    } catch {
+      set({ lat, lng, locationLabel: `OSM (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
+      setOsm('error');
+    }
   };
 
   return (
@@ -77,6 +91,19 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
             </button>
           ))}
         </div>
+      </Field>
+
+      <Field label="เลือกพิกัดจาก OpenStreetMap" hint="คลิกบนแผนที่เพื่อกำหนด lat/lng และดึงความสูงอัตโนมัติ">
+        <OsmPicker
+          lat={value.lat ?? NAN_CENTER.lat}
+          lng={value.lng ?? NAN_CENTER.lng}
+          elevationM={value.elevationM}
+          loading={osm === 'loading'}
+          onPick={useOsmPoint}
+        />
+        {osm === 'error' && (
+          <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ — ใช้พิกัด OSM แล้ว แต่คงค่าความสูงเดิมไว้</div>
+        )}
       </Field>
 
       <div className="agro-palette">
