@@ -38,6 +38,13 @@ function envelope(plant: Plant, elev: number): number {
   return clamp(1 - d / 450, 0.05, 1);
 }
 
+function applyAgronomicGuardrail(score: number, plant: Plant, elev: number): number {
+  const elevFit = envelope(plant, elev);
+  const blended = score * 0.78 + elevFit * 0.22;
+  const agronomicCap = 0.35 + elevFit * 0.65;
+  return clamp(Math.min(blended, agronomicCap), 0.05, 1);
+}
+
 // build the model's feature vector from a plot's climate (impute missing with training median)
 export function disasterFeatureContext(risk: ProtectedArea | null) {
   const layers = risk?.disasterDroughtLayers?.length ?? 0;
@@ -99,7 +106,7 @@ export function plantSuitability(plant: Plant, c: Climate | null, risk: Protecte
   if (sp && sp.auc >= AUC_MIN && c) {
     const x = vector(c, risk);
     const score = sp.preferred === 'gbm' && sp.gbm ? gbmPredict(sp, x) : logitPredict(sp, x);
-    return { score, source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };
+    return { score: applyAgronomicGuardrail(score, plant, c.elev), source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };
   }
   return { score: envelope(plant, c?.elev ?? plant.elevMin), source: 'envelope', auc: sp?.auc, confidence: sp ? 'low' : 'expert' };
 }

@@ -60,6 +60,18 @@ function riskFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null):
   return clamp(score, 0.35, 1);
 }
 
+function elevationFit(p: Plant, climate: Climate | null): number {
+  if (!climate) return 1;
+  const elev = climate.elev;
+  if (elev >= p.elevMin && elev <= p.elevMax) return 1;
+  const distance = elev < p.elevMin ? p.elevMin - elev : elev - p.elevMax;
+  return clamp(1 - distance / 450, 0.05, 1);
+}
+
+function agronomicCap(p: Plant, climate: Climate | null): number {
+  return 0.35 + elevationFit(p, climate) * 0.65;
+}
+
 function agroforestryFit(picks: LayerPick[], cashflow: CashflowPoint[], canopyShadeMature: number) {
   const layers = new Set(picks.map((p) => p.layer));
   const canopy = picks.filter((p) => p.layer === 'canopy');
@@ -98,7 +110,8 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null): Record<L
     const s = plantSuitability(p, climate, risk);
     const water = waterFit(p, climate, risk);
     const riskScore = riskFit(p, climate, risk);
-    const deploySuit = clamp((s.score * 0.68) + (water * 0.13) + (riskScore * 0.11) + ((co2Of(p.id) / MAX_CARBON) * 0.08), 0, 1);
+    const rawSuit = clamp((s.score * 0.68) + (water * 0.13) + (riskScore * 0.11) + ((co2Of(p.id) / MAX_CARBON) * 0.08), 0, 1);
+    const deploySuit = Math.min(rawSuit, s.score, agronomicCap(p, climate));
     out[p.layer].push({
       plant: p,
       suit: deploySuit,
@@ -284,11 +297,8 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: System
 
 export function buildSystems(input: FarmInput, climate: Climate | null, risk: ProtectedArea | null = null): SystemPlan[] {
   const scored = scoreAll(climate, risk);
-  // honour farmer preferences in every stratum while still keeping suitability visible.
-  for (const layer of Object.keys(scored) as Layer[]) {
-    const ids = selectedIds(input, layer);
-    if (ids.length) scored[layer].forEach((s) => { if (ids.includes(s.plant.id)) s.suit = Math.min(1, s.suit + 0.18); });
-  }
+  // Farmer-selected plants are forced into their layer later; do not inflate
+  // suitability here, otherwise an out-of-elevation crop can look falsely safe.
   // candidate primary canopy species (suitable first), then build a grid of
   // candidate systems over primary × goal, and label 3 by their REAL metrics.
   const baseRank = [...scored.canopy].sort((a, b) => goalRank('balanced', b) - goalRank('balanced', a));

@@ -302,7 +302,7 @@ export function App() {
             <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
           </div>
           <div className="agro-disclaimer thai">
-            * ความเหมาะสมไม้ยืนต้นจากโมเดล SDM (logistic regression ฝึกด้วยจุดพบจริง GBIF + ภูมิอากาศ NASA POWER) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอก่อนลงมือจริง
+            * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic elevation เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอก่อนลงมือจริง
           </div>
         </section>
       )}
