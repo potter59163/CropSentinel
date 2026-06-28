@@ -18,41 +18,42 @@ const sizeClasses = {
   lg: 'px-5 py-4 text-base',
 };
 
+/* Boba tea theme - warm gradient backgrounds */
 const layerGradients: Record<string, string> = {
-  // Canopy layers
-  mango: 'from-orange-50 to-amber-50',
-  longan: 'from-amber-50 to-yellow-50',
-  banana: 'from-yellow-50 to-yellow-100',
-  cashew: 'from-orange-50 to-orange-100',
-  avocado: 'from-green-50 to-emerald-50',
-  macadamia: 'from-amber-50 to-orange-50',
-  maikhwaen: 'from-red-50 to-rose-50',
-  bamboo: 'from-green-50 to-teal-50',
-  teak: 'from-stone-50 to-amber-50',
+  // Canopy layers - warm browns/golds
+  mango: 'from-orange-100 to-yellow-50',
+  longan: 'from-amber-100 to-yellow-50',
+  banana: 'from-yellow-100 to-yellow-50',
+  cashew: 'from-orange-100 to-amber-50',
+  avocado: 'from-green-100 to-emerald-50',
+  macadamia: 'from-amber-100 to-orange-50',
+  maikhwaen: 'from-red-100 to-rose-50',
+  bamboo: 'from-teal-100 to-green-50',
+  teak: 'from-amber-100 to-yellow-50',
 
-  // Shrub
-  coffee: 'from-amber-50 to-yellow-50',
-  chili: 'from-red-50 to-rose-50',
-  tea: 'from-emerald-50 to-green-50',
-  lemongrass: 'from-green-50 to-yellow-50',
+  // Shrub - warm palettes
+  coffee: 'from-amber-100 to-yellow-50',
+  chili: 'from-red-100 to-rose-50',
+  tea: 'from-emerald-100 to-green-50',
+  lemongrass: 'from-lime-100 to-yellow-50',
 
-  // Groundcover
-  peanut: 'from-yellow-50 to-amber-50',
-  pumpkin: 'from-orange-50 to-orange-100',
-  sweetpotato: 'from-orange-50 to-red-50',
-  pineapple: 'from-yellow-50 to-orange-50',
+  // Groundcover - sunny
+  peanut: 'from-yellow-100 to-amber-50',
+  pumpkin: 'from-orange-100 to-yellow-50',
+  sweetpotato: 'from-orange-100 to-red-50',
+  pineapple: 'from-yellow-100 to-orange-50',
 
-  // Root
-  ginger: 'from-yellow-50 to-orange-50',
-  turmeric: 'from-yellow-50 to-amber-50',
-  taro: 'from-purple-50 to-violet-50',
-  galangal: 'from-orange-50 to-amber-50',
+  // Root - earth tones
+  ginger: 'from-yellow-100 to-orange-50',
+  turmeric: 'from-yellow-100 to-amber-50',
+  taro: 'from-purple-100 to-violet-50',
+  galangal: 'from-orange-100 to-amber-50',
 };
 
 const confidenceColors = {
-  high: 'border-green-300 shadow-sm shadow-green-200',
-  medium: 'border-amber-300 shadow-sm shadow-amber-200',
-  low: 'border-orange-300 shadow-sm shadow-orange-200',
+  high: 'border-green-400 shadow-md shadow-green-100',
+  medium: 'border-amber-400 shadow-md shadow-amber-100',
+  low: 'border-orange-400 shadow-md shadow-orange-100',
 };
 
 function getConfidenceLevel(confidence?: number): 'high' | 'medium' | 'low' {
@@ -72,7 +73,7 @@ export function PlantButton({
   variant = 'card',
   confidence,
 }: PlantButtonProps) {
-  const gradient = layerGradients[plantId] || 'from-gray-50 to-gray-100';
+  const gradient = layerGradients[plantId] || 'from-amber-50 to-yellow-50';
   const confLevel = getConfidenceLevel(confidence);
   const confColor = confidence ? confidenceColors[confLevel] : '';
 
@@ -85,8 +86,8 @@ export function PlantButton({
           inline-flex items-center gap-2 rounded-full
           border-2 transition-all duration-300
           ${isSelected
-            ? 'border-green-400 bg-green-100 text-green-900 shadow-md shadow-green-200'
-            : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:shadow-md'
+            ? 'border-green-500 bg-green-50 text-green-900 shadow-md'
+            : 'border-gray-200 bg-white text-gray-700 hover:border-green-400 hover:shadow-md'
           }
         `}
       >
@@ -102,21 +103,22 @@ export function PlantButton({
     <button
       onClick={onClick}
       className={`
-        group w-full rounded-2xl border-2 transition-all duration-300
+        group w-full rounded-2xl border-3 transition-all duration-300
         bg-gradient-to-br ${gradient}
         ${isSelected
-          ? `border-green-400 ring-2 ring-green-200 shadow-lg ${confColor}`
-          : 'border-gray-200 hover:border-green-300 hover:shadow-md'
+          ? `border-green-500 ring-2 ring-green-200 shadow-lg ${confColor}`
+          : 'border-gray-200 hover:border-orange-300 hover:shadow-lg'
         }
         hover:shadow-lg hover:-translate-y-1
-        focus:outline-none focus:ring-2 focus:ring-green-400
+        focus:outline-none focus:ring-2 focus:ring-orange-400
+        active:scale-95
       `}
     >
       <div className={`flex flex-col items-center justify-center gap-2 ${sizeClasses[size]}`}>
         <div className="relative">
-          <PlantIcon plantId={plantId} size="lg" />
+          <PlantIcon plantId={plantId} size="lg" className="animate-fade-in" />
           {isSelected && (
-            <div className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold shadow-md">
+            <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-sm font-bold shadow-lg animate-bounce-in">
               ✓
             </div>
           )}
@@ -135,9 +137,9 @@ export function PlantButton({
             ${confLevel === 'medium' ? 'bg-amber-100 text-amber-700' : ''}
             ${confLevel === 'low' ? 'bg-orange-100 text-orange-700' : ''}
           `}>
-            {confLevel === 'high' && '✓ High fit'}
-            {confLevel === 'medium' && '◐ Medium'}
-            {confLevel === 'low' && '◐ Check'}
+            {confLevel === 'high' && '✓ ดี'}
+            {confLevel === 'medium' && '◐ ปานกลาง'}
+            {confLevel === 'low' && '◐ ต่ำ'}
             <span className="ml-0.5 text-xs">{Math.round(confidence * 100)}%</span>
           </div>
         )}
@@ -145,7 +147,7 @@ export function PlantButton({
 
       {/* Hover accent */}
       <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-green-400/10 to-transparent" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-green-400/5 to-transparent" />
       </div>
     </button>
   );
