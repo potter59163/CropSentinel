@@ -1,0 +1,6 @@
+plant_id,thai_name,validation_status,price_per_kg,yield_kg_per_rai,establish_cost_per_rai,annual_cost_per_rai,years_to_yield,survival_rate,plants_per_rai,expert_note
+coffee,กาแฟอาราบิก้า,needs_review,150,220,9000,4000,3,0.9,,ยืนยันช่วงความสูง/ร่มเงา/ราคาเชอร์รี่หรือกะลา
+maikhwaen,มะแขว่น,needs_review,300,120,6000,2000,4,0.85,,ตรวจข้อมูลผลผลิตจริงพื้นที่น่าน
+macadamia,แมคคาเดเมีย,needs_review,200,160,12000,3500,5,0.85,,ใช้เฉพาะพื้นที่สูงเย็นและน้ำพอ
+bamboo,ไผ่ซางหม่น,needs_review,15,1800,5000,1500,3,0.9,,แยกหน่อกับลำถ้ามีข้อมูล
+peanut,ถั่วลิสง,needs_review,35,250,1200,1500,1,0.9,,ใช้เป็นพืชบำรุงดิน/รายได้เร็ว
