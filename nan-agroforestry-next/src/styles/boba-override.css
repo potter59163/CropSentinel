@@ -1,0 +1,190 @@
+/* Boba Tea Theme Override - Force apply warm colors */
+
+:root {
+  /* Override existing dark theme with boba tea */
+  --bg-0: #fef6f0 !important;
+  --bg-1: #f5ede3 !important;
+  --bg-2: #ebe3d6 !important;
+  --bg-3: #e0d5c8 !important;
+  --bg-4: #d4cac0 !important;
+  
+  --fg-0: #2a1f17 !important;
+  --fg-1: #3d2817 !important;
+  --fg-2: #6b5441 !important;
+  --fg-3: #8b7666 !important;
+  
+  --line: #c9bfb5 !important;
+  --line-soft: #d9cfc5 !important;
+  
+  --ok: #6b8c5a !important;
+  --warn: #d9a844 !important;
+  --risk: #c97856 !important;
+  --crit: #b84a3a !important;
+}
+
+/* Force body background */
+body {
+  background: linear-gradient(135deg, #fef6f0 0%, #f5ede3 100%) !important;
+  color: #3d2817 !important;
+}
+
+/* Agro app backgrounds */
+.agro-app {
+  background: #fef6f0 !important;
+  color: #3d2817 !important;
+}
+
+.agro-nav {
+  background: linear-gradient(180deg, #f5ede3 0%, #ebe3d6 100%) !important;
+  border-color: #d9cfc5 !important;
+}
+
+.agro-form, 
+.agro-palette,
+.agro-calculator,
+.agro-goals {
+  background: rgba(245, 237, 227, 0.6) !important;
+  color: #3d2817 !important;
+}
+
+.agro-input,
+input,
+select,
+textarea {
+  background: white !important;
+  color: #3d2817 !important;
+  border-color: #d9cfc5 !important;
+}
+
+.agro-input:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #6b4423 !important;
+  box-shadow: 0 0 0 3px rgba(107, 68, 35, 0.1) !important;
+}
+
+/* Buttons */
+button {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.btn,
+.agro-submit,
+.agro-chip,
+.agro-goal,
+.agro-amphoe {
+  background: linear-gradient(135deg, #f5ede3 0%, #ebe3d6 100%) !important;
+  color: #3d2817 !important;
+  border-color: #d9cfc5 !important;
+  box-shadow: 0 2px 8px rgba(107, 68, 35, 0.08) !important;
+}
+
+.btn:hover,
+.agro-submit:hover,
+.agro-chip:hover,
+.agro-goal:hover,
+.agro-amphoe:hover {
+  background: linear-gradient(135deg, #ebe3d6 0%, #e0d5c8 100%) !important;
+  box-shadow: 0 4px 16px rgba(107, 68, 35, 0.12) !important;
+  transform: translateY(-2px) !important;
+}
+
+.btn.primary,
+.agro-submit {
+  background: linear-gradient(135deg, #8b5a3c 0%, #6b4423 100%) !important;
+  color: white !important;
+}
+
+.btn.primary:hover,
+.agro-submit:hover {
+  background: linear-gradient(135deg, #6b4423 0%, #5a3420 100%) !important;
+}
+
+/* Cards */
+.card,
+.agro-card {
+  background: white !important;
+  border-color: #d9cfc5 !important;
+  box-shadow: 0 4px 12px rgba(107, 68, 35, 0.08) !important;
+}
+
+.card:hover,
+.agro-card:hover {
+  box-shadow: 0 8px 24px rgba(107, 68, 35, 0.12) !important;
+}
+
+/* Text colors */
+.agro-form-title,
+.agro-palette-title,
+h1, h2, h3, h4, h5, h6 {
+  color: #2a1f17 !important;
+}
+
+.agro-form-hint,
+.agro-palette-sub,
+p, small {
+  color: #6b5441 !important;
+}
+
+/* Alert/Badge colors */
+.agro-suit.ok {
+  color: #6b8c5a !important;
+  background: rgba(107, 140, 90, 0.1) !important;
+}
+
+.agro-suit.warn {
+  color: #d9a844 !important;
+  background: rgba(217, 168, 68, 0.1) !important;
+}
+
+.agro-suit.risk {
+  color: #c97856 !important;
+  background: rgba(201, 120, 86, 0.1) !important;
+}
+
+/* Borders & dividers */
+hr,
+.divider {
+  border-color: #d9cfc5 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-thumb {
+  background: #d4a5a0 !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5a3c !important;
+}
+
+/* Links */
+a {
+  color: #8b5a3c !important;
+}
+
+a:hover {
+  color: #d4956f !important;
+}
+
+/* Charts and graphics */
+.chart-bg {
+  background: linear-gradient(135deg, rgba(245, 237, 227, 0.3) 0%, rgba(235, 227, 214, 0.3) 100%) !important;
+}
+
+/* Plant cards - colored backgrounds */
+.plant-card {
+  background: linear-gradient(135deg, #f5ede3 0%, #ebe3d6 100%) !important;
+  border: 2px solid #d9cfc5 !important;
+}
+
+.plant-card:hover {
+  border-color: #8b5a3c !important;
+  box-shadow: 0 8px 24px rgba(107, 68, 35, 0.12) !important;
+}
+
+/* Utility classes */
+.bg-warm { background: #f5ede3 !important; }
+.bg-light { background: #fef6f0 !important; }
+.text-dark { color: #2a1f17 !important; }
+.text-muted { color: #8b7666 !important; }
