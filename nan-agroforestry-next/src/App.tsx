@@ -6,10 +6,12 @@ import type { Climate } from './lib/climate';
 import './styles/animations.css';
 import type { ProtectedArea } from './lib/gistda';
 import type { SatContext } from './lib/satellite';
+import type { SoilContext } from './lib/soil';
 import { bahtK } from './lib/format';
 import { LAYER_META, PLANTS } from './data/plants';
 import type { Layer } from './data/types';
 import { InputForm } from './components/InputForm';
+import { PlantGlyph } from './components/PlantGlyph';
 import { ResultPlan } from './components/ResultPlan';
 import { Methodology } from './components/Methodology';
 
@@ -69,6 +71,7 @@ export function App() {
   const [climate, setClimate] = useState<Climate | null>(null);
   const [prot, setProt] = useState<ProtectedArea | null>(null);
   const [sat, setSat] = useState<SatContext | null>(null);
+  const [soil, setSoil] = useState<SoilContext | null>(null);
   const [apiWarnings, setApiWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'planner' | 'method'>('planner');
@@ -108,11 +111,13 @@ export function App() {
         climate: Climate | null;
         protectedArea: ProtectedArea | null;
         satellite: SatContext | null;
+        soil: SoilContext | null;
         warnings: string[];
       };
       setClimate(data.climate);
       setProt(data.protectedArea);
       setSat(data.satellite);
+      setSoil(data.soil);
       setApiWarnings(data.warnings ?? []);
       setActivePlan(0);
       setSystems(data.systems);
@@ -261,6 +266,23 @@ export function App() {
         </div>
       )}
 
+      {soil && (
+        <div className={`agro-gistda ${soil.acidity === 'strong' || soil.fertility < 0.45 ? 'warn' : 'ok'}`}>
+          <span className="agro-gistda-icon">🪨</span>
+          <div className="agro-gistda-body">
+            <b className="thai">ดินจริง: {soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}</b>
+            <div className="thai">
+              อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg ·
+              เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% ·
+              ความอุดมสมบูรณ์ {soil.fertilityTh}
+              {soil.acidity === 'strong' ? ' — ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
+              {' '}ระบบนำค่าดินนี้ไปปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรดแล้ว
+            </div>
+            <div className="agro-gistda-src">ที่มา: {soil.source} · ความลึก {soil.depthLabel} · ค่าประมาณเชิงพื้นที่ ควรยืนยันด้วยชุดตรวจดินจริงก่อนลงทุน</div>
+          </div>
+        </div>
+      )}
+
       {systems && activeSystem && (
         <section className="agro-results" ref={resultsRef}>
           {selectedRows(input).length > 0 && (
@@ -273,7 +295,13 @@ export function App() {
                 {selectedRows(input).map((row) => (
                   <div key={row.layer} className="agro-selection-row">
                     <b className="thai">{row.meta.emoji} {row.meta.th}</b>
-                    <span className="thai">{row.plants.map((p) => `${p!.emoji} ${p!.nameTh}`).join(' · ')}</span>
+                    <span className="thai agro-sel-plants">
+                      {row.plants.map((p) => (
+                        <span key={p!.id} className="agro-sel-plant">
+                          <PlantGlyph plantId={p!.id} layer={p!.layer} size={18} /> {p!.nameTh}
+                        </span>
+                      ))}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -353,14 +381,14 @@ export function App() {
             <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
           </div>
           <div className="agro-disclaimer thai">
-            * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic elevation เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอก่อนลงมือจริง
+            * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic ทั้งความสูง (เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง) และดินจริงจาก SoilGrids (การระบายน้ำ/ความเป็นกรด/ความอุดมสมบูรณ์) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอและตรวจดินจริงก่อนลงมือ
           </div>
         </section>
       )}
       </>)}
 
       <footer className="agro-foot thai">
-        ข้อมูล: OpenStreetMap (เลือกพิกัดแปลง) · GISTDA (พื้นที่อนุรักษ์ + ลำน้ำ + Disaster Open API ไฟป่า/น้ำท่วม/ภัยแล้ง) · NASA POWER + Open-Meteo (ภูมิอากาศ/ความสูง) · GBIF (จุดพบพืช) — ต้นแบบ space tech for forest
+        ข้อมูล: OpenStreetMap (เลือกพิกัดแปลง) · GISTDA (พื้นที่อนุรักษ์ + ลำน้ำ + Disaster Open API ไฟป่า/น้ำท่วม/ภัยแล้ง) · NASA POWER + Open-Meteo (ภูมิอากาศ/ความสูง) · SoilGrids/ISRIC (ดินจริง) · GBIF (จุดพบพืช) — ต้นแบบ space tech for forest
       </footer>
     </div>
   );

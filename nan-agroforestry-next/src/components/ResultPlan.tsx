@@ -1,6 +1,7 @@
 import type { SystemPlan, Layer } from '../data/types';
 import { LAYER_META } from '../data/plants';
 import { Card } from './ui';
+import { PlantGlyph } from './PlantGlyph';
 import { CashflowChart } from './CashflowChart';
 import { bahtK, pct, nf0 } from '../lib/format';
 
@@ -156,7 +157,7 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
               <div className="agro-layer-plants">
                 {rows.map((p) => (
                   <div key={p.plant.id} className="agro-plant-row">
-                    <span className="agro-plant-emoji">{p.plant.emoji}</span>
+                    <span className="agro-plant-emoji"><PlantGlyph plantId={p.plant.id} layer={p.layer} size={30} /></span>
                     <div className="agro-plant-main">
                       <div className="agro-plant-name thai">{p.plant.nameTh}</div>
                       <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
