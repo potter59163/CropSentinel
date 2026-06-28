@@ -5,7 +5,8 @@ const SOURCES = [
   ['NASA POWER', 'ภูมิอากาศ', 'อุณหภูมิ ฝน ฤดูแล้ง ความชื้นดิน แสงอาทิตย์ เป็น feature ของ SDM'],
   ['GBIF', 'ชีววิทยา', 'จุดพบพืชจริง ใช้ฝึก Species Distribution Model รายชนิด'],
   ['ReCorp / Field Pilot', 'องค์ความรู้พื้นที่', 'ราคา ผลผลิต survival rate รูปแบบ farm design และ feedback จากแปลงจริง'],
-  ['LDD / Soil field test', 'ดิน', 'Soil Health Proxy + ผลตรวจดินภาคสนามเมื่อมี ไม่ claim เป็นผล lab ถ้ายังไม่ได้ตรวจ'],
+  ['SoilGrids (ISRIC)', 'ดินจริง', 'pH เนื้อดิน การระบายน้ำ อินทรียวัตถุ ดึงฝั่งเซิร์ฟเวอร์ ใช้ปรับอันดับพืช (เป็นค่าประมาณเชิงพื้นที่ ~250 ม.)'],
+  ['LDD / Soil field test', 'ตรวจดินภาคสนาม', 'ผลตรวจ pH/NPK/อินทรียวัตถุจากแปลงจริงเมื่อมี ใช้ยืนยัน/แทนค่า SoilGrids ไม่ claim เป็นผล lab ถ้ายังไม่ได้ตรวจ'],
 ];
 
 export function Methodology() {
@@ -41,7 +42,7 @@ export function Methodology() {
       <div className="method-note thai">
         • ข้อมูลแนะนำเริ่มจาก <b>model_suggested</b> แล้วให้ ReCorp/ผู้เชี่ยวชาญปรับเป็น <b>expert_confirmed</b>, <b>needs_review</b>, หรือ <b>not_recommended</b><br />
         • ระบบแสดง sensitivity ราคา -30% / base / +30% เพราะราคาพืชผันผวนสูง<br />
-        • Soil Health Proxy เป็นการประเมินจากดาวเทียม ภูมิอากาศ ภัยพิบัติ และโครงสร้างปลูก ไม่ใช่ผลตรวจ pH/NPK จริง<br />
+        • ดินใช้ข้อมูลจริงจาก SoilGrids (pH เนื้อดิน การระบายน้ำ อินทรียวัตถุ) ปรับอันดับพืชแบบ guardrail — เป็นค่าประมาณเชิงพื้นที่ ~250 ม. ควรยืนยันด้วยชุดตรวจดินจริงก่อนลงทุน<br />
         • เป้าหมาย pilot คือทดสอบกับ 30 แปลงตัวอย่าง และลงพื้นที่ 5-10 แปลงเพื่อเก็บ feedback จริง
       </div>
     </div>

@@ -3,6 +3,7 @@ import { PLANTS, co2Of } from '../data/plants';
 import { disasterFeatureContext, plantSuitability } from './suitability';
 import type { Climate } from './climate';
 import type { ProtectedArea } from './gistda';
+import type { SoilContext } from './soil';
 import { clamp, pct } from './format';
 
 const HORIZON = 10;
@@ -22,6 +23,29 @@ interface Scored {
   waterFit: number;
   riskFit: number;
   carbonFit: number;
+  soilFit: number;
+}
+
+// Real soil (SoilGrids) as an expert agronomic adjustment — drainage vs the
+// plant's water need, acidity, and fertility. Neutral (0.82) when soil is
+// unavailable so plots without coverage are not penalised.
+function soilFit(p: Plant, soil: SoilContext | null): number {
+  if (!soil) return 0.82;
+  let s = 0.85;
+  if (soil.drainage === 'poor') {
+    // waterlogged clay: drowns drought-loving/low-water crops, rots tubers
+    s += p.water === 'high' ? 0.1 : p.water === 'med' ? 0 : -0.18;
+    if (p.layer === 'root' && p.water !== 'high') s -= 0.06;
+  } else if (soil.drainage === 'good') {
+    // freely drained/sandy: dries fast, favours low-water species
+    s += p.water === 'low' ? 0.08 : p.water === 'med' ? 0.02 : -0.06;
+  } else {
+    s += 0.04; // loam ≈ ideal for most
+  }
+  if (soil.acidity === 'strong') s -= 0.08;
+  else if (soil.acidity === 'neutral') s += 0.03;
+  s += (soil.fertility - 0.5) * 0.16; // heavier feeders gain on rich soil
+  return clamp(s, 0.4, 1);
 }
 
 function waterFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null): number {
@@ -105,14 +129,18 @@ function agroforestryFit(picks: LayerPick[], cashflow: CashflowPoint[], canopySh
   };
 }
 
-function scoreAll(climate: Climate | null, risk: ProtectedArea | null): Record<Layer, Scored[]> {
+function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: SoilContext | null): Record<Layer, Scored[]> {
   const out = { canopy: [], shrub: [], groundcover: [], root: [] } as Record<Layer, Scored[]>;
   for (const p of PLANTS) {
     const s = plantSuitability(p, climate, risk);
     const water = waterFit(p, climate, risk);
     const riskScore = riskFit(p, climate, risk);
-    const rawSuit = clamp((s.score * 0.68) + (water * 0.13) + (riskScore * 0.11) + ((co2Of(p.id) / MAX_CARBON) * 0.08), 0, 1);
-    const deploySuit = Math.min(rawSuit, s.score, agronomicCap(p, climate));
+    const soilScore = soilFit(p, soil);
+    const rawSuit = clamp((s.score * 0.62) + (water * 0.12) + (riskScore * 0.1) + (soilScore * 0.1) + ((co2Of(p.id) / MAX_CARBON) * 0.06), 0, 1);
+    // soil guardrail mirrors the elevation cap: a severe drainage/acidity
+    // mismatch keeps a crop from ever looking "great" on this plot.
+    const soilCap = 0.55 + soilScore * 0.45;
+    const deploySuit = Math.min(rawSuit, s.score, agronomicCap(p, climate), soilCap);
     out[p.layer].push({
       plant: p,
       suit: deploySuit,
@@ -123,6 +151,7 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null): Record<L
       waterFit: water,
       riskFit: riskScore,
       carbonFit: co2Of(p.id) / MAX_CARBON,
+      soilFit: soilScore,
     });
   }
   return out;
@@ -193,7 +222,7 @@ function payback(cashflow: CashflowPoint[]) {
   return null;
 }
 
-function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: ProtectedArea | null): SoilHealthProxy {
+function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: ProtectedArea | null, soil: SoilContext | null): SoilHealthProxy {
   const cover = picks.some((p) => p.layer === 'groundcover') ? 0.28 : 0;
   const root = picks.some((p) => p.layer === 'root') ? 0.08 : 0;
   const nFix = picks.some((p) => p.plant.nFixing) ? 0.16 : 0;
@@ -201,11 +230,17 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
   const dryPenalty = (climate?.drym ?? 0) >= 5 ? 0.1 : 0;
   const firePenalty = Math.max(risk?.fireNearby ?? 0, risk?.disasterFire7dNear ?? 0) > 0 ? 0.08 : 0;
   const floodPenalty = Math.max(risk?.disasterFlood7dNear ?? 0, risk?.disasterFloodFreqNear ?? 0) > 0 ? 0.06 : 0;
-  const score = clamp(0.42 + cover + root + nFix + perennial * 0.18 - dryPenalty - firePenalty - floodPenalty, 0, 1);
+  // when real soil is available it anchors the baseline; the system design (cover,
+  // n-fixing, perennials) then adds or subtracts from that measured starting point.
+  const base = soil ? 0.3 + soil.fertility * 0.34 : 0.42;
+  const score = clamp(base + cover + root + nFix + perennial * 0.18 - dryPenalty - firePenalty - floodPenalty, 0, 1);
   return {
     score,
     label: score >= 0.68 ? 'ดี' : score >= 0.48 ? 'ปานกลาง' : 'เสี่ยงเสื่อม',
     signals: [
+      soil ? `ดินจริง: ${soil.texture} · pH ${soil.ph} (${soil.acidityTh}) · อินทรียวัตถุ ${soil.organicCarbonPct}% · ${soil.drainageTh}` : '',
+      soil && soil.acidity === 'strong' ? 'ดินกรดจัด ควรใส่ปูนโดโลไมต์/ปูนขาวปรับ pH ก่อนปลูกไม้ผลที่ไวต่อกรด' : '',
+      soil && soil.organicCarbonPct < 1 ? 'อินทรียวัตถุต่ำ ควรเพิ่มปุ๋ยอินทรีย์/พืชคลุมดินเร่งฟื้นดิน' : '',
       cover ? 'มีพืชคลุมดินช่วยลดการชะล้าง' : 'ยังควรเพิ่มพืชคลุมดิน',
       nFix ? 'มีพืชตรึงไนโตรเจนช่วยบำรุงดิน' : 'ยังไม่มีพืชตระกูลถั่วบำรุงดิน',
       perennial >= 0.45 ? 'สัดส่วนไม้ยืนต้นช่วยเพิ่มอินทรียวัตถุระยะยาว' : 'ไม้ยืนต้นยังน้อยเมื่อเทียบกับพืชล้มลุก',
@@ -213,11 +248,15 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
       firePenalty ? 'มีความเสี่ยงไฟใกล้แปลง ดินอาจสูญเสียอินทรียวัตถุ' : '',
       floodPenalty ? 'มีความเสี่ยงน้ำท่วม/น้ำท่วมซ้ำซาก ต้องจัดโซนระบายน้ำ' : '',
     ].filter(Boolean),
-    limitations: ['เป็น Soil Health Proxy จากดาวเทียม/ภูมิอากาศ/ภัยพิบัติ ไม่ใช่ผลตรวจ pH, NPK หรืออินทรียวัตถุจริง'],
+    limitations: [
+      soil
+        ? `ดินจาก ${soil.source} เป็นค่าประมาณเชิงพื้นที่ ~250 ม. ควรยืนยันด้วยชุดตรวจดินจริง (pH, NPK, อินทรียวัตถุ) ก่อนลงทุนจริง`
+        : 'ยังไม่มีข้อมูลดินจริง — เป็น proxy จากภูมิอากาศ/ภัยพิบัติ ไม่ใช่ผลตรวจ pH, NPK',
+    ],
   };
 }
 
-function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Goal, forcedPrimary: Scored, climate: Climate | null, risk: ProtectedArea | null): SystemPlan {
+function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Goal, forcedPrimary: Scored, climate: Climate | null, risk: ProtectedArea | null, soil: SoilContext | null): SystemPlan {
   const sizeRai = input.sizeRai;
   const rank = (arr: Scored[]) => [...arr].sort((a, b) => goalRank(goal, b) - goalRank(goal, a));
   const canopyRanked = rank(scored.canopy);
@@ -322,14 +361,15 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
     suitability, carbonPerYear: Math.round(carbonPerYear * 10) / 10, carbon10: Math.round(carbon10),
     productProfit10: Math.round(cum),
     ecosystemValue10: Math.round(carbon10 * CARBON_VALUE_THB),
-    score, scoreParts, agroforestryParts: agro.parts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts), warnings: warningsFor(picks, canopyShadeMature, agro.parts),
+    score, scoreParts, agroforestryParts: agro.parts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts, soil), warnings: warningsFor(picks, canopyShadeMature, agro.parts, soil),
     sensitivity,
-    soilHealth: soilHealthProxy(picks, climate, risk),
+    soilHealth: soilHealthProxy(picks, climate, risk, soil),
   };
 }
 
-function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: SystemPlan['scoreParts']): string[] {
+function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: SystemPlan['scoreParts'], soil: SoilContext | null): string[] {
   const r: string[] = [];
+  if (soil) r.push(`ดินจริง (${soil.source}): ${soil.texture} · pH ${soil.ph} · ${soil.drainageTh} · ความอุดมสมบูรณ์ ${soil.fertilityTh} — ใช้ปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรด`);
   const canopy = picks.filter((p) => p.layer === 'canopy').map((p) => p.plant.nameTh).join(' + ');
   const layerCount = new Set(picks.map((p) => p.layer)).size;
   r.push(`โครงสร้าง ${layerCount} ชั้น (${picks.length} ชนิด): เรือนยอด ${canopy}` +
@@ -350,12 +390,14 @@ function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: Syst
   return r;
 }
 
-function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: SystemPlan['agroforestryParts']): string[] {
+function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: SystemPlan['agroforestryParts'], soil: SoilContext | null): string[] {
   const w: string[] = [];
   for (const p of picks) {
     if (p.suitability < 0.45) w.push(`${p.plant.nameTh} เหมาะกับพื้นที่นี้ปานกลาง (${Math.round(p.suitability * 100)}%) — พิจารณาชนิดอื่นเสริม`);
     if (p.modelConfidence === 'low') w.push(`${p.plant.nameTh} มีข้อมูลโมเดลน้อย/ความแม่นยำต่ำ จึงใช้เกณฑ์พื้นที่แทนการจัดอันดับจาก SDM`);
+    if (soil?.drainage === 'poor' && p.plant.water === 'low') w.push(`${p.plant.nameTh}ชอบดินระบายน้ำดี แต่ดินแปลงนี้ระบายน้ำช้า — ควรยกร่อง/พูนโคนหรือเลี่ยงพื้นที่ลุ่ม`);
   }
+  if (soil?.acidity === 'strong') w.push(`ดินกรดจัด (pH ${soil.ph}) — ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด`);
   const sun = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol < 0.35);
   if (sun && canopyShadeMature > 0.55) w.push(`${sun.plant.nameTh}ชอบแดด เมื่อเรือนยอดปิด ควรย้ายไปขอบแปลงหรือเปลี่ยนเป็นพืชทนร่มในปีท้ายๆ`);
   if (agro.strata < 0.9) w.push('โครงสร้างวนเกษตรยังไม่ครบชั้น ควรมีไม้ยืนต้นอย่างน้อย 2 ชนิดและพืชคลุมดิน/พืชหัวช่วยปิดหน้าดิน');
@@ -364,8 +406,8 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: System
   return w;
 }
 
-export function buildSystems(input: FarmInput, climate: Climate | null, risk: ProtectedArea | null = null): SystemPlan[] {
-  const scored = scoreAll(climate, risk);
+export function buildSystems(input: FarmInput, climate: Climate | null, risk: ProtectedArea | null = null, soil: SoilContext | null = null): SystemPlan[] {
+  const scored = scoreAll(climate, risk, soil);
   // Farmer-selected plants are forced into their layer later; do not inflate
   // suitability here, otherwise an out-of-elevation crop can look falsely safe.
   // candidate primary canopy species (suitable first), then build a grid of
@@ -376,7 +418,7 @@ export function buildSystems(input: FarmInput, climate: Climate | null, risk: Pr
   for (const s of [...decent, ...baseRank]) { if (primaries.length >= 5) break; if (!primaries.some((p) => p.plant.id === s.plant.id)) primaries.push(s); }
 
   const cands: SystemPlan[] = [];
-  for (const p of primaries) for (const g of ['balanced', 'fast', 'profit'] as Goal[]) cands.push(buildSystem(scored, input, g, p, climate, risk));
+  for (const p of primaries) for (const g of ['balanced', 'fast', 'profit'] as Goal[]) cands.push(buildSystem(scored, input, g, p, climate, risk, soil));
   const sig = (s: SystemPlan) => s.picks.map((p) => p.plant.id).sort().join('|');
 
   // 3 distinct systems, strongest first
