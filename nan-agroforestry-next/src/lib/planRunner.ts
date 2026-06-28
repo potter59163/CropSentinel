@@ -1,15 +1,15 @@
 import type { FarmInput } from '../data/types';
-import type { SoilData } from './soilAnalysis';
 import { buildSystems } from './engine';
 import { fetchClimate } from './climate';
 import { checkProtected } from './gistda';
 import { satContext } from './satellite';
+import { fetchSoil } from './soil';
 
-export async function runPlan(input: FarmInput, soilData?: SoilData | null) {
+export async function runPlan(input: FarmInput) {
   const lat = input.lat ?? 18.78;
   const lng = input.lng ?? 100.78;
   const warnings: string[] = [];
-  const [climate, protectedArea] = await Promise.all([
+  const [climate, protectedArea, soil] = await Promise.all([
     fetchClimate(lat, lng, input.elevationM).catch((error) => {
       warnings.push(`NASA POWER/Open-Meteo climate unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
       return null;
@@ -18,19 +18,13 @@ export async function runPlan(input: FarmInput, soilData?: SoilData | null) {
       warnings.push(`GISTDA unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
       return null;
     }),
+    fetchSoil(lat, lng).catch((error) => {
+      warnings.push(`SoilGrids unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
+      return null;
+    }),
   ]);
+  if (!soil) warnings.push('ไม่พบข้อมูลดิน SoilGrids สำหรับพิกัดนี้ — ระบบใช้คะแนนดินกลางแทน');
   const satellite = satContext(lat, lng);
-  
-  // Use soil data to enhance system recommendations if available
-  const enrichedInput = soilData ? {
-    ...input,
-    _soilContext: {
-      soilType: soilData.soilType,
-      ph: soilData.ph,
-      suitableCrops: soilData.suitableCrops
-    }
-  } : input;
-  
-  const systems = buildSystems(enrichedInput as any, climate, protectedArea);
-  return { systems, climate, protectedArea, satellite, soilData, warnings };
+  const systems = buildSystems(input, climate, protectedArea, soil);
+  return { systems, climate, protectedArea, satellite, soil, warnings };
 }
