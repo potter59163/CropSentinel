@@ -1,190 +1,458 @@
-/* Boba Tea Theme Override - Force apply warm colors */
+/* ═══════════════════════════════════════════════════════════════════════════
+   🧋 Boba Milk Tea Theme — cute · minimal · game-like
+   Loaded last in globals.css, so equal-specificity rules win without !important.
+   This replaces the dark CropSentinel skin's leftover navy surfaces with a warm
+   milk-tea palette and adds soft "sticker" depth + bouncy micro-interactions.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Override existing dark theme with boba tea */
-  --bg-0: #fef6f0 !important;
-  --bg-1: #f5ede3 !important;
-  --bg-2: #ebe3d6 !important;
-  --bg-3: #e0d5c8 !important;
-  --bg-4: #d4cac0 !important;
-  
-  --fg-0: #2a1f17 !important;
-  --fg-1: #3d2817 !important;
-  --fg-2: #6b5441 !important;
-  --fg-3: #8b7666 !important;
-  
-  --line: #c9bfb5 !important;
-  --line-soft: #d9cfc5 !important;
-  
-  --ok: #6b8c5a !important;
-  --warn: #d9a844 !important;
-  --risk: #c97856 !important;
-  --crit: #b84a3a !important;
+  /* — milk-tea surfaces — */
+  --bg-0: #fffaf3;            /* milk foam (lightest) */
+  --bg-1: #fbf2e6;           /* warm milk */
+  --bg-2: #f4e6d3;           /* light tan */
+  --bg-3: #ecd9c0;           /* tan */
+  --bg-4: #e2c9a9;           /* deep tan */
+  --surface: #fffdf9;        /* card */
+  --surface-soft: #fdf6ec;
+
+  /* — ink (tapioca pearls) — */
+  --fg-0: #3a2417;           /* darkest pearl */
+  --fg-1: #4a3322;           /* ink */
+  --fg-2: #7a6150;           /* muted */
+  --fg-3: #a08a76;           /* faint */
+
+  /* — borders — */
+  --line: #e4d3bd;
+  --line-soft: #efe2cf;
+  --line-bright: #f6ecdc;
+
+  /* — brown sugar (primary brand) — */
+  --sugar-0: #a9744f;
+  --sugar-1: #8b5a34;
+  --sugar-2: #6f4a2e;
+  --sugar-ink: #4a3324;
+
+  /* — cute pastel accents — */
+  --taro: #b493d6;           /* taro purple */
+  --taro-deep: #9472bd;
+  --matcha: #8fb567;         /* matcha green */
+  --strawberry: #e8939f;     /* strawberry milk */
+  --peach: #f0b58c;          /* peach */
+  --honey: #e6b23e;          /* honey */
+
+  /* — status (warm) — */
+  --ok: #6f9d4e;
+  --warn: #d99b2c;
+  --risk: #d2774a;
+  --crit: #c44f3c;
+  --data: #9b86c9;           /* taro-toned "data" */
+  --data-2: #9aa37f;
+
+  --ok-bg: #eaf3df;
+  --warn-bg: #fbeecd;
+  --risk-bg: #fbe5d6;
+  --data-bg: #efe9f8;
+
+  /* — soft sticker shadows (slightly brown-tinted) — */
+  --shadow-soft: 0 6px 16px rgba(122, 80, 45, 0.10);
+  --shadow-card: 0 14px 30px rgba(122, 80, 45, 0.13);
+  --shadow-glow: 0 2px 0 rgba(122, 80, 45, 0.04), 0 18px 38px rgba(122, 80, 45, 0.14);
+  --shadow-pop: 0 8px 0 -2px rgba(122, 80, 45, 0.10), 0 16px 30px rgba(122, 80, 45, 0.16);
+
+  /* — friendlier, rounder geometry — */
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+
+  --font-display: 'Baloo Thai 2', 'Baloo 2', 'Noto Sans Thai', system-ui, sans-serif;
+  --font-thai: 'Noto Sans Thai', system-ui, sans-serif;
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Force body background */
+/* ── base ──────────────────────────────────────────────────────────────── */
+html, body { overflow: auto; height: auto; }
 body {
-  background: linear-gradient(135deg, #fef6f0 0%, #f5ede3 100%) !important;
-  color: #3d2817 !important;
+  min-height: 100vh;
+  color: var(--fg-1);
+  font-family: var(--font-thai);
+  font-size: 13.5px;
+  background:
+    radial-gradient(circle at 12% -4%, rgba(180, 147, 214, 0.14), transparent 34%),
+    radial-gradient(circle at 92% 2%, rgba(143, 181, 103, 0.12), transparent 30%),
+    radial-gradient(circle at 50% 120%, rgba(232, 147, 159, 0.10), transparent 42%),
+    linear-gradient(180deg, #fffaf3 0%, #fbf0e2 60%, #f6e8d6 100%);
+  background-attachment: fixed;
 }
 
-/* Agro app backgrounds */
-.agro-app {
-  background: #fef6f0 !important;
-  color: #3d2817 !important;
+/* faint floating "pearls" behind everything — playful but subtle */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(122, 80, 45, 0.05) 22%, transparent 23%),
+    radial-gradient(circle, rgba(122, 80, 45, 0.04) 22%, transparent 23%);
+  background-size: 44px 44px, 88px 88px;
+  background-position: 0 0, 22px 22px;
+  opacity: 0.5;
+}
+.agro-app { position: relative; z-index: 1; }
+
+::selection { background: rgba(180, 147, 214, 0.32); }
+
+/* ── header / brand ────────────────────────────────────────────────────── */
+.agro-brand-mark {
+  font-size: 38px;
+  filter: drop-shadow(0 6px 12px rgba(139, 90, 52, 0.30));
+  animation: boba-bob 3.6s ease-in-out infinite;
+}
+.agro-brand-name { font-family: var(--font-display); color: var(--fg-0); letter-spacing: 0.2px; }
+.agro-brand-en { color: var(--sugar-0); font-family: var(--font-thai); font-weight: 600; }
+.agro-brand-sub { color: var(--fg-2); }
+
+.agro-model-chip {
+  background: linear-gradient(135deg, var(--data-bg), #fff);
+  border: 1.5px solid #d9caee;
+  color: var(--data); border-radius: 999px; padding: 7px 13px;
+  box-shadow: var(--shadow-soft); white-space: normal;
+}
+.agro-model-chip .dot { background: var(--taro); }
+
+/* ── nav pills ─────────────────────────────────────────────────────────── */
+.agro-nav { gap: 8px; }
+.agro-nav button {
+  background: var(--surface); border: 1.5px solid var(--line); color: var(--fg-2);
+  box-shadow: var(--shadow-soft); transition: all .2s var(--ease-bounce);
+  font-family: var(--font-display); font-weight: 600;
+}
+.agro-nav button:hover { transform: translateY(-2px); border-color: var(--sugar-0); color: var(--sugar-1); }
+.agro-nav button.on {
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+  border-color: var(--sugar-2); color: #fff;
+  box-shadow: 0 6px 14px rgba(139, 90, 52, 0.30);
 }
 
-.agro-nav {
-  background: linear-gradient(180deg, #f5ede3 0%, #ebe3d6 100%) !important;
-  border-color: #d9cfc5 !important;
+/* ── the base Card (form + every Card wrapper was dark navy) ───────────── */
+.card, .stat {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
+.card::before, .stat::before { display: none; }
 
-.agro-form, 
+/* ── shared card / panel surfaces (fix dark leftovers) ─────────────────── */
+.agro-intro,
 .agro-palette,
 .agro-calculator,
-.agro-goals {
-  background: rgba(245, 237, 227, 0.6) !important;
-  color: #3d2817 !important;
+.agro-proof-card,
+.agro-calc-row,
+.agro-selection-row,
+.agro-combo,
+.agro-sensitivity,
+.agro-soil-proxy,
+.method-src,
+.method-table-wrap {
+  background: var(--surface);
+  border: 1.5px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
+}
+.agro-proof-card { background: linear-gradient(180deg, var(--surface), var(--surface-soft)); }
+.agro-proof-k { color: var(--taro-deep); }
+.agro-intro strong { color: var(--sugar-1); }
+
+/* ── form fields ───────────────────────────────────────────────────────── */
+.agro-label { color: var(--fg-0); font-family: var(--font-display); font-weight: 600; }
+.agro-hint { color: var(--fg-3); }
+.agro-input {
+  background: #fff; border: 1.5px solid var(--line); color: var(--fg-0);
+  border-radius: var(--radius); box-shadow: inset 0 1px 2px rgba(122, 80, 45, 0.04);
+  transition: border-color .18s, box-shadow .18s;
+}
+.agro-input:focus {
+  border-color: var(--sugar-0);
+  box-shadow: 0 0 0 4px rgba(169, 116, 79, 0.16);
 }
 
-.agro-input,
-input,
-select,
-textarea {
-  background: white !important;
-  color: #3d2817 !important;
-  border-color: #d9cfc5 !important;
+/* GPS = blueberry-milk accent */
+.agro-gps-btn {
+  background: linear-gradient(135deg, var(--taro), var(--taro-deep));
+  color: #fff; box-shadow: 0 5px 12px rgba(148, 114, 189, 0.32);
+  transition: transform .2s var(--ease-bounce), box-shadow .2s;
 }
+.agro-gps-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 18px rgba(148, 114, 189, 0.4); }
+.agro-loc { color: var(--fg-3); }
 
-.agro-input:focus,
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #6b4423 !important;
-  box-shadow: 0 0 0 3px rgba(107, 68, 35, 0.1) !important;
-}
-
-/* Buttons */
-button {
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.btn,
-.agro-submit,
+/* ── chips (amphoe + plant palette) ────────────────────────────────────── */
+.agro-amphoe span,
 .agro-chip,
-.agro-goal,
-.agro-amphoe {
-  background: linear-gradient(135deg, #f5ede3 0%, #ebe3d6 100%) !important;
-  color: #3d2817 !important;
-  border-color: #d9cfc5 !important;
-  box-shadow: 0 2px 8px rgba(107, 68, 35, 0.08) !important;
+.agro-osm-meta span,
+.agro-nav button { border-radius: 999px; }
+.agro-chip,
+.agro-amphoe button,
+.agro-amphoe span {
+  background: var(--surface); border: 1.5px solid var(--line); color: var(--fg-1);
+  box-shadow: var(--shadow-soft); transition: all .18s var(--ease-bounce);
+}
+.agro-chip:hover { border-color: var(--sugar-0); color: var(--sugar-1); transform: translateY(-2px) scale(1.02); }
+.agro-chip.on {
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+  border-color: var(--sugar-2); color: #fff; font-weight: 700;
+  box-shadow: 0 5px 12px rgba(139, 90, 52, 0.30);
+}
+.agro-selected-count {
+  color: var(--matcha); background: var(--ok-bg);
+  border: 1.5px solid #cfe3b6; border-radius: 999px;
 }
 
-.btn:hover,
-.agro-submit:hover,
-.agro-chip:hover,
-.agro-goal:hover,
-.agro-amphoe:hover {
-  background: linear-gradient(135deg, #ebe3d6 0%, #e0d5c8 100%) !important;
-  box-shadow: 0 4px 16px rgba(107, 68, 35, 0.12) !important;
-  transform: translateY(-2px) !important;
+/* ── unified plant glyphs (SVG icon set, replaces emoji everywhere) ────── */
+.agro-glyph { display: block; flex-shrink: 0; }
+.agro-pick-emoji { display: inline-flex; align-items: center; }
+.agro-plant-emoji { display: inline-flex; align-items: center; }
+.agro-calc-name { display: inline-flex; align-items: center; gap: 6px; }
+.agro-sel-plants { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 5px; }
+.agro-sel-plant { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ── compact plant picker (emoji chips, grouped by strata) ─────────────── */
+.agro-pick { display: flex; flex-direction: column; gap: 10px; }
+.agro-pick-layer {
+  padding: 9px 11px; border: 1.5px solid var(--line-soft); border-left: 4px solid var(--line);
+  border-radius: var(--radius); background: var(--surface-soft);
+}
+.agro-pick-layer.layer-canopy { border-left-color: var(--matcha); }
+.agro-pick-layer.layer-shrub { border-left-color: var(--ok); }
+.agro-pick-layer.layer-groundcover { border-left-color: var(--honey); }
+.agro-pick-layer.layer-root { border-left-color: var(--peach); }
+.agro-pick-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.agro-pick-head b { color: var(--fg-0); font-family: var(--font-display); font-size: 13px; }
+.agro-pick-head span { color: var(--fg-3); font-size: 11px; font-family: var(--font-thai); }
+.agro-pick-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px 5px 8px; min-height: 32px; font-size: 12.5px; line-height: 1.1;
+}
+.agro-pick-emoji { font-size: 16px; line-height: 1; transition: transform .2s var(--ease-bounce); }
+.agro-pick-chip:hover .agro-pick-emoji { transform: scale(1.18) rotate(-6deg); }
+.agro-pick-chip.on .agro-pick-emoji { transform: scale(1.1); }
+
+/* tighter pills on phones so a whole strata fits without scrolling far */
+@media (max-width: 760px) {
+  .agro-pick-chip { flex: 0 1 auto; padding: 5px 10px 5px 7px; font-size: 12px; }
 }
 
-.btn.primary,
+/* ── goal cards ────────────────────────────────────────────────────────── */
+.agro-goal {
+  background: var(--surface); border: 2px solid var(--line);
+  box-shadow: var(--shadow-soft); transition: all .2s var(--ease-bounce);
+}
+.agro-goal:hover { border-color: var(--sugar-0); transform: translateY(-3px); box-shadow: var(--shadow-pop); }
+.agro-goal.on {
+  border-color: var(--sugar-1); background: linear-gradient(180deg, #fff, var(--warn-bg));
+  box-shadow: 0 0 0 3px rgba(169, 116, 79, 0.14), var(--shadow-soft);
+}
+.agro-goal-label { color: var(--fg-0); font-family: var(--font-display); }
+.agro-goal-desc { color: var(--fg-2); }
+
+/* ── submit = the big boba button ──────────────────────────────────────── */
 .agro-submit {
-  background: linear-gradient(135deg, #8b5a3c 0%, #6b4423 100%) !important;
-  color: white !important;
+  position: relative;
+  background: linear-gradient(135deg, var(--sugar-0) 0%, var(--sugar-1) 55%, var(--sugar-2) 100%) !important;
+  color: #fff !important; border: 0 !important;
+  border-radius: 999px; font-family: var(--font-display); font-weight: 700; letter-spacing: .3px;
+  box-shadow: 0 8px 0 -1px #5a3a22, 0 16px 26px rgba(90, 58, 34, 0.34);
+  transition: transform .18s var(--ease-bounce), box-shadow .18s;
+  overflow: hidden;
+}
+/* tapioca pearls bubbling at the bottom of the button */
+.agro-submit::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 14px; pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(40, 24, 14, 0.55) 40%, transparent 42%),
+    radial-gradient(circle, rgba(40, 24, 14, 0.45) 40%, transparent 42%);
+  background-size: 16px 16px, 22px 22px;
+  background-position: 4px 6px, 14px 2px;
+  background-repeat: repeat-x; opacity: 0.5;
+}
+.agro-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 0 -1px #5a3a22, 0 20px 30px rgba(90, 58, 34, 0.4); }
+.agro-submit:active { transform: translateY(4px); box-shadow: 0 3px 0 -1px #5a3a22, 0 8px 16px rgba(90, 58, 34, 0.3); }
+.agro-submit:disabled { opacity: .7; cursor: wait; }
+
+/* ── OSM map: lighten for the bright theme ─────────────────────────────── */
+.agro-osm-title { color: var(--fg-0); font-family: var(--font-display); }
+.agro-osm-link {
+  color: var(--taro-deep); background: var(--data-bg);
+  border: 1.5px solid #d9caee; border-radius: 999px;
+}
+.agro-osm-map { border: 2px solid var(--line); border-radius: var(--radius-lg); background: var(--bg-2); }
+.agro-osm-map img { filter: saturate(1) contrast(1) brightness(1); }
+.agro-osm-map::after {
+  background: linear-gradient(180deg, rgba(74, 51, 36, 0.10), transparent 30%, transparent 76%, rgba(74, 51, 36, 0.12));
+}
+.agro-osm-crosshair { border-color: rgba(139, 90, 52, 0.6); box-shadow: 0 0 0 999px rgba(255, 250, 243, 0.18); }
+.agro-osm-crosshair::before,
+.agro-osm-crosshair::after { background: rgba(139, 90, 52, 0.7); }
+.agro-osm-marker { background: var(--sugar-1); border-color: #fff; box-shadow: 0 8px 16px rgba(139, 90, 52, 0.45); }
+.agro-osm-marker::after { background: #fff; }
+.agro-osm-zoom button {
+  border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--sugar-1);
+  box-shadow: var(--shadow-soft); transition: all .15s var(--ease-bounce);
+}
+.agro-osm-zoom button:hover { border-color: var(--sugar-0); color: var(--sugar-2); transform: scale(1.08); }
+.agro-osm-attrib { background: rgba(255, 250, 243, 0.9); color: var(--fg-2); border: 1px solid var(--line-soft); }
+.agro-osm-attrib a { color: var(--taro-deep); }
+.agro-osm-meta span { background: var(--surface); border: 1.5px solid var(--line-soft); color: var(--fg-2); }
+
+/* ── results: impact / Forest decision card (was dark navy) ────────────── */
+.agro-results-head h2 { color: var(--fg-0); font-family: var(--font-display); }
+.agro-results-sub { color: var(--fg-2); }
+
+.agro-impact {
+  border: 2px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, #fffdf9 0%, var(--surface-soft) 60%, var(--bg-1) 100%);
+  box-shadow: var(--shadow-glow);
+  animation: boba-rise .45s var(--ease-bounce) both;
+}
+.agro-impact.ok { border-color: #cbe2ad; background: linear-gradient(135deg, #fff, var(--ok-bg)); }
+.agro-impact.data { border-color: #d6c8ef; background: linear-gradient(135deg, #fff, var(--data-bg)); }
+.agro-impact.danger { border-color: #f0c2aa; background: linear-gradient(135deg, #fff, var(--risk-bg)); }
+.agro-impact-k { color: var(--taro-deep); }
+.agro-impact h2 { color: var(--fg-0); font-family: var(--font-display); }
+.agro-impact p { color: var(--fg-1); }
+.agro-impact-grid > div {
+  background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+.agro-impact-grid span { color: var(--fg-3); }
+.agro-impact-grid b { color: var(--fg-0); font-family: var(--font-display); }
+
+/* ── plan tabs ─────────────────────────────────────────────────────────── */
+.agro-plan-tabs button {
+  background: var(--surface); border: 2px solid var(--line); color: var(--fg-2);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+  transition: transform .2s var(--ease-bounce), border-color .2s, box-shadow .2s, background .2s;
+}
+.agro-plan-tabs button:hover { transform: translateY(-3px); border-color: var(--sugar-0); box-shadow: var(--shadow-pop); }
+.agro-plan-tabs button.on {
+  color: var(--fg-0); border-color: var(--sugar-1);
+  background: linear-gradient(180deg, #fff, var(--warn-bg));
+  box-shadow: 0 0 0 3px rgba(169, 116, 79, 0.16), var(--shadow-soft);
+}
+.agro-plan-tabs span { color: var(--sugar-0); }
+.agro-plan-tabs b { color: var(--fg-0); font-family: var(--font-display); }
+.agro-plan-tabs em { color: var(--fg-3); }
+
+/* ── selection summary ─────────────────────────────────────────────────── */
+.agro-selection-summary {
+  border: 2px solid #d6c8ef; border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #fff, var(--data-bg));
+}
+.agro-selection-summary h2 { color: var(--fg-0); font-family: var(--font-display); }
+.agro-impact-k, .agro-selection-summary .agro-impact-k { color: var(--taro-deep); }
+
+/* ── multi-strata stack ────────────────────────────────────────────────── */
+.agro-layer { background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+.agro-layer.layer-canopy { border-left-color: var(--matcha); }
+.agro-layer.layer-shrub { border-left-color: var(--ok); }
+.agro-layer.layer-groundcover { border-left-color: var(--honey); }
+.agro-layer.layer-root { border-left-color: var(--peach); }
+.agro-plant-name { color: var(--fg-0); }
+.agro-plant-emoji, .agro-combo-emoji, .agro-gistda-icon, .agro-animal-emoji {
+  transition: transform .25s var(--ease-bounce);
+}
+.agro-plant-row:hover .agro-plant-emoji,
+.agro-combo:hover .agro-combo-emoji { transform: rotate(-7deg) scale(1.12); }
+.agro-picked { background: var(--matcha); color: #fff; }
+.agro-suit.ok { color: var(--ok); background: var(--ok-bg); }
+.agro-suit.warn { color: var(--warn); background: var(--warn-bg); }
+.agro-suit.risk { color: var(--risk); background: var(--risk-bg); }
+
+/* ── KPIs / scores ─────────────────────────────────────────────────────── */
+.agro-kpi { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+.agro-kpi-v { color: var(--sugar-1); font-family: var(--font-display); }
+.agro-kpi-k { color: var(--fg-3); }
+.agro-rank.best { background: var(--sugar-1); color: #fff; }
+.agro-badge { color: var(--sugar-1); font-family: var(--font-display); }
+.agro-score-part { background: var(--surface); border: 1.5px solid var(--line-soft); }
+.agro-score-part i { background: linear-gradient(90deg, var(--honey), var(--matcha)); }
+.agro-system-fit span { color: var(--taro-deep); background: var(--data-bg); border: 1.5px solid #d9caee; }
+.agro-chart { background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+
+/* ── reasons ───────────────────────────────────────────────────────────── */
+.agro-reason { color: var(--fg-1); }
+.agro-reason-icon.ok { background: var(--ok-bg); color: var(--ok); }
+.agro-reason-icon.data { background: var(--data-bg); color: var(--taro-deep); }
+.agro-reason-icon.warn { background: var(--warn-bg); color: var(--warn); }
+
+/* ── GISTDA + soil context cards ───────────────────────────────────────── */
+.agro-gistda {
+  border: 2px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--surface); box-shadow: var(--shadow-soft);
+  animation: boba-rise .4s var(--ease-bounce) both;
+}
+.agro-gistda.ok { border-color: #cbe2ad; background: linear-gradient(135deg, #fff, var(--ok-bg)); }
+.agro-gistda.warn { border-color: #f0dca8; background: linear-gradient(135deg, #fff, var(--warn-bg)); }
+.agro-gistda.danger { border-color: #f0c2aa; background: linear-gradient(135deg, #fff, var(--risk-bg)); }
+.agro-gistda.water { border-color: #cdd6ef; background: linear-gradient(135deg, #fff, #eaf0fb); }
+.agro-gistda-icon {
+  display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0;
+  border-radius: 50%; background: var(--surface-soft); box-shadow: var(--shadow-soft);
+  font-size: 24px;
+}
+.agro-gistda-body b { color: var(--fg-0); }
+.agro-gistda-src { color: var(--fg-3); }
+
+/* ── carbon strip (was dark green) ─────────────────────────────────────── */
+.agro-carbon {
+  background: linear-gradient(135deg, var(--ok-bg), #e4f0e9);
+  border: 1.5px solid #cbe2ad; border-radius: var(--radius); color: var(--fg-1);
+}
+.agro-carbon b { color: var(--ok); }
+.agro-carbon span { color: var(--fg-3); }
+
+/* ── sensitivity / soil proxy ──────────────────────────────────────────── */
+.agro-sensitivity-grid div { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+.agro-sensitivity-grid div.on { border-color: var(--matcha); background: var(--ok-bg); }
+.agro-sensitivity-grid b { color: var(--sugar-1); font-family: var(--font-display); }
+.agro-soil-proxy b { color: var(--fg-0); font-family: var(--font-display); }
+
+/* ── animal / agronomy note ────────────────────────────────────────────── */
+.agro-animal { background: var(--surface); border: 1.5px dashed var(--bg-4); border-radius: var(--radius); }
+.agro-animal-income { color: var(--ok); }
+
+/* ── methodology ───────────────────────────────────────────────────────── */
+.method h2 { color: var(--fg-0); font-family: var(--font-display); }
+.method-src .s-name { color: var(--fg-0); font-family: var(--font-display); }
+.method-src .s-tag { color: var(--matcha); }
+.method-pipe .step { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; }
+.method-tbl th, .method-tbl td { border-bottom-color: var(--line-soft); }
+.method-bar { background: var(--bg-3); }
+.method-bar i { background: linear-gradient(90deg, var(--honey), var(--matcha)); }
+
+/* ── disclaimer / footer ───────────────────────────────────────────────── */
+.agro-disclaimer { color: var(--fg-3); border-top: 1px dashed var(--line); }
+.agro-foot { color: var(--fg-3); }
+.agro-warn, .agro-gistda.warn .agro-gistda-body { color: var(--fg-1); }
+
+/* ── links ─────────────────────────────────────────────────────────────── */
+a { color: var(--sugar-1); }
+a:hover { color: var(--sugar-0); }
+
+/* ── scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 999px; border: 3px solid var(--bg-1); }
+::-webkit-scrollbar-thumb:hover { background: var(--sugar-0); }
+
+/* ── playful keyframes ─────────────────────────────────────────────────── */
+@keyframes boba-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-5px) rotate(2deg); }
+}
+@keyframes boba-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.btn.primary:hover,
-.agro-submit:hover {
-  background: linear-gradient(135deg, #6b4423 0%, #5a3420 100%) !important;
+@media (prefers-reduced-motion: reduce) {
+  .agro-brand-mark, .agro-impact, .agro-gistda { animation: none; }
+  * { transition-duration: .01ms !important; }
 }
-
-/* Cards */
-.card,
-.agro-card {
-  background: white !important;
-  border-color: #d9cfc5 !important;
-  box-shadow: 0 4px 12px rgba(107, 68, 35, 0.08) !important;
-}
-
-.card:hover,
-.agro-card:hover {
-  box-shadow: 0 8px 24px rgba(107, 68, 35, 0.12) !important;
-}
-
-/* Text colors */
-.agro-form-title,
-.agro-palette-title,
-h1, h2, h3, h4, h5, h6 {
-  color: #2a1f17 !important;
-}
-
-.agro-form-hint,
-.agro-palette-sub,
-p, small {
-  color: #6b5441 !important;
-}
-
-/* Alert/Badge colors */
-.agro-suit.ok {
-  color: #6b8c5a !important;
-  background: rgba(107, 140, 90, 0.1) !important;
-}
-
-.agro-suit.warn {
-  color: #d9a844 !important;
-  background: rgba(217, 168, 68, 0.1) !important;
-}
-
-.agro-suit.risk {
-  color: #c97856 !important;
-  background: rgba(201, 120, 86, 0.1) !important;
-}
-
-/* Borders & dividers */
-hr,
-.divider {
-  border-color: #d9cfc5 !important;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar-thumb {
-  background: #d4a5a0 !important;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #8b5a3c !important;
-}
-
-/* Links */
-a {
-  color: #8b5a3c !important;
-}
-
-a:hover {
-  color: #d4956f !important;
-}
-
-/* Charts and graphics */
-.chart-bg {
-  background: linear-gradient(135deg, rgba(245, 237, 227, 0.3) 0%, rgba(235, 227, 214, 0.3) 100%) !important;
-}
-
-/* Plant cards - colored backgrounds */
-.plant-card {
-  background: linear-gradient(135deg, #f5ede3 0%, #ebe3d6 100%) !important;
-  border: 2px solid #d9cfc5 !important;
-}
-
-.plant-card:hover {
-  border-color: #8b5a3c !important;
-  box-shadow: 0 8px 24px rgba(107, 68, 35, 0.12) !important;
-}
-
-/* Utility classes */
-.bg-warm { background: #f5ede3 !important; }
-.bg-light { background: #fef6f0 !important; }
-.text-dark { color: #2a1f17 !important; }
-.text-muted { color: #8b7666 !important; }

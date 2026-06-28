@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { CropAssumption, FarmInput, Goal, Layer } from '../data/types';
 import { byLayer, LAYER_META, PLANTS } from '../data/plants';
 import { NAN_AMPHOE, NAN_CENTER } from '../data/nan';
-import { Card, Field, SelectChips } from './ui';
-import { PlantSection } from './PlantButton';
+import { Card, Field } from './ui';
+import { PlantGlyph } from './PlantGlyph';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
 import { OsmPicker } from './OsmPicker';
 
@@ -118,34 +118,39 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
         )}
       </Field>
 
-      <div className="space-y-4 my-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">🌿 พืชที่อยากให้ระบบนำไปออกแบบ</h2>
-          <p className="text-sm text-gray-600">เลือกได้ทุกชั้น · เว้นว่างชั้นไหน ระบบจะเติมชนิดที่เหมาะกับพื้นที่ให้</p>
+      <Field label="🌿 พืชที่อยากให้ระบบนำไปออกแบบ" hint="เลือกได้ทุกชั้น · เว้นว่างชั้นไหน ระบบจะเติมชนิดที่เหมาะกับพื้นที่ให้">
+        <div className="agro-pick">
+          {LAYERS.map((layer) => {
+            const m = LAYER_META[layer];
+            const selected = selectedByLayer[layer] ?? [];
+            return (
+              <div key={layer} className={`agro-pick-layer layer-${layer}`}>
+                <div className="agro-pick-head">
+                  <b className="thai">{m.emoji} {m.th}</b>
+                  <span className="thai">{selected.length ? `เลือก ${selected.length}` : 'อัตโนมัติ'}</span>
+                </div>
+                <div className="agro-chips">
+                  {byLayer(layer).map((p) => {
+                    const on = selected.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        aria-pressed={on}
+                        className={`agro-chip agro-pick-chip ${on ? 'on' : ''}`}
+                        onClick={() => togglePlant(layer, p.id)}
+                      >
+                        <span className="agro-pick-emoji"><PlantGlyph plantId={p.id} layer={layer} size={22} /></span>
+                        <span className="thai">{p.nameTh}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-        {LAYERS.map((layer) => {
-          const m = LAYER_META[layer];
-          const selected = selectedByLayer[layer] ?? [];
-          const layerPlants = byLayer(layer).map((p) => ({
-            id: p.id,
-            nameTh: p.nameTh,
-            nameEn: p.nameEn,
-          }));
-
-          return (
-            <PlantSection
-              key={layer}
-              layer={layer}
-              title={m.th}
-              subtitle={m.desc}
-              plants={layerPlants}
-              selected={selected}
-              onSelect={(id) => togglePlant(layer, id)}
-            />
-          );
-        })}
-      </div>
+      </Field>
 
       <Field label="เครื่องคิดเลขรายได้ภาคสนาม" hint="ปรับสมมติฐานของพืชที่เลือกไว้ เพื่อคุยกับเกษตรกร/ReCorp">
         <div className="agro-calculator">
@@ -170,7 +175,7 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
                 const a = assumption(id);
                 return (
                   <div key={id} className="agro-calc-row">
-                    <b className="thai">{plant.emoji} {plant.nameTh}</b>
+                    <b className="thai agro-calc-name"><PlantGlyph plantId={plant.id} layer={plant.layer} size={20} /> {plant.nameTh}</b>
                     <label>
                       <span>฿/kg</span>
                       <input type="number" className="agro-input" value={a.pricePerKg ?? plant.pricePerKg}
