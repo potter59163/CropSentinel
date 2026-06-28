@@ -3,7 +3,7 @@
    Loaded last in globals.css, so equal-specificity rules win without !important.
    This replaces the dark CropSentinel skin's leftover navy surfaces with a warm
    milk-tea palette and adds soft "sticker" depth + bouncy micro-interactions.
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════════════════ */
 
 :root {
   /* — milk-tea surfaces — */
@@ -69,7 +69,7 @@
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ── base ──────────────────────────────────────────────────────────────── */
+/* ── base ─────────────────────────────────────────────────────────────── */
 html, body { overflow: auto; height: auto; }
 body {
   min-height: 100vh;
@@ -117,7 +117,7 @@ body::before {
 }
 .agro-model-chip .dot { background: var(--taro); }
 
-/* ── nav pills ─────────────────────────────────────────────────────────── */
+/* ── nav pills ──────────────────────────────────────────────────────── */
 .agro-nav { gap: 8px; }
 .agro-nav button {
   background: var(--surface); border: 1.5px solid var(--line); color: var(--fg-2);
@@ -160,7 +160,7 @@ body::before {
 .agro-proof-k { color: var(--taro-deep); }
 .agro-intro strong { color: var(--sugar-1); }
 
-/* ── form fields ───────────────────────────────────────────────────────── */
+/* ── form fields ──────────────────────────────────────────────────────── */
 .agro-label { color: var(--fg-0); font-family: var(--font-display); font-weight: 600; }
 .agro-hint { color: var(--fg-3); }
 .agro-input {
@@ -275,6 +275,22 @@ body::before {
 .agro-submit:active { transform: translateY(4px); box-shadow: 0 3px 0 -1px #5a3a22, 0 8px 16px rgba(90, 58, 34, 0.3); }
 .agro-submit:disabled { opacity: .7; cursor: wait; }
 
+/* ── Google Maps picker (own container; avoids OSM tile/overlay rules) ─── */
+.agro-gmap {
+  position: relative; height: 320px; min-height: 220px; overflow: hidden;
+  border: 2px solid var(--line); border-radius: var(--radius-lg); background: var(--bg-2);
+}
+.agro-gmap.loading { opacity: .8; cursor: wait; }
+.agro-gmap-fallback {
+  display: grid; place-items: center; text-align: center; padding: 20px;
+  color: var(--fg-2); font-size: 13px; line-height: 1.6;
+}
+/* keep Google's own controls/tiles from inheriting app img/anchor quirks */
+.agro-gmap img { max-width: none; }
+.agro-gmap a { color: inherit; }
+@media (max-width: 760px) { .agro-gmap { height: 270px; } }
+@media (max-width: 430px) { .agro-gmap { height: 240px; } }
+
 /* ── OSM map: lighten for the bright theme ─────────────────────────────── */
 .agro-osm-title { color: var(--fg-0); font-family: var(--font-display); }
 .agro-osm-link {
@@ -376,7 +392,7 @@ body::before {
 .agro-system-fit span { color: var(--taro-deep); background: var(--data-bg); border: 1.5px solid #d9caee; }
 .agro-chart { background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
 
-/* ── reasons ───────────────────────────────────────────────────────────── */
+/* ── reasons ──────────────────────────────────────────────────────────── */
 .agro-reason { color: var(--fg-1); }
 .agro-reason-icon.ok { background: var(--ok-bg); color: var(--ok); }
 .agro-reason-icon.data { background: var(--data-bg); color: var(--taro-deep); }
@@ -408,7 +424,7 @@ body::before {
 .agro-carbon b { color: var(--ok); }
 .agro-carbon span { color: var(--fg-3); }
 
-/* ── sensitivity / soil proxy ──────────────────────────────────────────── */
+/* ── sensitivity / soil proxy ─────────────────────────────────────────── */
 .agro-sensitivity-grid div { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
 .agro-sensitivity-grid div.on { border-color: var(--matcha); background: var(--ok-bg); }
 .agro-sensitivity-grid b { color: var(--sugar-1); font-family: var(--font-display); }
@@ -432,17 +448,17 @@ body::before {
 .agro-foot { color: var(--fg-3); }
 .agro-warn, .agro-gistda.warn .agro-gistda-body { color: var(--fg-1); }
 
-/* ── links ─────────────────────────────────────────────────────────────── */
+/* ── links ──────────────────────────────────────────────────────────── */
 a { color: var(--sugar-1); }
 a:hover { color: var(--sugar-0); }
 
-/* ── scrollbar ─────────────────────────────────────────────────────────── */
+/* ── scrollbar ────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: var(--bg-1); }
 ::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 999px; border: 3px solid var(--bg-1); }
 ::-webkit-scrollbar-thumb:hover { background: var(--sugar-0); }
 
-/* ── playful keyframes ─────────────────────────────────────────────────── */
+/* ── playful keyframes ────────────────────────────────────────────────── */
 @keyframes boba-bob {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50% { transform: translateY(-5px) rotate(2deg); }
