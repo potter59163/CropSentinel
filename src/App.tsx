@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import type { AppData } from './data/types';
 import { DataContext, loadAppData } from './data/store';
 import { Sidebar } from './components/Sidebar';
@@ -48,6 +49,7 @@ export function App() {
     return (
       <DataContext.Provider value={data}>
         <ErrorBoundary><VillageView onExit={() => setVillage(false)} /></ErrorBoundary>
+        <Analytics />
       </DataContext.Provider>
     );
   }
@@ -72,6 +74,7 @@ export function App() {
           </div>
         </main>
       </div>
+      <Analytics />
     </DataContext.Provider>
   );
 }
