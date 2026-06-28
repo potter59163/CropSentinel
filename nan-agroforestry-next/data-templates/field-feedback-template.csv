@@ -1,0 +1,3 @@
+farm_plot_ref,plan_run_id,reviewer_role,understandable_score,agronomic_score,price_yield_score,risk_match_score,accepted_plan_rank,notes
+NAN-001,,farmer,4,3,3,4,1,ตัวอย่าง: เกษตรกรเข้าใจแต่ราคาอยากให้ปรับตามตลาดท้องถิ่น
+NAN-001,,recorp,4,4,3,5,1,ตัวอย่าง: risk warning ตรงพื้นที่ แต่ควรเพิ่มพืชพื้นถิ่น

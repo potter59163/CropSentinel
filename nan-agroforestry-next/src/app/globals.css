@@ -1,0 +1,10 @@
+@import "../styles/theme.css";
+@import "../styles/agro.css";
+
+@media print {
+  body { background: white !important; color: #111 !important; }
+  .agro-nav, .agro-form, .agro-osm, .agro-foot { display: none !important; }
+  .agro-app { width: 100% !important; padding: 0 !important; }
+  .agro-plan-tabs { display: none !important; }
+  .agro-plan-panel, .agro-plan, .agro-impact, .agro-gistda { break-inside: avoid; box-shadow: none !important; }
+}
