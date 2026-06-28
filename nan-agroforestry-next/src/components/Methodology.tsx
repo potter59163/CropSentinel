@@ -1,5 +1,5 @@
 const SOURCES = [
-  ['OpenStreetMap', 'พิกัดแปลง', 'เลือก lat/lng ของแปลงจริง ก่อนส่งต่อให้ GISTDA, NASA POWER, Open-Meteo และโมเดลวนเกษตร'],
+  ['Google Maps', 'พิกัดแปลง', 'เลือก lat/lng ของแปลงจริงบนแผนที่ดาวเทียม ก่อนส่งต่อให้ GISTDA, NASA POWER, Open-Meteo และโมเดลวนเกษตร'],
   ['Google Earth Engine', 'ดาวเทียม', 'Hansen forest loss · ESA WorldCover · Sentinel-2 NDVI เป็น context ป่า/ฟื้นฟู'],
   ['GISTDA', 'ภูมิสารสนเทศ', 'เขตอนุรักษ์ ลำน้ำ ไฟป่า น้ำท่วม ภัยแล้ง และชั้น Disaster Open API'],
   ['NASA POWER', 'ภูมิอากาศ', 'อุณหภูมิ ฝน ฤดูแล้ง ความชื้นดิน แสงอาทิตย์ เป็น feature ของ SDM'],

@@ -5,7 +5,7 @@ import { NAN_AMPHOE, NAN_CENTER } from '../data/nan';
 import { Card, Field } from './ui';
 import { PlantGlyph } from './PlantGlyph';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
-import { OsmPicker } from './OsmPicker';
+import { GoogleMapPicker } from './GoogleMapPicker';
 
 const goals: Array<{ id: Goal; label: string; desc: string }> = [
   { id: 'balanced', label: '‡∏™‡∏°‡∏î‡∏∏‡∏•', desc: '‡πÄ‡∏´‡πá‡∏ô‡∏ú‡∏•‡πÑ‡∏ß + ‡∏Å‡∏≥‡πÑ‡∏£‡∏î‡∏µ' },
@@ -55,14 +55,14 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
     } catch { setGps('error'); }
   };
 
-  const useOsmPoint = async (lat: number, lng: number) => {
+  const useMapPoint = async (lat: number, lng: number) => {
     setOsm('loading');
     try {
       const elev = await fetchElevation(lat, lng);
-      set({ lat, lng, elevationM: elev, locationLabel: `OSM (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
+      set({ lat, lng, elevationM: elev, locationLabel: `‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
       setOsm('idle');
     } catch {
-      set({ lat, lng, locationLabel: `OSM (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
+      set({ lat, lng, locationLabel: `‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
       setOsm('error');
     }
   };
@@ -105,16 +105,16 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
         </div>
       </Field>
 
-      <Field label="‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏û‡∏¥‡∏Å‡∏±‡∏î‡∏à‡∏≤‡∏Å OpenStreetMap" hint="‡∏Ñ‡∏•‡∏¥‡∏Å‡∏ö‡∏ô‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏Å‡∏≥‡∏´‡∏ô‡∏î lat/lng ‡πÅ‡∏•‡∏∞‡∏î‡∏∂‡∏á‡∏Ñ‡∏ß‡∏≤‡∏°‡∏™‡∏π‡∏á‡∏≠‡∏±‡∏ï‡πÇ‡∏ô‡∏°‡∏±‡∏ï‡∏¥">
-        <OsmPicker
+      <Field label="‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏û‡∏¥‡∏Å‡∏±‡∏î‡∏à‡∏≤‡∏Å Google Maps" hint="‡∏Ñ‡∏•‡∏¥‡∏Å‡∏ö‡∏ô‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà‡∏î‡∏≤‡∏ß‡πÄ‡∏ó‡∏µ‡∏¢‡∏°‡πÄ‡∏û‡∏∑‡πà‡∏≠‡∏Å‡∏≥‡∏´‡∏ô‡∏î lat/lng ‡πÅ‡∏•‡∏∞‡∏î‡∏∂‡∏á‡∏Ñ‡∏ß‡∏≤‡∏°‡∏™‡∏π‡∏á‡∏≠‡∏±‡∏ï‡πÇ‡∏ô‡∏°‡∏±‡∏ï‡∏¥">
+        <GoogleMapPicker
           lat={value.lat ?? NAN_CENTER.lat}
           lng={value.lng ?? NAN_CENTER.lng}
           elevationM={value.elevationM}
           loading={osm === 'loading'}
-          onPick={useOsmPoint}
+          onPick={useMapPoint}
         />
         {osm === 'error' && (
-          <div className="agro-gps-err thai">‡∏î‡∏∂‡∏á‡∏Ñ‡∏ß‡∏≤‡∏°‡∏™‡∏π‡∏á‡∏à‡∏≤‡∏Å‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à ‚Äî ‡πÉ‡∏ä‡πâ‡∏û‡∏¥‡∏Å‡∏±‡∏î OSM ‡πÅ‡∏•‡πâ‡∏ß ‡πÅ‡∏ï‡πà‡∏Ñ‡∏á‡∏Ñ‡πà‡∏≤‡∏Ñ‡∏ß‡∏≤‡∏°‡∏™‡∏π‡∏á‡πÄ‡∏î‡∏¥‡∏°‡πÑ‡∏ß‡πâ</div>
+          <div className="agro-gps-err thai">‡∏î‡∏∂‡∏á‡∏Ñ‡∏ß‡∏≤‡∏°‡∏™‡∏π‡∏á‡∏à‡∏≤‡∏Å‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à ‚Äî ‡πÉ‡∏ä‡πâ‡∏û‡∏¥‡∏Å‡∏±‡∏î‡∏à‡∏≤‡∏Å‡πÅ‡∏ú‡∏ô‡∏ó‡∏µ‡πà‡πÅ‡∏•‡πâ‡∏ß ‡πÅ‡∏ï‡πà‡∏Ñ‡∏á‡∏Ñ‡πà‡∏≤‡∏Ñ‡∏ß‡∏≤‡∏°‡∏™‡∏π‡∏á‡πÄ‡∏î‡∏¥‡∏°‡πÑ‡∏ß‡πâ</div>
         )}
       </Field>
 
@@ -162,57 +162,8 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
               className="agro-input"
               value={value.targetAnnualIncome ?? ''}
               placeholder="‡πÄ‡∏ä‡πà‡∏ô 180000"
-              onChange={(e) => set({ targetAnnualIncome: Number(e.target.value) || undefined })}
+              onChange={(e) => set({ targetAnnualIncome : Number(e.target.value) || undefined })}
             />
           </div>
           {selectedPlantIds.length === 0 ? (
-            <div className="agro-calc-empty thai">‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏û‡∏∑‡∏ä‡∏î‡πâ‡∏≤‡∏ô‡∏ö‡∏ô‡∏Å‡πà‡∏≠‡∏ô ‡∏£‡∏∞‡∏ö‡∏ö‡∏à‡∏∞‡πÅ‡∏™‡∏î‡∏á‡∏ä‡πà‡∏≠‡∏á‡∏õ‡∏£‡∏±‡∏ö‡∏£‡∏≤‡∏Ñ‡∏≤ ‡∏ú‡∏•‡∏ú‡∏•‡∏¥‡∏ï ‡πÅ‡∏•‡∏∞ survival rate ‡∏£‡∏≤‡∏¢‡∏ä‡∏ô‡∏¥‡∏î</div>
-          ) : (
-            <div className="agro-calc-grid">
-              {selectedPlantIds.map((id) => {
-                const plant = PLANTS.find((p) => p.id === id);
-                if (!plant) return null;
-                const a = assumption(id);
-                return (
-                  <div key={id} className="agro-calc-row">
-                    <b className="thai agro-calc-name"><PlantGlyph plantId={plant.id} layer={plant.layer} size={20} /> {plant.nameTh}</b>
-                    <label>
-                      <span>‡∏ø/kg</span>
-                      <input type="number" className="agro-input" value={a.pricePerKg ?? plant.pricePerKg}
-                        onChange={(e) => setAssumption(id, { pricePerKg: Number(e.target.value) || plant.pricePerKg })} />
-                    </label>
-                    <label>
-                      <span>kg/rai</span>
-                      <input type="number" className="agro-input" value={a.yieldKgPerRai ?? plant.yieldKgPerRai}
-                        onChange={(e) => setAssumption(id, { yieldKgPerRai: Number(e.target.value) || plant.yieldKgPerRai })} />
-                    </label>
-                    <label>
-                      <span>survival</span>
-                      <input type="number" min={0.1} max={1.2} step={0.05} className="agro-input" value={a.survivalRate ?? 1}
-                        onChange={(e) => setAssumption(id, { survivalRate: Number(e.target.value) || 1 })} />
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </Field>
-
-      <Field label="‡πÄ‡∏õ‡πâ‡∏≤‡∏´‡∏°‡∏≤‡∏¢‡∏Ç‡∏≠‡∏á‡∏Ñ‡∏∏‡∏ì">
-        <div className="agro-goals">
-          {goals.map((g) => (
-            <button key={g.id} type="button" className={`agro-goal ${value.goal === g.id ? 'on' : ''}`} onClick={() => set({ goal: g.id })}>
-              <div className="agro-goal-label thai">{g.label}</div>
-              <div className="agro-goal-desc thai">{g.desc}</div>
-            </button>
-          ))}
-        </div>
-      </Field>
-
-      <button type="button" className="btn primary thai agro-submit" onClick={onSubmit} disabled={busy}>
-        {busy ? '‚è≥ ‡∏Å‡∏≥‡∏•‡∏±‡∏á‡∏ß‡∏¥‡πÄ‡∏Ñ‡∏£‡∏≤‡∏∞‡∏´‡πå‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡∏î‡∏≤‡∏ß‡πÄ‡∏ó‡∏µ‡∏¢‡∏°‚Ä¶' : 'üå± ‡∏≠‡∏≠‡∏Å‡πÅ‡∏ö‡∏ö‡∏£‡∏∞‡∏ö‡∏ö‡∏ß‡∏ô‡πÄ‡∏Å‡∏©‡∏ï‡∏£'}
-      </button>
-    </Card>
-  );
-}
+            <div className="agro-calc-empty thai">‡πÄ‡∏•‡∏∑‡∏≠‡∏Å‡∏û‡∏∑‡∏ä‡∏î‡πâ‡∏≤‡∏ô‡∏ö‡∏ô‡∏Å‡πà‡∏≠‡∏ô ‡∏£‡∏∞‡∏ö‡∏ö‡∏à‡∏∞‡πÅ‡∏™‡∏î‡∏á‡∏ä‡πà‡∏≠‡∏á‡∏õ‡∏£‡∏±‡∏ö‡∏£‡∏≤‡∏Ñ‡∏≤ ‡∏ú‡∏•‡∏ú‡∏•‡∏¥% ‡πÅ‡∏•‡∏∞ survival rate ‡∏£‡∏≤‡∏¢‡∏ä‡∏ô‡∏¥‡∏îΩë•ÿ¯(ÄÄÄÄÄÄÄÄÄÄ§ÄËÄ†(ÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅç±ÖÕÕ9ÖµîÙâÖù…ºµçÖ±åµù…•êà¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÅÌÕï±ïç—ïëA±Öπ—%ëÃπµÖ¿†°•ê§ÄÙ¯ÅÏ(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅçΩπÕ–Å¡±Öπ–ÄÙÅA19QLπô•πê†°¿§ÄÙ¯Å¿π•êÄÙÙÙÅ•ê§Ï(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅ•òÄ†Ö¡±Öπ–§Å…ï—’…∏Åπ’±∞Ï(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅçΩπÕ–ÅÑÄÙÅÖÕÕ’µ¡—•Ω∏°•ê§Ï(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅ…ï—’…∏Ä†(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅ≠ï‰ıÌ•ëÙÅç±ÖÕÕ9ÖµîÙâÖù…ºµçÖ±åµ…Ω‹à¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒàÅç±ÖÕÕ9ÖµîÙâ—°Ö§ÅÖù…ºµçÖ±åµπÖµîà¯ÒA±Öπ—±Â¡†Å¡±Öπ—%êıÌ¡±Öπ–π•ëÙÅ±ÖÂï»ıÌ¡±Öπ–π±ÖÂï…ÙÅÕ•ÈîıÏ»¡ÙÄº¯ÅÌ¡±Öπ–ππÖµïQ°ÙΩà¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ±Öâï∞¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒÕ¡Ö∏˚Ç‚¸Ω≠úΩÕ¡Ö∏¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ•π¡’–Å—Â¡îÙâπ’µâï»àÅç±ÖÕÕ9ÖµîÙâÖù…ºµ•π¡’–àÅŸÖ±’îıÌÑπ¡…•çïAï…-úÄ¸¸Å¡±Öπ–π¡…•çïAï…-ùÙ(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅΩπ°ÖπùîıÏ°î§ÄÙ¯ÅÕï—ÕÕ’µ¡—•Ω∏°•ê∞ÅÏÅ¡…•çïAï…-úËÅ9’µâï»°îπ—Ö…ùï–πŸÖ±’î§ÅÒÅ¡±Öπ–π¡…•çïAï…-úÅÙ•ÙÄº¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄΩ±Öâï∞¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ±Öâï∞¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒÕ¡Ö∏˘≠úΩ…Ö§ΩÕ¡Ö∏¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ•π¡’–Å—Â¡îÙâπ’µâï»àÅç±ÖÕÕ9ÖµîÙâÖù…ºµ•π¡’–àÅŸÖ±’îıÌÑπÂ•ï±ë-ùAï…IÖ§Ä¸¸Å¡±Öπ–πÂ•ï±ë-ùAï…IÖ•Ù(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅΩπ°ÖπùîıÏ°î§ÄÙ¯ÅÕï—ÕÕ’µ¡—•Ω∏°•ê∞ÅÏÅÂ•ï±ë-ùAï…IÖ§ËÅ9’µâï»°îπ—Ö…ùï–πŸÖ±’î§ÅÒÅ¡±Öπ–πÂ•ï±ë-ùAï…IÖ§ÅÙ•ÙÄº¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄΩ±Öâï∞¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ±Öâï∞¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒÕ¡Ö∏˘Õ’…Ÿ•ŸÖ∞ΩÕ¡Ö∏¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ•π¡’–Å—Â¡îÙâπ’µâï»àÅµ•∏ıÏ¿∏≈ÙÅµÖ‡ıÏƒ∏…ÙÅÕ—ï¿ıÏ¿∏¿’ÙÅç±ÖÕÕ9ÖµîÙâÖù…ºµ•π¡’–àÅŸÖ±’îıÌÑπÕ’…Ÿ•ŸÖ±IÖ—îÄ¸¸Ä≈Ù(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅΩπ°ÖπùîıÏ°î§ÄÙ¯ÅÕï—ÕÕ’µ¡—•Ω∏°•ê∞ÅÏÅÕ’…Ÿ•ŸÖ±IÖ—îËÅ9’µâï»°îπ—Ö…ùï–πŸÖ±’î§ÅÒÄƒÅÙ•ÙÄº¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄΩ±Öâï∞¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄΩë•ÿ¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ§Ï(ÄÄÄÄÄÄÄÄÄÄÄÄÄÅÙ•Ù(ÄÄÄÄÄÄÄÄÄÄÄÄΩë•ÿ¯(ÄÄÄÄÄÄÄÄÄÄ•Ù(ÄÄÄÄÄÄÄÄΩë•ÿ¯(ÄÄÄÄÄÄΩ•ï±ê¯((ÄÄÄÄÄÄÒ•ï±êÅ±Öâï∞ÙãÇÊÇ‚oÇÊ'Ç‚ÀÇ‚ØÇ‚áÇ‚ÀÇ‚ãÇ‚Ç‚∑Ç‚Ç‚Ç‚„Ç‚Là¯(ÄÄÄÄÄÄÄÄÒë•ÿÅç±ÖÕÕ9ÖµîÙâÖù…ºµùΩÖ±Ãà¯(ÄÄÄÄÄÄÄÄÄÅÌùΩÖ±ÃπµÖ¿†°ú§ÄÙ¯Ä†(ÄÄÄÄÄÄÄÄÄÄÄÄÒâ’——Ω∏Å≠ï‰ıÌúπ•ëÙÅ—Â¡îÙââ’——Ω∏àÅç±ÖÕÕ9ÖµîıÌÅÖù…ºµùΩÖ∞ÄëÌŸÖ±’îπùΩÖ∞ÄÙÙÙÅúπ•êÄ¸ÄùΩ∏úÄËÄúùıÅÙÅΩπ±•ç¨ıÏ†§ÄÙ¯ÅÕï–°ÏÅùΩÖ∞ËÅúπ•êÅÙ•Ù¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅç±ÖÕÕ9ÖµîÙâÖù…ºµùΩÖ∞µ±Öâï∞Å—°Ö§à˘Ìúπ±Öâï±ÙΩë•ÿ¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅç±ÖÕÕ9ÖµîÙâÖù…ºµùΩÖ∞µëïÕåÅ—°Ö§à˘ÌúπëïÕçÙΩë•ÿ¯(ÄÄÄÄÄÄÄÄÄÄÄÄΩâ’——Ω∏¯(ÄÄÄÄÄÄÄÄÄÄ§•Ù(ÄÄÄÄÄÄÄÄΩë•ÿ¯(ÄÄÄÄÄÄΩ•ï±ê¯((ÄÄÄÄÄÄÒâ’——Ω∏Å—Â¡îÙââ’——Ω∏àÅç±ÖÕÕ9ÖµîÙââ—∏Å¡…•µÖ…‰Å—°Ö§ÅÖù…ºµÕ’âµ•–àÅΩπ±•ç¨ıÌΩπM’âµ•—ÙÅë•ÕÖâ±ïêıÌâ’ÕÂÙ¯(ÄÄÄÄÄÄÄÅÌâ’Õ‰Ä¸Äüä>ÃÉÇ‚Ç‚œÇ‚óÇ‚«Ç‚Ç‚üÇ‚ﬂÇÊÇ‚Ç‚èÇ‚ÀÇ‚√Ç‚ØÇÊ3Ç‚ÇÊ'Ç‚∑Ç‚áÇ‚ÁÇ‚óÇ‚SÇ‚ÀÇ‚üÇÊÇ‚_Ç‚◊Ç‚ãÇ‚áäòúÄËÄü¬~2ƒÉÇ‚∑Ç‚∑Ç‚ÇÊÇ‚kÇ‚kÇ‚kÇ‚èÇ‚√Ç‚kÇ‚kÇ‚üÇ‚gÇÊÇ‚Ç‚ßÇ‚WÇ‚èùÙ(ÄÄÄÄÄÄΩâ’——Ω∏¯(ÄÄÄÄΩÖ…ê¯(ÄÄ§Ï)Ù(
