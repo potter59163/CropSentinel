@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FarmInput, SystemPlan } from './data/types';
 import type { Climate } from './lib/climate';
+import './styles/animations.css';
 import type { ProtectedArea } from './lib/gistda';
 import type { SatContext } from './lib/satellite';
 import { bahtK } from './lib/format';

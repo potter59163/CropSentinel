@@ -3,6 +3,7 @@ import type { CropAssumption, FarmInput, Goal, Layer } from '../data/types';
 import { byLayer, LAYER_META, PLANTS } from '../data/plants';
 import { NAN_AMPHOE, NAN_CENTER } from '../data/nan';
 import { Card, Field, SelectChips } from './ui';
+import { PlantSection } from './PlantButton';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
 import { OsmPicker } from './OsmPicker';
 
@@ -117,22 +118,31 @@ export function InputForm({ value, onChange, onSubmit, busy }: {
         )}
       </Field>
 
-      <div className="agro-palette">
-        <div className="agro-palette-head">
-          <div>
-            <div className="agro-palette-title thai">พืชที่อยากให้ระบบนำไปออกแบบ</div>
-            <div className="agro-palette-sub thai">เลือกได้ทุกชั้น · เว้นว่างชั้นไหน ระบบจะเติมชนิดที่เหมาะกับพื้นที่ให้</div>
-          </div>
-          <span className="agro-selected-count">{selectedTotal} selected</span>
+      <div className="space-y-4 my-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-1">🌿 พืชที่อยากให้ระบบนำไปออกแบบ</h2>
+          <p className="text-sm text-gray-600">เลือกได้ทุกชั้น · เว้นว่างชั้นไหน ระบบจะเติมชนิดที่เหมาะกับพื้นที่ให้</p>
         </div>
+
         {LAYERS.map((layer) => {
           const m = LAYER_META[layer];
           const selected = selectedByLayer[layer] ?? [];
+          const layerPlants = byLayer(layer).map((p) => ({
+            id: p.id,
+            nameTh: p.nameTh,
+            nameEn: p.nameEn,
+          }));
+
           return (
-            <Field key={layer} label={`${m.emoji} ${m.th}`} hint={m.desc}>
-              <SelectChips items={byLayer(layer)} selected={selected} onToggle={(id) => togglePlant(layer, id)}
-                label={(t) => <>{t.emoji} {t.nameTh}</>} />
-            </Field>
+            <PlantSection
+              key={layer}
+              layer={layer}
+              title={m.th}
+              subtitle={m.desc}
+              plants={layerPlants}
+              selected={selected}
+              onSelect={(id) => togglePlant(layer, id)}
+            />
           );
         })}
       </div>
