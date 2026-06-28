@@ -1,16 +1,18 @@
 /**
- * Cute minimal SVG plant icons for each species
- * Style: line art + soft fills, playful but professional
+ * Cute Boba Tea Theme Plant Icons
+ * Simple, rounded shapes + warm colors
+ * Style: Playful, emoji-like but refined
  */
 
 interface PlantIconProps {
   plantId: string;
   size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
 const sizeMap = { sm: 24, md: 40, lg: 56 };
 
-export function PlantIcon({ plantId, size = 'md' }: PlantIconProps) {
+export function PlantIcon({ plantId, size = 'md', className = '' }: PlantIconProps) {
   const s = sizeMap[size];
 
   // Canopy (tall trees)
