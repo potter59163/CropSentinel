@@ -132,7 +132,7 @@ function agroforestryFit(picks: LayerPick[], cashflow: CashflowPoint[], canopySh
 function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: SoilContext | null): Record<Layer, Scored[]> {
   const out = { canopy: [], shrub: [], groundcover: [], root: [] } as Record<Layer, Scored[]>;
   for (const p of PLANTS) {
-    const s = plantSuitability(p, climate, risk);
+    const s = plantSuitability(p, climate, risk, soil);
     const water = waterFit(p, climate, risk);
     const riskScore = riskFit(p, climate, risk);
     const soilScore = soilFit(p, soil);

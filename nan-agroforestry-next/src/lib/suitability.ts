@@ -3,6 +3,7 @@ import model from '../data/sdm_model.json';
 import type { Climate } from './climate';
 import type { Plant } from '../data/types';
 import type { ProtectedArea } from './gistda';
+import type { SoilContext } from './soil';
 
 interface GbmTree {
   children_left: number[];
@@ -57,10 +58,22 @@ export function disasterFeatureContext(risk: ProtectedArea | null) {
   };
 }
 
-function vector(c: Climate, risk: ProtectedArea | null): number[] {
+// Soil features in the SAME physical units the model was trained on (SoilGrids).
+export function soilFeatureContext(soil: SoilContext | null) {
+  return {
+    soil_ph: soil?.ph,
+    soil_clay: soil?.clayPct,
+    soil_sand: soil?.sandPct,
+    soil_oc: soil?.organicCarbonPct,
+    soil_cec: soil?.cec,
+  };
+}
+
+function vector(c: Climate, risk: ProtectedArea | null, soil: SoilContext | null): number[] {
   const disaster = disasterFeatureContext(risk);
+  const soilf = soilFeatureContext(soil);
   const base = M.base.map((n, i) => {
-    const v = ((c as any)[n] ?? (disaster as any)[n]) as number;
+    const v = ((c as any)[n] ?? (disaster as any)[n] ?? (soilf as any)[n]) as number;
     return Number.isFinite(v) ? v : M.median[i];
   });
   const sq = M.sq.map((n) => base[M.base.indexOf(n)] ** 2);
@@ -101,10 +114,10 @@ function gbmPredict(sp: SpeciesModel, x: number[]) {
   return sigmoid(raw);
 }
 
-export function plantSuitability(plant: Plant, c: Climate | null, risk: ProtectedArea | null = null): Suit {
+export function plantSuitability(plant: Plant, c: Climate | null, risk: ProtectedArea | null = null, soil: SoilContext | null = null): Suit {
   const sp = READY && plant.sdmId ? M.species[plant.sdmId] : undefined;
   if (sp && sp.auc >= AUC_MIN && c) {
-    const x = vector(c, risk);
+    const x = vector(c, risk, soil);
     const score = sp.preferred === 'gbm' && sp.gbm ? gbmPredict(sp, x) : logitPredict(sp, x);
     return { score: applyAgronomicGuardrail(score, plant, c.elev), source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };
   }

@@ -62,9 +62,16 @@ MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NO
 
 CLIMATE_BASE = ['t2m', 'prec', 'drym', 'pseas', 'trange', 'solar', 'rh', 'gwet', 'elev']
 DISASTER_BASE = ['fire7d_near', 'burn_freq_near', 'flood7d_near', 'flood_freq_near', 'drought_layers']
-BASE = CLIMATE_BASE + DISASTER_BASE
+# Real soil from SoilGrids (ISRIC), same physical units as runtime src/lib/soil.ts
+SOIL_BASE = ['soil_ph', 'soil_clay', 'soil_sand', 'soil_oc', 'soil_cec']
+BASE = CLIMATE_BASE + DISASTER_BASE + SOIL_BASE
 SQ = ['t2m', 'prec', 'elev', 'fire7d_near', 'flood_freq_near']
 FEATURES = BASE + [f'{n}_sq' for n in SQ]
+
+SOILGRIDS = 'https://rest.isric.org/soilgrids/v2.0/properties/query'
+SOIL_PROPS = ['phh2o', 'soc', 'clay', 'sand', 'cec']
+SOIL_DEPTHS = ['0-5cm', '5-15cm']
+SOIL_CONV = {'phh2o': lambda v: v / 10, 'soc': lambda v: v / 100, 'clay': lambda v: v / 10, 'sand': lambda v: v / 10, 'cec': lambda v: v}
 
 
 def http_json(url, tries=4):
@@ -274,6 +281,57 @@ def fetch_features(cells: List[Tuple[float, float]]) -> Dict[str, dict]:
     return feat
 
 
+def soil_one(c: Tuple[float, float]):
+    k = cell_key(c)
+    q = [('lon', c[1]), ('lat', c[0]), ('value', 'mean')]
+    for p in SOIL_PROPS:
+        q.append(('property', p))
+    for d in SOIL_DEPTHS:
+        q.append(('depth', d))
+    try:
+        d = http_json(SOILGRIDS + '?' + urllib.parse.urlencode(q), tries=3)
+    except Exception:
+        return k, None
+    out = {}
+    for layer in (d.get('properties', {}) or {}).get('layers', []) or []:
+        name = layer.get('name')
+        conv = SOIL_CONV.get(name)
+        if not conv:
+            continue
+        means = [dd.get('values', {}).get('mean') for dd in layer.get('depths', []) if dd.get('values', {}).get('mean') is not None]
+        if means:
+            out[name] = conv(sum(means) / len(means))
+    if 'phh2o' not in out:
+        return k, None
+    return k, {
+        'soil_ph': out.get('phh2o'),
+        'soil_clay': out.get('clay'),
+        'soil_sand': out.get('sand'),
+        'soil_oc': out.get('soc'),
+        'soil_cec': out.get('cec'),
+    }
+
+
+def fetch_soil(cells: List[Tuple[float, float]]) -> Dict[str, dict]:
+    path = os.path.join(CACHE, 'soil_v3.json')
+    data = json.load(open(path)) if os.path.exists(path) else {}
+    todo = [c for c in cells if cell_key(c) not in data]
+    if todo:
+        print(f'    SoilGrids soil todo={len(todo)} (cached={len(data)})')
+    done = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        futs = [ex.submit(soil_one, c) for c in todo]
+        for fut in concurrent.futures.as_completed(futs):
+            k, vals = fut.result()
+            data[k] = vals or {name: None for name in SOIL_BASE}
+            done += 1
+            if done % 25 == 0 or done == len(todo):
+                json.dump(data, open(path, 'w'))
+                print(f'    SoilGrids {done}/{len(todo)}')
+    json.dump(data, open(path, 'w'))
+    return data
+
+
 def export_tree(tree) -> dict:
     t = tree.tree_
     return {
@@ -300,6 +358,13 @@ def main():
 
     print('2) features: DEM + NASA POWER + GISTDA Disaster...')
     feat = fetch_features(cells)
+
+    print('2b) soil: SoilGrids (ISRIC) for climate-present cells...')
+    climate_cells = [c for c in cells if feat.get(cell_key(c), {}).get('t2m') is not None]
+    soil = fetch_soil(climate_cells)
+    for c in cells:
+        feat.setdefault(cell_key(c), {}).update(soil.get(cell_key(c), {}))
+    json.dump(feat, open(os.path.join(CACHE, 'features_v3.json'), 'w'))
 
     def base_vec(cell):
         f = feat.get(cell_key(cell), {})
