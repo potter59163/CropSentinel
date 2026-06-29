@@ -62,6 +62,41 @@ const STEPS: Array<{ t: string; d: string; icon: IconName }> = [
 ];
 const LAST_STEP = STEPS.length - 1;
 
+type RequiredField = 'sizeRai' | 'location' | 'elevationM' | 'goal';
+type FieldIssue = { field: RequiredField; step: number; message: string };
+type StepRequirement = { field: RequiredField | null; label: string; optional?: boolean };
+
+const REQUIRED_BY_STEP: Record<number, StepRequirement[]> = {
+  0: [{ field: 'sizeRai', label: 'ขนาดแปลง' }],
+  1: [
+    { field: 'location', label: 'พิกัดแปลง' },
+    { field: 'elevationM', label: 'ความสูง' },
+  ],
+  2: [{ field: null, label: 'เลือกพืชเองได้ แต่ไม่บังคับ', optional: true }],
+  3: [{ field: 'goal', label: 'เป้าหมายของแผน' }],
+};
+
+function isFiniteNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function validateInput(input: FarmInput): FieldIssue[] {
+  const issues: FieldIssue[] = [];
+  if (!isFiniteNumber(input.sizeRai) || input.sizeRai <= 0) {
+    issues.push({ field: 'sizeRai', step: 0, message: 'กรอกขนาดแปลงมากกว่า 0 ไร่' });
+  }
+  if (!isFiniteNumber(input.lat) || !isFiniteNumber(input.lng)) {
+    issues.push({ field: 'location', step: 1, message: 'เลือกตำแหน่งแปลงจากแผนที่ GPS หรืออำเภอ' });
+  }
+  if (!isFiniteNumber(input.elevationM) || input.elevationM < 0 || input.elevationM > 2500) {
+    issues.push({ field: 'elevationM', step: 1, message: 'กรอกความสูง 0-2,500 เมตร' });
+  }
+  if (!input.goal) {
+    issues.push({ field: 'goal', step: 3, message: 'เลือกเป้าหมายของแผน' });
+  }
+  return issues;
+}
+
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 function selectedRows(input: FarmInput) {
   return LAYERS.map((layer) => ({
@@ -95,8 +130,27 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'planner' | 'method'>('planner');
   const [step, setStep] = useState(0);
+  const [attemptedSteps, setAttemptedSteps] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
   const activeSystem = systems?.[Math.min(activePlan, Math.max(systems.length - 1, 0))] ?? null;
+  const formIssues = validateInput(input);
+  const currentIssues = formIssues.filter((issue) => issue.step === step);
+  const attemptedStepSet = new Set(attemptedSteps);
+  const showCurrentIssues = attemptedStepSet.has(step) && currentIssues.length > 0;
+  const invalidFields = showCurrentIssues ? currentIssues.map((issue) => issue.field) : [];
+  const stepRequirements = REQUIRED_BY_STEP[step] ?? [];
+
+  const markStepsAttempted = (steps: number[]) => {
+    setAttemptedSteps((prev) => Array.from(new Set([...prev, ...steps])));
+  };
+
+  const goNext = () => {
+    if (currentIssues.length > 0) {
+      markStepsAttempted([step]);
+      return;
+    }
+    setStep((s) => Math.min(LAST_STEP, s + 1));
+  };
 
   useEffect(() => {
     const encoded = new URLSearchParams(window.location.search).get('plan');
@@ -117,6 +171,14 @@ export function App() {
   };
 
   const run = async () => {
+    const issues = validateInput(input);
+    if (issues.length > 0) {
+      markStepsAttempted(issues.map((issue) => issue.step));
+      setStep(issues[0].step);
+      setApiWarnings([]);
+      return;
+    }
+
     setBusy(true);
     setApiWarnings([]);
     try {
@@ -182,23 +244,28 @@ export function App() {
                 <b className="thai">Decision support</b>
               </div>
               <div className="agro-side-summary">
-                <div><Icon name="plot" size={17} /><span className="thai">{input.sizeRai} ไร่</span></div>
-                <div><Icon name="pin" size={17} /><span className="thai">{input.locationLabel}</span></div>
+                <div><Icon name="plot" size={17} /><span className="thai">{isFiniteNumber(input.sizeRai) ? `${input.sizeRai} ไร่` : 'ยังไม่กรอกขนาด'}</span></div>
+                <div><Icon name="pin" size={17} /><span className="thai">{input.locationLabel || 'ยังไม่เลือกตำแหน่ง'}</span></div>
                 <div><Icon name="target" size={17} /><span className="thai">{goalLabel(input.goal)}</span></div>
                 <div><Icon name="leaf" size={17} /><span className="thai">{selectedPlantCount(input) ? `${selectedPlantCount(input)} ชนิด` : 'ให้ระบบเติมพืช'}</span></div>
               </div>
               <div className="agro-stepper">
-                {STEPS.map((s, i) => (
-                  <button key={i} type="button"
-                    className={`agro-step-dot ${i === step ? 'on' : ''} ${i < step ? 'done' : ''}`}
-                    onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined}>
-                    <span className="agro-step-ic"><Icon name={i < step ? 'check' : s.icon} size={20} /></span>
-                    <span className="agro-step-copy">
-                      <span className="agro-step-t thai">{s.t}</span>
-                      <span className="agro-step-d thai">{s.d}</span>
-                    </span>
-                  </button>
-                ))}
+                {STEPS.map((s, i) => {
+                  const missing = formIssues.some((issue) => issue.step === i);
+                  const invalid = attemptedStepSet.has(i) && missing;
+                  const done = i < step && !missing;
+                  return (
+                    <button key={i} type="button"
+                      className={`agro-step-dot ${i === step ? 'on' : ''} ${done ? 'done' : ''} ${invalid ? 'invalid' : ''}`}
+                      onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined}>
+                      <span className="agro-step-ic"><Icon name={invalid ? 'warning' : done ? 'check' : s.icon} size={20} /></span>
+                      <span className="agro-step-copy">
+                        <span className="agro-step-t thai">{s.t}</span>
+                        <span className="agro-step-d thai">{invalid ? `ขาด ${formIssues.filter((issue) => issue.step === i).length} ช่อง` : s.d}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </aside>
 
@@ -211,7 +278,35 @@ export function App() {
                 <span className="agro-step-sub thai">{STEPS[step].d}</span>
               </div>
 
-              <InputForm value={input} onChange={setInput} step={step} />
+              <div className="agro-required-line" aria-live="polite">
+                <span className="agro-required-label thai">ช่องสำคัญ</span>
+                <div className="agro-required-chips">
+                  {stepRequirements.map((req) => {
+                    const missing = Boolean(req.field && currentIssues.some((issue) => issue.field === req.field));
+                    const ready = Boolean(req.field && !missing);
+                    return (
+                      <span key={`${step}-${req.label}`} className={`agro-required-chip thai ${req.optional ? 'optional' : missing ? 'missing' : ready ? 'ready' : ''}`}>
+                        {req.field && <Icon name={missing ? 'warning' : 'check'} size={14} />}
+                        {req.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {showCurrentIssues && (
+                <div className="agro-validation-panel" role="alert">
+                  <span className="agro-validation-icon"><Icon name="warning" size={22} /></span>
+                  <div>
+                    <b className="thai">เติมข้อมูลสำคัญให้ครบก่อน</b>
+                    <ul>
+                      {currentIssues.map((issue) => <li key={`${issue.field}-${issue.message}`} className="thai">{issue.message}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <InputForm value={input} onChange={setInput} step={step} invalidFields={invalidFields} />
 
               {apiWarnings.length > 0 && (
                 <div className="agro-gistda warn">
@@ -228,7 +323,7 @@ export function App() {
                   onClick={() => setStep((s) => Math.max(0, s - 1))}><Icon name="arrowLeft" size={18} /> ย้อนกลับ</button>
                 {step < LAST_STEP ? (
                   <button type="button" className="agro-wiz-btn next"
-                    onClick={() => setStep((s) => Math.min(LAST_STEP, s + 1))}>ถัดไป <Icon name="arrowRight" size={18} /></button>
+                    onClick={goNext}>ถัดไป <Icon name="arrowRight" size={18} /></button>
                 ) : (
                   <button type="button" className="agro-wiz-btn submit" disabled={busy} onClick={run}>
                     {busy ? 'กำลังวิเคราะห์…' : <><Icon name="sprout" size={19} /> ออกแบบระบบ</>}

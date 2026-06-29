@@ -159,6 +159,15 @@ body::before {
   border-color: var(--sugar-0);
   box-shadow: 0 0 0 4px rgba(21, 134, 106, 0.16);
 }
+.agro-input.is-invalid {
+  border-color: var(--risk);
+  background: var(--risk-bg);
+  box-shadow: 0 0 0 4px rgba(195, 83, 69, 0.12);
+}
+.agro-field-invalid .agro-gmap {
+  border-color: var(--risk);
+  box-shadow: 0 0 0 4px rgba(195, 83, 69, 0.12), var(--shadow-soft);
+}
 
 /* GPS = satellite data accent */
 .agro-gps-btn {
@@ -254,11 +263,84 @@ body::before {
 .agro-step-dot.on .agro-step-t { color: var(--sugar-1); }
 .agro-step-dot.done .agro-step-ic { background: var(--matcha); border-color: var(--matcha); color: #fff; }
 .agro-step-dot.done .agro-step-t { color: var(--ok); }
+.agro-step-dot.invalid .agro-step-ic {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.agro-step-dot.invalid .agro-step-t { color: var(--warn); }
 .agro-step-titlebar {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
 }
 .agro-step-title { font-family: var(--font-display); color: var(--fg-0); font-size: 18px; font-weight: 800; line-height: 1.2; }
 .agro-step-sub { color: var(--fg-3); font-size: 12px; text-align: right; }
+.agro-required-line {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 10px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,.72);
+}
+.agro-required-label {
+  color: var(--fg-2);
+  font: 700 11px/1 var(--font-display);
+  white-space: nowrap;
+}
+.agro-required-chips { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.agro-required-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 28px; padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg-2);
+  font-size: 12px;
+  line-height: 1.2;
+}
+.agro-required-chip.ready {
+  border-color: rgba(47, 143, 91, .28);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.agro-required-chip.missing {
+  border-color: rgba(201, 134, 24, .38);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.agro-required-chip.optional {
+  border-style: dashed;
+  background: var(--surface-soft);
+  color: var(--fg-3);
+}
+.agro-validation-panel {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 13px;
+  border: 1.5px solid rgba(201, 134, 24, .38);
+  border-radius: var(--radius);
+  background: var(--warn-bg);
+  color: var(--fg-1);
+  box-shadow: var(--shadow-soft);
+}
+.agro-validation-icon {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--warn);
+}
+.agro-validation-panel b {
+  display: block;
+  color: var(--fg-0);
+  font-family: var(--font-display);
+  margin-bottom: 5px;
+}
+.agro-validation-panel ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-2);
+  line-height: 1.55;
+}
+.agro-validation-panel li + li { margin-top: 2px; }
 
 /* slide-in when the step changes (the inner div is keyed by step) */
 .agro-step { display: flex; flex-direction: column; gap: 16px; animation: field-slide .28s var(--ease-bounce) both; }
@@ -391,6 +473,10 @@ body::before {
 .agro-goal.on {
   border-color: var(--sugar-1); background: linear-gradient(180deg, #fff, var(--warn-bg));
   box-shadow: 0 0 0 3px rgba(21, 134, 106, 0.14), var(--shadow-soft);
+}
+.agro-goals.is-invalid .agro-goal {
+  border-color: rgba(195, 83, 69, .42);
+  background: var(--risk-bg);
 }
 .agro-goal-label { color: var(--fg-0); font-family: var(--font-display); }
 .agro-goal-desc { color: var(--fg-2); }

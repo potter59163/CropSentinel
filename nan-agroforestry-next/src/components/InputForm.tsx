@@ -17,12 +17,14 @@ const goals: Array<{ id: Goal; label: string; desc: string }> = [
 const CURRENT_CROPS = ['ข้าวโพดเลี้ยงสัตว์', 'ข้าวไร่', 'ยางพารา', 'มันสำปะหลัง', 'พื้นที่ว่าง/เพิ่งถาง'];
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 
-export function InputForm({ value, onChange, step }: {
-  value: FarmInput; onChange: (v: FarmInput) => void; step: number;
+export function InputForm({ value, onChange, step, invalidFields = [] }: {
+  value: FarmInput; onChange: (v: FarmInput) => void; step: number; invalidFields?: string[];
 }) {
   const [gps, setGps] = useState<'idle' | 'loading' | 'error'>('idle');
   const [osm, setOsm] = useState<'idle' | 'loading' | 'error'>('idle');
   const set = (patch: Partial<FarmInput>) => onChange({ ...value, ...patch });
+  const invalid = (field: string) => invalidFields.includes(field);
+  const numberValue = (n: number) => Number.isFinite(n) ? n : '';
   const selectedByLayer = value.selectedByLayer ?? { canopy: [], shrub: [], groundcover: [], root: [] };
   const selectedPlantIds = LAYERS.flatMap((layer) => selectedByLayer[layer] ?? []);
   const assumption = (plantId: string) => value.cropAssumptions?.find((a) => a.plantId === plantId) ?? { plantId };
@@ -73,8 +75,15 @@ export function InputForm({ value, onChange, step }: {
         {step === 0 && (<>
           <div className="agro-form-grid agro-form-grid-2">
             <Field label="ขนาดแปลง (ไร่)">
-              <input type="number" min={0.5} step={0.5} className="agro-input" value={value.sizeRai}
-                onChange={(e) => set({ sizeRai: Math.max(0.5, Number(e.target.value) || 0) })} />
+              <input
+                type="number"
+                min={0.5}
+                step={0.5}
+                className={`agro-input ${invalid('sizeRai') ? 'is-invalid' : ''}`}
+                value={numberValue(value.sizeRai)}
+                aria-invalid={invalid('sizeRai') || undefined}
+                onChange={(e) => set({ sizeRai: e.target.value.trim() === '' ? Number.NaN : Number(e.target.value) })}
+              />
             </Field>
             <Field label="ตอนนี้ปลูกอะไร" hint="ถ้ามี">
               <select className="agro-input" value={value.currentCropId ?? ''} onChange={(e) => set({ currentCropId: e.target.value || null })}>
@@ -87,18 +96,20 @@ export function InputForm({ value, onChange, step }: {
         </>)}
 
         {step === 1 && (<>
-          <Field label="ปักหมุดแปลงบนแผนที่ดาวเทียม" hint="แตะบนแผนที่เพื่อกำหนดจุด — ระบบดึงพิกัด + ความสูงให้อัตโนมัติ">
-            <GoogleMapPicker
-              lat={value.lat ?? NAN_CENTER.lat}
-              lng={value.lng ?? NAN_CENTER.lng}
-              elevationM={value.elevationM}
-              loading={osm === 'loading'}
-              onPick={useMapPoint}
-            />
-            {osm === 'error' && (
-              <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ — ใช้พิกัดจากแผนที่แล้ว แต่คงค่าความสูงเดิมไว้</div>
-            )}
-          </Field>
+          <div className={invalid('location') ? 'agro-field-invalid' : ''}>
+            <Field label="ปักหมุดแปลงบนแผนที่ดาวเทียม" hint="แตะบนแผนที่เพื่อกำหนดจุด — ระบบดึงพิกัด + ความสูงให้อัตโนมัติ">
+              <GoogleMapPicker
+                lat={value.lat ?? NAN_CENTER.lat}
+                lng={value.lng ?? NAN_CENTER.lng}
+                elevationM={value.elevationM}
+                loading={osm === 'loading'}
+                onPick={useMapPoint}
+              />
+              {osm === 'error' && (
+                <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ — ใช้พิกัดจากแผนที่แล้ว แต่คงค่าความสูงเดิมไว้</div>
+              )}
+            </Field>
+          </div>
 
           <div className="agro-loc-tools">
             <button type="button" className="agro-gps-btn agro-gps-wide" onClick={useGps} disabled={gps === 'loading'}>
@@ -120,8 +131,13 @@ export function InputForm({ value, onChange, step }: {
           </Field>
 
           <Field label="ระดับความสูง (เมตร รทก.)" hint="ระบบดึงให้อัตโนมัติ · ปรับเองได้">
-            <input type="number" className="agro-input" value={value.elevationM}
-              onChange={(e) => set({ elevationM: Number(e.target.value) || 0, locationLabel: 'กำหนดเอง' })} />
+            <input
+              type="number"
+              className={`agro-input ${invalid('elevationM') ? 'is-invalid' : ''}`}
+              value={numberValue(value.elevationM)}
+              aria-invalid={invalid('elevationM') || undefined}
+              onChange={(e) => set({ elevationM: e.target.value.trim() === '' ? Number.NaN : Number(e.target.value), locationLabel: 'กำหนดเอง' })}
+            />
           </Field>
         </>)}
 
@@ -174,7 +190,7 @@ export function InputForm({ value, onChange, step }: {
           </Field>
 
           <Field label="เป้าหมายของคุณ">
-            <div className="agro-goals">
+            <div className={`agro-goals ${invalid('goal') ? 'is-invalid' : ''}`}>
               {goals.map((g) => (
                 <button key={g.id} type="button" className={`agro-goal ${value.goal === g.id ? 'on' : ''}`} onClick={() => set({ goal: g.id })}>
                   <div className="agro-goal-label thai">{g.label}</div>
