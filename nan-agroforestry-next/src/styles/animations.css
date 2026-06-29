@@ -157,19 +157,19 @@ html {
 }
 
 /* Cute button styles */
-.btn-cute {
+.btn-soft {
   @apply relative px-4 py-2 rounded-lg font-medium transition-all duration-300;
   @apply hover:shadow-lg hover:-translate-y-0.5;
   @apply active:translate-y-0 active:shadow-md;
   @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
 }
 
-.btn-cute-primary {
+.btn-soft-primary {
   @apply bg-green-500 text-white focus:ring-green-400;
   @apply hover:bg-green-600;
 }
 
-.btn-cute-secondary {
+.btn-soft-secondary {
   @apply bg-gray-100 text-gray-800 focus:ring-gray-400;
   @apply hover:bg-gray-200;
 }

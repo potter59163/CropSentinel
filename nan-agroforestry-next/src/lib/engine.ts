@@ -434,9 +434,9 @@ export function buildSystems(input: FarmInput, climate: Climate | null, risk: Pr
     const minPay = chosen.reduce((a, b) => ((b.paybackYear ?? 99) < (a.paybackYear ?? 99) ? b : a));
     const tags = new Map<SystemPlan, string[]>();
     chosen.forEach((c) => tags.set(c, []));
-    tags.get(chosen[0])!.push('⭐ แนะนำ');
-    tags.get(maxProfit)!.push('💰 กำไรรวมสูงสุด');
-    tags.get(minPay)!.push('⚡ คืนทุนเร็วสุด');
+    tags.get(chosen[0])!.push('แนะนำ');
+    tags.get(maxProfit)!.push('กำไรรวมสูงสุด');
+    tags.get(minPay)!.push('คืนทุนเร็วสุด');
     chosen.forEach((c) => { c.badge = (tags.get(c)!.length ? tags.get(c)! : ['ทางเลือก']).join(' · '); });
   }
   return chosen;

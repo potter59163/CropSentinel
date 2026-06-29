@@ -1,0 +1,703 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Forest field interface theme — calm · legible · production-ready
+   Loaded last in globals.css, so equal-specificity rules win without !important.
+   This replaces the old playful skin with a cleaner field decision-support tone.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* — field-ready surfaces — */
+  --bg-0: #f7fbf8;
+  --bg-1: #edf5ef;
+  --bg-2: #e1ece6;
+  --bg-3: #d2dfd8;
+  --bg-4: #bed0c6;
+  --surface: #ffffff;
+  --surface-soft: #f1f7f4;
+
+  /* — ink — */
+  --fg-0: #10221b;
+  --fg-1: #243a31;
+  --fg-2: #5d7068;
+  --fg-3: #869891;
+
+  /* — borders — */
+  --line: #d5e1db;
+  --line-soft: #e4eee9;
+  --line-bright: #f4f8f6;
+
+  /* — primary forest brand — */
+  --sugar-0: #15866a;
+  --sugar-1: #0c6654;
+  --sugar-2: #07483e;
+  --sugar-ink: #062b25;
+
+  /* — data and field accents — */
+  --taro: #4aa3c7;
+  --taro-deep: #1d6f8d;
+  --matcha: #4f9f5f;
+  --strawberry: #c75d73;
+  --peach: #d38b4a;
+  --honey: #dba93a;
+
+  /* — status — */
+  --ok: #2f8f5b;
+  --warn: #c98618;
+  --risk: #c35345;
+  --crit: #a93a34;
+  --data: #217fa3;
+  --data-2: #647b5d;
+
+  --ok-bg: #e7f4eb;
+  --warn-bg: #fff2d8;
+  --risk-bg: #fde8e2;
+  --data-bg: #e6f3f8;
+
+  /* — restrained shadows — */
+  --shadow-soft: 0 4px 12px rgba(16, 34, 27, 0.08);
+  --shadow-card: 0 12px 28px rgba(16, 34, 27, 0.10);
+  --shadow-glow: 0 1px 0 rgba(16, 34, 27, 0.04), 0 18px 36px rgba(16, 34, 27, 0.12);
+  --shadow-pop: 0 10px 24px rgba(16, 34, 27, 0.12);
+
+  /* — geometry — */
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --font-display: 'Noto Sans Thai', system-ui, sans-serif;
+  --font-thai: 'Noto Sans Thai', system-ui, sans-serif;
+  --ease-bounce: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ── base ──────────────────────────────────────────────────────────────── */
+html, body { overflow: auto; height: auto; }
+body {
+  min-height: 100vh;
+  color: var(--fg-1);
+  font-family: var(--font-thai);
+  font-size: 13.5px;
+  background: linear-gradient(180deg, #f7fbf8 0%, #eef6f1 55%, #e5eee9 100%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: none;
+}
+.agro-app { position: relative; z-index: 1; }
+
+::selection { background: rgba(74, 163, 199, 0.28); }
+
+/* ── header / brand ────────────────────────────────────────────────────── */
+.agro-brand-mark {
+  font-size: 38px;
+  filter: drop-shadow(0 6px 12px rgba(12, 102, 84, 0.18));
+  animation: none;
+}
+.agro-brand-name { font-family: var(--font-display); color: var(--fg-0); letter-spacing: 0.2px; }
+.agro-brand-en { color: var(--sugar-0); font-family: var(--font-thai); font-weight: 600; }
+.agro-brand-sub { color: var(--fg-2); }
+
+.agro-model-chip {
+  background: linear-gradient(135deg, var(--data-bg), #fff);
+  border: 1.5px solid #d9caee;
+  color: var(--data); border-radius: 999px; padding: 7px 13px;
+  box-shadow: var(--shadow-soft); white-space: normal;
+}
+.agro-model-chip .dot { background: var(--taro); }
+
+/* ── nav pills ─────────────────────────────────────────────────────────── */
+.agro-nav { gap: 8px; }
+.agro-nav button {
+  background: var(--surface); border: 1.5px solid var(--line); color: var(--fg-2);
+  box-shadow: var(--shadow-soft); transition: all .2s var(--ease-bounce);
+  font-family: var(--font-display); font-weight: 600;
+}
+.agro-nav button:hover { transform: translateY(-2px); border-color: var(--sugar-0); color: var(--sugar-1); }
+.agro-nav button.on {
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+  border-color: var(--sugar-2); color: #fff;
+  box-shadow: 0 6px 14px rgba(12, 102, 84, 0.24);
+}
+
+/* ── the base Card (form + every Card wrapper was dark navy) ───────────── */
+.card, .stat {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.card::before, .stat::before { display: none; }
+
+/* ── shared card / panel surfaces (fix dark leftovers) ─────────────────── */
+.agro-intro,
+.agro-palette,
+.agro-calculator,
+.agro-proof-card,
+.agro-calc-row,
+.agro-selection-row,
+.agro-combo,
+.agro-sensitivity,
+.agro-soil-proxy,
+.method-src,
+.method-table-wrap {
+  background: var(--surface);
+  border: 1.5px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
+}
+.agro-proof-card { background: linear-gradient(180deg, var(--surface), var(--surface-soft)); }
+.agro-proof-k { color: var(--taro-deep); }
+.agro-intro strong { color: var(--sugar-1); }
+
+/* ── form fields ───────────────────────────────────────────────────────── */
+.agro-label { color: var(--fg-0); font-family: var(--font-display); font-weight: 600; }
+.agro-hint { color: var(--fg-3); }
+.agro-input {
+  background: #fff; border: 1.5px solid var(--line); color: var(--fg-0);
+  border-radius: var(--radius); box-shadow: inset 0 1px 2px rgba(16, 34, 27, 0.04);
+  transition: border-color .18s, box-shadow .18s;
+}
+.agro-input:focus {
+  border-color: var(--sugar-0);
+  box-shadow: 0 0 0 4px rgba(21, 134, 106, 0.16);
+}
+
+/* GPS = satellite data accent */
+.agro-gps-btn {
+  background: linear-gradient(135deg, var(--taro), var(--taro-deep));
+  color: #fff; box-shadow: 0 5px 12px rgba(29, 111, 141, 0.26);
+  transition: transform .2s var(--ease-bounce), box-shadow .2s;
+}
+.agro-gps-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 18px rgba(29, 111, 141, 0.32); }
+.agro-loc { color: var(--fg-3); }
+
+/* ── chips (amphoe + plant palette) ────────────────────────────────────── */
+.agro-amphoe span,
+.agro-chip,
+.agro-osm-meta span,
+.agro-nav button { border-radius: 999px; }
+.agro-chip,
+.agro-amphoe button,
+.agro-amphoe span {
+  background: var(--surface); border: 1.5px solid var(--line); color: var(--fg-1);
+  box-shadow: var(--shadow-soft); transition: all .18s var(--ease-bounce);
+}
+.agro-chip:hover { border-color: var(--sugar-0); color: var(--sugar-1); transform: translateY(-2px) scale(1.02); }
+.agro-chip.on {
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+  border-color: var(--sugar-2); color: #fff; font-weight: 700;
+  box-shadow: 0 5px 12px rgba(12, 102, 84, 0.24);
+}
+.agro-selected-count {
+  color: var(--matcha); background: var(--ok-bg);
+  border: 1.5px solid #cfe3b6; border-radius: 999px;
+}
+
+/* ── unified plant glyphs ──────────────────────────────────────────────── */
+.agro-glyph { display: block; flex-shrink: 0; }
+.agro-pick-icon { display: inline-flex; align-items: center; }
+.agro-plant-icon { display: inline-flex; align-items: center; }
+.agro-calc-name { display: inline-flex; align-items: center; gap: 6px; }
+.agro-sel-plants { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 5px; }
+.agro-sel-plant { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ── compact plant picker (grouped by strata) ──────────────────────────── */
+.agro-pick { display: flex; flex-direction: column; gap: 10px; }
+.agro-pick-layer {
+  padding: 9px 11px; border: 1.5px solid var(--line-soft); border-left: 4px solid var(--line);
+  border-radius: var(--radius); background: var(--surface-soft);
+}
+.agro-pick-layer.layer-canopy { border-left-color: var(--matcha); }
+.agro-pick-layer.layer-shrub { border-left-color: var(--ok); }
+.agro-pick-layer.layer-groundcover { border-left-color: var(--honey); }
+.agro-pick-layer.layer-root { border-left-color: var(--peach); }
+.agro-pick-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.agro-pick-head b { color: var(--fg-0); font-family: var(--font-display); font-size: 13px; }
+.agro-pick-head span { color: var(--fg-3); font-size: 11px; font-family: var(--font-thai); }
+.agro-pick-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px 5px 8px; min-height: 32px; font-size: 12.5px; line-height: 1.1;
+}
+.agro-pick-icon { font-size: 16px; line-height: 1; transition: transform .2s var(--ease-bounce); }
+.agro-pick-chip:hover .agro-pick-icon { transform: scale(1.08); }
+.agro-pick-chip.on .agro-pick-icon { transform: scale(1.05); }
+
+/* tighter pills on phones so a whole strata fits without scrolling far */
+@media (max-width: 760px) {
+  .agro-pick-chip { flex: 0 1 auto; padding: 5px 10px 5px 7px; font-size: 12px; }
+}
+
+/* ── step wizard (mobile-first one-part-at-a-time flow) ────────────────── */
+.agro-wizard { display: flex; flex-direction: column; gap: 14px; }
+.agro-wizard-shell,
+.agro-wizard-main { display: flex; flex-direction: column; gap: 14px; }
+.agro-wizard-side { display: flex; flex-direction: column; gap: 12px; }
+.agro-side-head,
+.agro-side-summary { display: none; }
+
+/* stepper */
+.agro-stepper { display: flex; gap: 6px; }
+.agro-step-dot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+}
+.agro-step-ic {
+  width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 19px;
+  background: var(--surface); border: 2px solid var(--line); color: var(--fg-3);
+  box-shadow: var(--shadow-soft); transition: all .28s var(--ease-bounce);
+}
+.agro-step-copy { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.agro-step-t { font-size: 12px; color: var(--fg-3); font-family: var(--font-display); font-weight: 600; }
+.agro-step-d { display: none; }
+.agro-step-dot.on .agro-step-ic {
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2)); border-color: var(--sugar-2);
+  color: #fff; transform: scale(1.08); box-shadow: 0 7px 16px rgba(12, 102, 84, 0.24);
+}
+.agro-step-dot.on .agro-step-t { color: var(--sugar-1); }
+.agro-step-dot.done .agro-step-ic { background: var(--matcha); border-color: var(--matcha); color: #fff; }
+.agro-step-dot.done .agro-step-t { color: var(--ok); }
+.agro-step-titlebar {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+}
+.agro-step-title { font-family: var(--font-display); color: var(--fg-0); font-size: 18px; font-weight: 800; line-height: 1.2; }
+.agro-step-sub { color: var(--fg-3); font-size: 12px; text-align: right; }
+
+/* slide-in when the step changes (the inner div is keyed by step) */
+.agro-step { display: flex; flex-direction: column; gap: 16px; animation: field-slide .28s var(--ease-bounce) both; }
+@keyframes field-slide { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+/* nav: small back + big forward (grid keeps widths deterministic) */
+.agro-wiz-nav { display: grid; grid-template-columns: 1fr 1.9fr; gap: 10px; align-items: stretch; }
+.agro-wiz-btn {
+  width: 100%; min-height: 54px; border-radius: 999px; font-family: var(--font-display); font-weight: 700;
+  font-size: 16px; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .18s var(--ease-bounce), box-shadow .18s;
+}
+.agro-wiz-btn.back {
+  padding: 0 12px; background: var(--surface); border: 1.5px solid var(--line);
+  color: var(--fg-2); box-shadow: var(--shadow-soft);
+}
+.agro-wiz-btn.back:disabled { opacity: .4; cursor: default; }
+.agro-wiz-btn.back:not(:disabled):hover { transform: translateY(-2px); border-color: var(--sugar-0); color: var(--sugar-1); }
+.agro-wiz-btn.next, .agro-wiz-btn.submit {
+  color: #fff; border: 0;
+  background: linear-gradient(135deg, var(--sugar-0) 0%, var(--sugar-1) 55%, var(--sugar-2) 100%);
+  box-shadow: 0 7px 0 -1px #06382f, 0 14px 24px rgba(6, 56, 47, 0.24);
+}
+.agro-wiz-btn.next:hover, .agro-wiz-btn.submit:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 9px 0 -1px #06382f, 0 18px 28px rgba(6, 56, 47, 0.3); }
+.agro-wiz-btn.next:active, .agro-wiz-btn.submit:active { transform: translateY(4px); box-shadow: 0 3px 0 -1px #06382f, 0 8px 14px rgba(6, 56, 47, 0.22); }
+.agro-wiz-btn.submit:disabled { opacity: .75; cursor: wait; }
+
+/* result view header */
+.agro-result-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.agro-result-back {
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px;
+  color: var(--sugar-1); font-family: var(--font-display); font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  box-shadow: var(--shadow-soft); transition: transform .18s var(--ease-bounce);
+}
+.agro-result-back:hover { transform: translateX(-3px); border-color: var(--sugar-0); }
+.agro-result-loc { color: var(--fg-3); font-size: 12px; }
+
+/* collapsible advanced calculator */
+.agro-advanced { border: 1.5px solid var(--line-soft); border-radius: var(--radius); background: var(--surface-soft); overflow: hidden; }
+.agro-advanced summary { padding: 13px 15px; cursor: pointer; font-family: var(--font-display); font-weight: 600; color: var(--fg-0); list-style: none; }
+.agro-advanced summary::-webkit-details-marker { display: none; }
+.agro-advanced[open] summary { border-bottom: 1.5px solid var(--line-soft); }
+.agro-advanced .agro-calc-grid { padding: 12px; }
+
+@media (max-width: 430px) {
+  .agro-step-ic { width: 38px; height: 38px; font-size: 17px; }
+  .agro-step-t { font-size: 11px; }
+  .agro-wiz-btn { font-size: 15px; min-height: 50px; }
+  .agro-wiz-btn.back { padding: 0 16px; }
+}
+
+@media (min-width: 820px) {
+  .agro-app { width: min(calc(100% - 40px), 1240px); }
+  .agro-wizard-shell {
+    display: grid; grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+    gap: 18px; align-items: start;
+  }
+  .agro-wizard-side {
+    position: sticky; top: 18px; padding: 16px;
+    border: 1.5px solid var(--line); border-radius: var(--radius-lg);
+    background: linear-gradient(180deg, var(--surface), var(--surface-soft));
+    box-shadow: var(--shadow-card);
+  }
+  .agro-side-head { display: block; }
+  .agro-side-head b {
+    display: block; margin-top: 6px; color: var(--fg-0);
+    font: 800 18px/1.2 var(--font-display);
+  }
+  .agro-side-summary {
+    display: grid; gap: 8px; padding: 12px;
+    border: 1px solid var(--line-soft); border-radius: var(--radius);
+    background: rgba(255,255,255,.72);
+  }
+  .agro-side-summary div {
+    display: flex; align-items: center; gap: 8px; min-width: 0;
+    color: var(--fg-2); font-size: 12.5px;
+  }
+  .agro-side-summary svg { color: var(--sugar-1); flex-shrink: 0; }
+  .agro-side-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agro-stepper { flex-direction: column; gap: 8px; }
+  .agro-step-dot {
+    flex-direction: row; align-items: center; justify-content: flex-start;
+    gap: 10px; padding: 10px; border: 1px solid var(--line-soft);
+    border-radius: var(--radius); background: rgba(255,255,255,.74);
+    text-align: left; transition: border-color .18s, background .18s, transform .18s;
+  }
+  .agro-step-dot:hover { border-color: var(--sugar-0); transform: translateX(2px); }
+  .agro-step-ic { width: 36px; height: 36px; flex-shrink: 0; }
+  .agro-step-copy { align-items: flex-start; }
+  .agro-step-t { color: var(--fg-0); font-size: 13px; line-height: 1.2; }
+  .agro-step-d { display: block; color: var(--fg-3); font-size: 11px; line-height: 1.25; }
+  .agro-step-dot.on {
+    border-color: rgba(21, 134, 106, .38);
+    background: linear-gradient(135deg, #fff, var(--ok-bg));
+  }
+  .agro-step-dot.on .agro-step-ic { transform: none; }
+  .agro-step-dot.done { border-color: rgba(47, 143, 91, .24); }
+  .agro-wizard-main {
+    min-width: 0; padding: 18px; border: 1.5px solid var(--line);
+    border-radius: var(--radius-lg); background: rgba(255,255,255,.58);
+    box-shadow: var(--shadow-soft);
+  }
+  .agro-wizard-main .agro-form { box-shadow: none; }
+  .agro-step-titlebar {
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .agro-step-title { font-size: 22px; }
+  .agro-step-sub { display: inline-flex; align-items: center; min-height: 26px; padding: 5px 10px;
+    border-radius: 999px; background: var(--data-bg); color: var(--data); font-weight: 700; }
+  .agro-form-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agro-wiz-nav { align-self: end; width: min(100%, 520px); }
+}
+
+@media (min-width: 1120px) {
+  .agro-wizard-shell { grid-template-columns: minmax(270px, 320px) minmax(0, 1fr); gap: 22px; }
+  .agro-wizard-main { padding: 22px; }
+  .agro-form-grid-2 { max-width: 720px; }
+  .agro-gmap { height: 380px; }
+}
+
+/* ── goal cards ────────────────────────────────────────────────────────── */
+.agro-goal {
+  background: var(--surface); border: 2px solid var(--line);
+  box-shadow: var(--shadow-soft); transition: all .2s var(--ease-bounce);
+}
+.agro-goal:hover { border-color: var(--sugar-0); transform: translateY(-3px); box-shadow: var(--shadow-pop); }
+.agro-goal.on {
+  border-color: var(--sugar-1); background: linear-gradient(180deg, #fff, var(--warn-bg));
+  box-shadow: 0 0 0 3px rgba(21, 134, 106, 0.14), var(--shadow-soft);
+}
+.agro-goal-label { color: var(--fg-0); font-family: var(--font-display); }
+.agro-goal-desc { color: var(--fg-2); }
+
+/* ── primary submit button ─────────────────────────────────────────────── */
+.agro-submit {
+  position: relative;
+  background: linear-gradient(135deg, var(--sugar-0) 0%, var(--sugar-1) 55%, var(--sugar-2) 100%) !important;
+  color: #fff !important; border: 0 !important;
+  border-radius: 999px; font-family: var(--font-display); font-weight: 700; letter-spacing: .3px;
+  box-shadow: 0 8px 0 -1px #06382f, 0 16px 26px rgba(6, 56, 47, 0.24);
+  transition: transform .18s var(--ease-bounce), box-shadow .18s;
+  overflow: hidden;
+}
+.agro-submit::after { display: none; }
+.agro-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 0 -1px #06382f, 0 20px 30px rgba(6, 56, 47, 0.3); }
+.agro-submit:active { transform: translateY(4px); box-shadow: 0 3px 0 -1px #06382f, 0 8px 16px rgba(6, 56, 47, 0.22); }
+.agro-submit:disabled { opacity: .7; cursor: wait; }
+
+/* ── Google Maps picker (own container; avoids OSM tile/overlay rules) ─── */
+.agro-gmap {
+  position: relative; height: 320px; min-height: 220px; overflow: hidden;
+  border: 2px solid var(--line); border-radius: var(--radius-lg); background: var(--bg-2);
+}
+.agro-gmap.loading { opacity: .8; cursor: wait; }
+.agro-gmap-fallback {
+  display: grid; place-items: center; text-align: center; padding: 20px;
+  color: var(--fg-2); font-size: 13px; line-height: 1.6;
+}
+/* keep Google's own controls/tiles from inheriting app img/anchor quirks */
+.agro-gmap img { max-width: none; }
+.agro-gmap a { color: inherit; }
+@media (max-width: 760px) { .agro-gmap { height: 270px; } }
+@media (max-width: 430px) { .agro-gmap { height: 240px; } }
+
+/* ── OSM map: lighten for the bright theme ─────────────────────────────── */
+.agro-osm-title { color: var(--fg-0); font-family: var(--font-display); }
+.agro-osm-link {
+  color: var(--taro-deep); background: var(--data-bg);
+  border: 1.5px solid #c6e0e9; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+}
+.agro-osm-map { border: 2px solid var(--line); border-radius: var(--radius-lg); background: var(--bg-2); }
+.agro-osm-map img { filter: saturate(1) contrast(1) brightness(1); }
+.agro-osm-map::after {
+  background: linear-gradient(180deg, rgba(16, 34, 27, 0.08), transparent 30%, transparent 76%, rgba(16, 34, 27, 0.10));
+}
+.agro-osm-crosshair { border-color: rgba(12, 102, 84, 0.6); box-shadow: 0 0 0 999px rgba(247, 251, 248, 0.18); }
+.agro-osm-crosshair::before,
+.agro-osm-crosshair::after { background: rgba(12, 102, 84, 0.7); }
+.agro-osm-marker { background: var(--sugar-1); border-color: #fff; box-shadow: 0 8px 16px rgba(12, 102, 84, 0.32); }
+.agro-osm-marker::after { background: #fff; }
+.agro-osm-zoom button {
+  border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--sugar-1);
+  box-shadow: var(--shadow-soft); transition: all .15s var(--ease-bounce);
+}
+.agro-osm-zoom button:hover { border-color: var(--sugar-0); color: var(--sugar-2); transform: scale(1.08); }
+.agro-osm-attrib { background: rgba(247, 251, 248, 0.9); color: var(--fg-2); border: 1px solid var(--line-soft); }
+.agro-osm-attrib a { color: var(--taro-deep); }
+.agro-osm-meta span { background: var(--surface); border: 1.5px solid var(--line-soft); color: var(--fg-2); }
+
+/* ── results: impact / Forest decision card (was dark navy) ────────────── */
+.agro-results-head h2 { color: var(--fg-0); font-family: var(--font-display); }
+.agro-results-sub { color: var(--fg-2); }
+
+.agro-impact {
+  border: 2px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, #fff 0%, var(--surface-soft) 60%, var(--bg-1) 100%);
+  box-shadow: var(--shadow-glow);
+  animation: field-rise .32s var(--ease-bounce) both;
+}
+.agro-impact.ok { border-color: #b9d9c4; background: linear-gradient(135deg, #fff, var(--ok-bg)); }
+.agro-impact.data { border-color: #b8dce8; background: linear-gradient(135deg, #fff, var(--data-bg)); }
+.agro-impact.danger { border-color: #efc4ba; background: linear-gradient(135deg, #fff, var(--risk-bg)); }
+.agro-impact-k { color: var(--taro-deep); }
+.agro-impact h2 { color: var(--fg-0); font-family: var(--font-display); }
+.agro-impact p { color: var(--fg-1); }
+.agro-impact-grid > div {
+  background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+.agro-impact-grid span { color: var(--fg-3); }
+.agro-impact-grid b { color: var(--fg-0); font-family: var(--font-display); }
+
+/* ── plan tabs ─────────────────────────────────────────────────────────── */
+.agro-plan-tabs button {
+  background: var(--surface); border: 2px solid var(--line); color: var(--fg-2);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+  transition: transform .2s var(--ease-bounce), border-color .2s, box-shadow .2s, background .2s;
+}
+.agro-plan-tabs button:hover { transform: translateY(-3px); border-color: var(--sugar-0); box-shadow: var(--shadow-pop); }
+.agro-plan-tabs button.on {
+  color: var(--fg-0); border-color: var(--sugar-1);
+  background: linear-gradient(180deg, #fff, var(--warn-bg));
+  box-shadow: 0 0 0 3px rgba(169, 116, 79, 0.16), var(--shadow-soft);
+}
+.agro-plan-tabs span { color: var(--sugar-0); }
+.agro-plan-tabs b { color: var(--fg-0); font-family: var(--font-display); }
+.agro-plan-tabs em { color: var(--fg-3); }
+
+/* ── selection summary ─────────────────────────────────────────────────── */
+.agro-selection-summary {
+  border: 2px solid #d6c8ef; border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #fff, var(--data-bg));
+}
+.agro-selection-summary h2 { color: var(--fg-0); font-family: var(--font-display); }
+.agro-impact-k, .agro-selection-summary .agro-impact-k { color: var(--taro-deep); }
+
+/* ── multi-strata stack ────────────────────────────────────────────────── */
+.agro-layer { background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+.agro-layer.layer-canopy { border-left-color: var(--matcha); }
+.agro-layer.layer-shrub { border-left-color: var(--ok); }
+.agro-layer.layer-groundcover { border-left-color: var(--honey); }
+.agro-layer.layer-root { border-left-color: var(--peach); }
+.agro-plant-name { color: var(--fg-0); }
+.agro-plant-icon, .agro-combo-icon, .agro-gistda-icon, .agro-animal-icon {
+  transition: transform .25s var(--ease-bounce);
+}
+.agro-plant-row:hover .agro-plant-icon,
+.agro-combo:hover .agro-combo-icon { transform: scale(1.06); }
+.agro-picked { background: var(--matcha); color: #fff; }
+.agro-suit.ok { color: var(--ok); background: var(--ok-bg); }
+.agro-suit.warn { color: var(--warn); background: var(--warn-bg); }
+.agro-suit.risk { color: var(--risk); background: var(--risk-bg); }
+
+/* ── KPIs / scores ─────────────────────────────────────────────────────── */
+.agro-kpi { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+.agro-kpi-v { color: var(--sugar-1); font-family: var(--font-display); }
+.agro-kpi-k { color: var(--fg-3); }
+.agro-rank.best { background: var(--sugar-1); color: #fff; }
+.agro-badge { color: var(--sugar-1); font-family: var(--font-display); }
+.agro-score-part { background: var(--surface); border: 1.5px solid var(--line-soft); }
+.agro-score-part i { background: linear-gradient(90deg, var(--honey), var(--matcha)); }
+.agro-system-fit span { color: var(--taro-deep); background: var(--data-bg); border: 1.5px solid #d9caee; }
+.agro-chart { background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+
+/* ── reasons ───────────────────────────────────────────────────────────── */
+.agro-reason { color: var(--fg-1); }
+.agro-reason-icon.ok { background: var(--ok-bg); color: var(--ok); }
+.agro-reason-icon.data { background: var(--data-bg); color: var(--taro-deep); }
+.agro-reason-icon.warn { background: var(--warn-bg); color: var(--warn); }
+
+/* ── GISTDA + soil context cards ───────────────────────────────────────── */
+.agro-gistda {
+  border: 2px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--surface); box-shadow: var(--shadow-soft);
+  animation: field-rise .3s var(--ease-bounce) both;
+}
+.agro-gistda.ok { border-color: #b9d9c4; background: linear-gradient(135deg, #fff, var(--ok-bg)); }
+.agro-gistda.warn { border-color: #f0dca8; background: linear-gradient(135deg, #fff, var(--warn-bg)); }
+.agro-gistda.danger { border-color: #f0c2aa; background: linear-gradient(135deg, #fff, var(--risk-bg)); }
+.agro-gistda.water { border-color: #cdd6ef; background: linear-gradient(135deg, #fff, #eaf0fb); }
+.agro-gistda-icon {
+  display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0;
+  border-radius: 50%; background: var(--surface-soft); box-shadow: var(--shadow-soft);
+  font-size: 24px;
+}
+.agro-gistda-body b { color: var(--fg-0); }
+.agro-gistda-src { color: var(--fg-3); }
+
+/* ── carbon strip (was dark green) ─────────────────────────────────────── */
+.agro-carbon {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: linear-gradient(135deg, var(--ok-bg), #e5f2ed);
+  border: 1.5px solid #b9d9c4; border-radius: var(--radius); color: var(--fg-1);
+}
+.agro-carbon-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
+  border-radius: 999px; color: var(--ok); background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.agro-carbon-copy { min-width: 0; }
+.agro-carbon b { color: var(--ok); }
+.agro-carbon-copy span { color: var(--fg-3); display: block; margin-top: 2px; }
+
+/* ── sensitivity / soil proxy ──────────────────────────────────────────── */
+.agro-sensitivity-grid div { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
+.agro-sensitivity-grid div.on { border-color: var(--matcha); background: var(--ok-bg); }
+.agro-sensitivity-grid b { color: var(--sugar-1); font-family: var(--font-display); }
+.agro-soil-proxy b { color: var(--fg-0); font-family: var(--font-display); }
+
+/* ── animal / agronomy note ────────────────────────────────────────────── */
+.agro-animal { background: var(--surface); border: 1.5px dashed var(--bg-4); border-radius: var(--radius); }
+.agro-animal-income { color: var(--ok); }
+
+/* ── methodology ───────────────────────────────────────────────────────── */
+.method {
+  max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;
+}
+.method-hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px; align-items: center;
+  padding: clamp(18px, 3vw, 28px); border: 1.5px solid var(--line);
+  border-radius: var(--radius-xl); background: linear-gradient(135deg, #fff, var(--surface-soft));
+  box-shadow: var(--shadow-card);
+}
+.method-hero h2 {
+  margin: 8px 0 8px; color: var(--fg-0);
+  font: 800 clamp(24px, 4vw, 38px)/1.14 var(--font-display);
+  letter-spacing: 0;
+}
+.method-hero p {
+  max-width: 760px; margin: 0; color: var(--fg-2);
+  font-size: clamp(14px, 1.7vw, 16px); line-height: 1.75;
+}
+.method-hero-mark {
+  width: 82px; height: 82px; border-radius: 24px; display: grid; place-items: center;
+  color: var(--sugar-1); background: var(--data-bg); border: 1.5px solid #c6e0e9;
+}
+.method-section {
+  padding: clamp(14px, 2vw, 18px); border: 1.5px solid var(--line-soft);
+  border-radius: var(--radius-lg); background: rgba(255,255,255,.72);
+  box-shadow: var(--shadow-soft);
+}
+.method-section-head {
+  display: flex; align-items: end; justify-content: space-between; gap: 12px;
+  margin-bottom: 12px; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px;
+}
+.method-section h3 {
+  margin: 0; color: var(--fg-0); font: 800 20px/1.25 var(--font-display);
+}
+.method-flow {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+}
+.method-flow-item { position: relative; min-width: 0; }
+.method-flow-no {
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px;
+  color: #fff; background: var(--sugar-1); font: 800 12px/1 var(--font-mono);
+}
+.method-card {
+  min-height: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px;
+  padding: 14px; border: 1.5px solid var(--line); border-radius: var(--radius);
+  background: var(--surface);
+}
+.method-icon {
+  display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0;
+  color: var(--sugar-1); border-radius: 14px; background: var(--ok-bg);
+}
+.method-card h3 { margin: 0 32px 4px 0; font-size: 15px; line-height: 1.25; }
+.method-card p { margin: 0; color: var(--fg-2); font-size: 13px; line-height: 1.62; }
+.method-split {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+}
+.method-split > div { min-width: 0; }
+.method-stack { display: grid; gap: 10px; }
+.method-details {
+  border: 1.5px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden;
+}
+.method-details summary {
+  min-height: 54px; display: flex; align-items: center; gap: 9px;
+  padding: 14px 16px; cursor: pointer; color: var(--fg-0);
+  font-weight: 800; list-style: none;
+}
+.method-details summary::-webkit-details-marker { display: none; }
+.method-details[open] summary { border-bottom: 1px solid var(--line-soft); }
+.method-data-list {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px 4px;
+}
+.method-data-list span {
+  padding: 7px 10px; border-radius: 999px; color: var(--data);
+  background: var(--data-bg); border: 1px solid #c6e0e9; font-size: 12px; font-weight: 700;
+}
+.method-details p {
+  margin: 0; padding: 10px 16px 16px; color: var(--fg-3);
+  font-size: 12px; line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .method-flow,
+  .method-split { grid-template-columns: 1fr; }
+  .method-hero { grid-template-columns: 1fr; }
+  .method-hero-mark { width: 62px; height: 62px; border-radius: 18px; }
+}
+
+@media (max-width: 520px) {
+  .method { gap: 12px; }
+  .method-hero,
+  .method-section { padding: 14px; }
+  .method-section-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .method-card { grid-template-columns: 1fr; gap: 9px; }
+  .method-card h3 { margin-right: 32px; }
+}
+
+/* ── disclaimer / footer ───────────────────────────────────────────────── */
+.agro-disclaimer { color: var(--fg-3); border-top: 1px dashed var(--line); }
+.agro-foot { color: var(--fg-3); }
+.agro-warn, .agro-gistda.warn .agro-gistda-body { color: var(--fg-1); }
+
+/* ── links ─────────────────────────────────────────────────────────────── */
+a { color: var(--sugar-1); }
+a:hover { color: var(--sugar-0); }
+
+/* ── scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 999px; border: 3px solid var(--bg-1); }
+::-webkit-scrollbar-thumb:hover { background: var(--sugar-0); }
+
+/* ── keyframes ─────────────────────────────────────────────────────────── */
+@keyframes field-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agro-brand-mark, .agro-impact, .agro-gistda { animation: none; }
+  * { transition-duration: .01ms !important; }
+}

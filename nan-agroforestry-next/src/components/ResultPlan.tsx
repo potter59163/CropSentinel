@@ -3,6 +3,7 @@ import { LAYER_META } from '../data/plants';
 import { Card } from './ui';
 import { PlantGlyph } from './PlantGlyph';
 import { CashflowChart } from './CashflowChart';
+import { Icon, type IconName } from './Icon';
 import { bahtK, pct, nf0 } from '../lib/format';
 
 const ORDER: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
@@ -135,6 +136,12 @@ function comparisonRows(sys: SystemPlan, rank: number, allSystems: SystemPlan[])
   return rows.slice(0, 6);
 }
 
+function reasonIcon(tone: CompareTone): IconName {
+  if (tone === 'warn') return 'warning';
+  if (tone === 'data') return 'info';
+  return 'check';
+}
+
 export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan; rank: number; allSystems?: SystemPlan[] }) {
   const best = rank === 1;
   const comparisons = comparisonRows(sys, rank, allSystems);
@@ -153,11 +160,11 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
           const m = LAYER_META[layer];
           return (
             <div key={layer} className={`agro-layer layer-${layer}`}>
-              <div className="agro-layer-tag">{m.emoji} {m.th}{layer === 'canopy' ? ` ×${rows.length}` : ''}</div>
+              <div className="agro-layer-tag"><span className="agro-layer-glyph"><PlantGlyph plantId="" layer={layer} size={18} /></span> {m.th}{layer === 'canopy' ? ` ×${rows.length}` : ''}</div>
               <div className="agro-layer-plants">
                 {rows.map((p) => (
                   <div key={p.plant.id} className="agro-plant-row">
-                    <span className="agro-plant-emoji"><PlantGlyph plantId={p.plant.id} layer={p.layer} size={30} /></span>
+                    <span className="agro-plant-icon"><PlantGlyph plantId={p.plant.id} layer={p.layer} size={30} /></span>
                     <div className="agro-plant-main">
                       <div className="agro-plant-name thai">{p.plant.nameTh}</div>
                       <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
@@ -196,8 +203,11 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
       </div>
 
       <div className="agro-carbon">
-        🌍 กักคาร์บอน ~<b>{sys.carbonPerYear}</b> tCO₂e/ปี · 10 ปีรวม ~<b>{sys.carbon10}</b> tCO₂e
-        <span>สินค้าเกษตร 10 ปี {bahtK(sys.productProfit10)} · มูลค่าคาร์บอนอ้างอิง {bahtK(sys.ecosystemValue10)} · ไม่ใช่เครดิตรับรอง</span>
+        <span className="agro-carbon-icon"><Icon name="carbon" size={24} /></span>
+        <div className="agro-carbon-copy thai">
+          <div>กักคาร์บอน ~<b>{sys.carbonPerYear}</b> tCO₂e/ปี · 10 ปีรวม ~<b>{sys.carbon10}</b> tCO₂e</div>
+          <span>สินค้าเกษตร 10 ปี {bahtK(sys.productProfit10)} · มูลค่าคาร์บอนอ้างอิง {bahtK(sys.ecosystemValue10)} · ไม่ใช่เครดิตรับรอง</span>
+        </div>
       </div>
 
       <CashflowChart cashflow={sys.cashflow} paybackYear={sys.paybackYear} />
@@ -233,7 +243,7 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
         <div className="agro-reasons">
           {comparisons.map((row, i) => (
             <div key={i} className="agro-reason thai">
-              <span className={`agro-reason-icon ${row.tone}`}>{row.tone === 'warn' ? '!' : row.tone === 'data' ? 'i' : '✓'}</span>
+              <span className={`agro-reason-icon ${row.tone}`}><Icon name={reasonIcon(row.tone)} size={13} strokeWidth={2.4} /></span>
               {row.text}
             </div>
           ))}

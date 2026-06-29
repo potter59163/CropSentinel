@@ -1,7 +1,6 @@
 // Unified plant icon set — covers every species with one consistent style.
-// Emoji can't represent teak, cashew, galangal, taro, maikhwaen… and render
-// differently per OS. These are hand-drawn boba-toned SVGs keyed by a botanical
-// archetype, with a per-layer fallback so any plant (now or future) gets a glyph.
+// Hand-drawn SVGs are keyed by botanical archetype, with a per-layer fallback
+// so any plant, now or future, gets a matching glyph.
 import type { Layer } from '../data/types';
 
 type Arche = 'tree' | 'timber' | 'banana' | 'bamboo' | 'shrub' | 'chili' | 'grass'

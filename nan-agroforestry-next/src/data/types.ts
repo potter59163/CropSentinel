@@ -8,7 +8,6 @@ export interface Plant {
   id: string;
   nameTh: string;
   nameEn: string;
-  emoji: string;
   layer: Layer;
   category: string;
   elevMin: number;

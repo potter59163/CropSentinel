@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FarmInput, SystemPlan } from './data/types';
 import type { Climate } from './lib/climate';
 import './styles/animations.css';
@@ -14,6 +14,7 @@ import { InputForm } from './components/InputForm';
 import { PlantGlyph } from './components/PlantGlyph';
 import { ResultPlan } from './components/ResultPlan';
 import { Methodology } from './components/Methodology';
+import { Icon, type IconName } from './components/Icon';
 
 const DEFAULT_INPUT: FarmInput = {
   currentCropId: 'ข้าวโพดเลี้ยงสัตว์', sizeRai: 10, elevationM: 420,
@@ -53,6 +54,14 @@ function missionText(sat: SatContext | null, prot: ProtectedArea | null, climate
   return 'พื้นที่ปลูกได้: เพิ่มความหลากหลาย รายได้ และคาร์บอนด้วยระบบหลายชั้น';
 }
 
+const STEPS: Array<{ t: string; d: string; icon: IconName }> = [
+  { t: 'แปลง', d: 'ขนาดและพืชเดิม', icon: 'plot' },
+  { t: 'ตำแหน่ง', d: 'แผนที่ GPS อำเภอ', icon: 'pin' },
+  { t: 'เลือกพืช', d: '4 ชั้นวนเกษตร', icon: 'leaf' },
+  { t: 'เป้าหมาย', d: 'รายได้และ assumptions', icon: 'target' },
+];
+const LAST_STEP = STEPS.length - 1;
+
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 function selectedRows(input: FarmInput) {
   return LAYERS.map((layer) => ({
@@ -60,8 +69,18 @@ function selectedRows(input: FarmInput) {
     meta: LAYER_META[layer],
     plants: (input.selectedByLayer[layer] ?? [])
       .map((id) => PLANTS.find((p) => p.id === id))
-      .filter(Boolean),
+    .filter(Boolean),
   })).filter((row) => row.plants.length);
+}
+
+function selectedPlantCount(input: FarmInput) {
+  return LAYERS.reduce((sum, layer) => sum + (input.selectedByLayer[layer]?.length ?? 0), 0);
+}
+
+function goalLabel(goal: FarmInput['goal']) {
+  if (goal === 'fast') return 'คืนทุนเร็ว';
+  if (goal === 'profit') return 'กำไรสูงสุด';
+  return 'สมดุล';
 }
 
 export function App() {
@@ -75,7 +94,8 @@ export function App() {
   const [apiWarnings, setApiWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'planner' | 'method'>('planner');
-  const resultsRef = useRef<HTMLElement | null>(null);
+  const [step, setStep] = useState(0);
+  const [showResult, setShowResult] = useState(false);
   const activeSystem = systems?.[Math.min(activePlan, Math.max(systems.length - 1, 0))] ?? null;
 
   useEffect(() => {
@@ -122,9 +142,8 @@ export function App() {
       setActivePlan(0);
       setSystems(data.systems);
       persistPlan(data.systems);
-      window.setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 80);
+      setShowResult(true);
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
     } catch (error) {
       setApiWarnings([error instanceof Error ? error.message : 'ไม่สามารถคำนวณแผนได้']);
     } finally {
@@ -136,7 +155,7 @@ export function App() {
     <div className="agro-app">
       <header className="agro-header">
         <div className="agro-brand">
-          <span className="agro-brand-mark">🌳</span>
+          <span className="agro-brand-mark"><Icon name="tree" size={34} strokeWidth={1.7} /></span>
           <div>
             <div className="agro-brand-name">
               <span>วนเกษตรน่าน</span>
@@ -154,12 +173,82 @@ export function App() {
 
       {tab === 'method' && <Methodology />}
 
-      {tab === 'planner' && (<>
-      <InputForm value={input} onChange={setInput} onSubmit={run} busy={busy} />
+      {tab === 'planner' && !showResult && (
+        <div className="agro-wizard">
+          <div className="agro-wizard-shell">
+            <aside className="agro-wizard-side">
+              <div className="agro-side-head">
+                <span className="agro-impact-k">Farm design</span>
+                <b className="thai">Decision support</b>
+              </div>
+              <div className="agro-side-summary">
+                <div><Icon name="plot" size={17} /><span className="thai">{input.sizeRai} ไร่</span></div>
+                <div><Icon name="pin" size={17} /><span className="thai">{input.locationLabel}</span></div>
+                <div><Icon name="target" size={17} /><span className="thai">{goalLabel(input.goal)}</span></div>
+                <div><Icon name="leaf" size={17} /><span className="thai">{selectedPlantCount(input) ? `${selectedPlantCount(input)} ชนิด` : 'ให้ระบบเติมพืช'}</span></div>
+              </div>
+              <div className="agro-stepper">
+                {STEPS.map((s, i) => (
+                  <button key={i} type="button"
+                    className={`agro-step-dot ${i === step ? 'on' : ''} ${i < step ? 'done' : ''}`}
+                    onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined}>
+                    <span className="agro-step-ic"><Icon name={i < step ? 'check' : s.icon} size={20} /></span>
+                    <span className="agro-step-copy">
+                      <span className="agro-step-t thai">{s.t}</span>
+                      <span className="agro-step-d thai">{s.d}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <main className="agro-wizard-main">
+              <div className="agro-step-titlebar">
+                <div>
+                  <span className="agro-impact-k">ขั้นที่ {step + 1}/{STEPS.length}</span>
+                  <div className="agro-step-title thai">{STEPS[step].t}</div>
+                </div>
+                <span className="agro-step-sub thai">{STEPS[step].d}</span>
+              </div>
+
+              <InputForm value={input} onChange={setInput} step={step} />
+
+              {apiWarnings.length > 0 && (
+                <div className="agro-gistda warn">
+                  <span className="agro-gistda-icon"><Icon name="warning" size={24} /></span>
+                  <div className="agro-gistda-body">
+                    <b className="thai">ยังคำนวณไม่สำเร็จ</b>
+                    <div className="thai">{apiWarnings.join(' · ')}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="agro-wiz-nav">
+                <button type="button" className="agro-wiz-btn back" disabled={step === 0}
+                  onClick={() => setStep((s) => Math.max(0, s - 1))}><Icon name="arrowLeft" size={18} /> ย้อนกลับ</button>
+                {step < LAST_STEP ? (
+                  <button type="button" className="agro-wiz-btn next"
+                    onClick={() => setStep((s) => Math.min(LAST_STEP, s + 1))}>ถัดไป <Icon name="arrowRight" size={18} /></button>
+                ) : (
+                  <button type="button" className="agro-wiz-btn submit" disabled={busy} onClick={run}>
+                    {busy ? 'กำลังวิเคราะห์…' : <><Icon name="sprout" size={19} /> ออกแบบระบบ</>}
+                  </button>
+                )}
+              </div>
+            </main>
+          </div>
+        </div>
+      )}
+
+      {tab === 'planner' && showResult && (<>
+      <div className="agro-result-top">
+        <button type="button" className="agro-result-back thai" onClick={() => setShowResult(false)}><Icon name="edit" size={16} /> แก้ไขข้อมูล</button>
+        <span className="agro-result-loc thai">{input.locationLabel} · {input.sizeRai} ไร่ · {input.elevationM} ม.</span>
+      </div>
 
       {apiWarnings.length > 0 && (
         <div className="agro-gistda warn">
-          <span className="agro-gistda-icon">⚠️</span>
+          <span className="agro-gistda-icon"><Icon name="warning" size={24} /></span>
           <div className="agro-gistda-body">
             <b className="thai">ข้อมูลบางส่วนไม่พร้อม</b>
             <div className="thai">{apiWarnings.join(' · ')}</div>
@@ -170,7 +259,7 @@ export function App() {
 
       {prot && (
         <div className={`agro-gistda ${prot.inside ? 'danger' : prot.near ? 'warn' : 'ok'}`}>
-          <span className="agro-gistda-icon">{prot.inside ? '⛔' : prot.near ? '🌲' : '✅'}</span>
+          <span className="agro-gistda-icon"><Icon name={prot.inside ? 'shieldX' : prot.near ? 'shield' : 'checkCircle'} size={24} /></span>
           <div className="agro-gistda-body">
             {prot.inside ? (
               <><b className="thai">แปลงอยู่ในเขต{prot.type} {prot.name ?? ''}</b>
@@ -189,7 +278,7 @@ export function App() {
 
       {prot?.riverNear && (
         <div className="agro-gistda water">
-          <span className="agro-gistda-icon">💧</span>
+          <span className="agro-gistda-icon"><Icon name="drop" size={24} /></span>
           <div className="agro-gistda-body">
             <b className="thai">GISTDA ลำน้ำ: ใกล้ลำน้ำภายใน {prot.riverDistanceM?.toLocaleString('en-US')} ม.</b>
             <div className="thai">
@@ -203,7 +292,7 @@ export function App() {
 
       {prot && prot.fireHotspots > 0 && (
         <div className={`agro-gistda ${prot.fireNearby > 0 ? 'danger' : 'warn'}`}>
-          <span className="agro-gistda-icon">🔥</span>
+          <span className="agro-gistda-icon"><Icon name="fire" size={24} /></span>
           <div className="agro-gistda-body">
             <b className="thai">GISTDA ไฟป่า: น่านพบ hotspot {prot.fireHotspots.toLocaleString('en-US')} จุด{prot.fireNearby > 0 ? ` · รอบแปลง 50 กม. ${prot.fireNearby} จุด` : ''}</b>
             <div className="thai">
@@ -220,7 +309,7 @@ export function App() {
 
       {prot?.disasterStatus === 'live' && (
         <div className={`agro-gistda ${fireNear(prot) > 0 ? 'danger' : floodNear(prot) > 0 ? 'warn' : 'ok'}`}>
-          <span className="agro-gistda-icon">🛰️</span>
+          <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
           <div className="agro-gistda-body">
             <b className="thai">
               GISTDA Disaster API: ไฟป่า 7 วันรอบแปลง {prot.disasterFire7dNear?.toLocaleString('en-US')} จุด · น้ำท่วม 7 วัน {prot.disasterFlood7dNear?.toLocaleString('en-US')} พื้นที่
@@ -238,7 +327,7 @@ export function App() {
 
       {prot?.disasterStatus === 'missing-key' && (
         <div className="agro-gistda warn">
-          <span className="agro-gistda-icon">🔑</span>
+          <span className="agro-gistda-icon"><Icon name="key" size={24} /></span>
           <div className="agro-gistda-body">
             <b className="thai">GISTDA Disaster API ยังไม่เปิดใน production</b>
             <div className="thai">ตั้งค่า Environment Variable `GISTDA_DISASTER_API_KEY` บน Vercel เพื่อเปิดข้อมูลไฟป่า น้ำท่วม และภัยแล้งแบบ official API</div>
@@ -249,14 +338,14 @@ export function App() {
 
       {sat && (
         <div className={`agro-gistda ${sat.verdict === 'forest' ? 'danger' : sat.verdict === 'restore' ? 'ok' : 'warn'}`}>
-          <span className="agro-gistda-icon">🛰️</span>
+          <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
           <div className="agro-gistda-body">
             {sat.verdict === 'forest' ? (
               <><b className="thai">ภาพดาวเทียม: พื้นที่นี้เป็นป่า ({sat.lcTh}, tree cover {sat.tc}%)</b>
                 <div className="thai">ไม่ควรแผ้วถางเพื่อทำเกษตร — ควรอนุรักษ์/ฟื้นฟูสภาพป่า</div></>
             ) : sat.verdict === 'restore' ? (
               <><b className="thai">ภาพดาวเทียม: {sat.lcTh}{sat.lossyr ? ` · เคยเป็นป่า สูญเสียปี ${sat.lossyr + 543}` : ''} · NDVI {sat.ndvi ?? '—'}</b>
-                <div className="thai">พื้นที่เสื่อมโทรม/เกษตรเชิงเดี่ยว — เหมาะอย่างยิ่งกับการฟื้นเป็นวนเกษตร 🌱</div></>
+                <div className="thai">พื้นที่เสื่อมโทรม/เกษตรเชิงเดี่ยว — เหมาะอย่างยิ่งกับการฟื้นเป็นวนเกษตร</div></>
             ) : (
               <><b className="thai">ภาพดาวเทียม: {sat.lcTh} · NDVI {sat.ndvi ?? '—'}</b>
                 <div className="thai">ปลูกวนเกษตรเสริมความหลากหลายได้</div></>
@@ -268,7 +357,7 @@ export function App() {
 
       {soil && (
         <div className={`agro-gistda ${soil.acidity === 'strong' || soil.fertility < 0.45 ? 'warn' : 'ok'}`}>
-          <span className="agro-gistda-icon">🪨</span>
+          <span className="agro-gistda-icon"><Icon name="soil" size={24} /></span>
           <div className="agro-gistda-body">
             <b className="thai">ดินจริง: {soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}</b>
             <div className="thai">
@@ -284,7 +373,7 @@ export function App() {
       )}
 
       {systems && activeSystem && (
-        <section className="agro-results" ref={resultsRef}>
+        <section className="agro-results">
           {selectedRows(input).length > 0 && (
             <div className="agro-selection-summary">
               <div>
@@ -294,7 +383,7 @@ export function App() {
               <div className="agro-selection-grid">
                 {selectedRows(input).map((row) => (
                   <div key={row.layer} className="agro-selection-row">
-                    <b className="thai">{row.meta.emoji} {row.meta.th}</b>
+                    <b className="thai agro-sel-head"><PlantGlyph plantId="" layer={row.layer} size={18} /> {row.meta.th}</b>
                     <span className="thai agro-sel-plants">
                       {row.plants.map((p) => (
                         <span key={p!.id} className="agro-sel-plant">
@@ -356,8 +445,8 @@ export function App() {
               {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
             </div>
             <div className="agro-results-actions">
-              <button type="button" className="agro-osm-link thai" onClick={() => navigator.clipboard?.writeText(window.location.href)}>คัดลอกลิงก์แผน</button>
-              <button type="button" className="agro-osm-link thai" onClick={() => window.print()}>พิมพ์/PDF</button>
+              <button type="button" className="agro-osm-link thai" onClick={() => navigator.clipboard?.writeText(window.location.href)}><Icon name="copy" size={16} /> คัดลอกลิงก์แผน</button>
+              <button type="button" className="agro-osm-link thai" onClick={() => window.print()}><Icon name="print" size={16} /> พิมพ์/PDF</button>
             </div>
           </div>
           <div className="agro-plan-tabs" role="tablist" aria-label="เลือกแผนวนเกษตร">

@@ -1,47 +1,47 @@
-/* ☕ Boba Tea Theme - Warm, cozy, production-grade */
+/* Base theme - production-grade */
 :root {
-  /* Boba Tea Primary Palette */
-  --color-boba: #6b4423;           /* Dark tapioca */
-  --color-milk: #f5ede3;           /* Warm milk */
-  --color-peach: #f5c9b8;          /* Peachy */
-  --color-gold: #e8d5b7;           /* Golden */
+  /* Primary palette */
+  --color-forest: #0c6654;
+  --color-field: #edf5ef;
+  --color-harvest: #d38b4a;
+  --color-sun: #dba93a;
   
   /* Extended palette */
-  --bg-0: #fef6f0;                 /* Lightest cream */
-  --bg-1: #f5ede3;                 /* Warm milk */
-  --bg-2: #ebe3d6;                 /* Soft milk */
-  --bg-3: #e0d5c8;                 /* Neutral */
-  --bg-4: #d4cac0;                 /* Darker neutral */
+  --bg-0: #f7fbf8;
+  --bg-1: #edf5ef;
+  --bg-2: #e1ece6;
+  --bg-3: #d2dfd8;
+  --bg-4: #bed0c6;
   
-  --line: #c9bfb5;                 /* Soft border */
-  --line-soft: #d9cfc5;             /* Lighter border */
-  --line-bright: #f5e5cc;           /* Light gold */
+  --line: #d5e1db;
+  --line-soft: #e4eee9;
+  --line-bright: #f4f8f6;
 
-  --fg-0: #2a1f17;                 /* Dark brown text */
-  --fg-1: #3d2817;                 /* Dark text */
-  --fg-2: #6b5441;                 /* Medium text */
-  --fg-3: #8b7666;                 /* Light text */
+  --fg-0: #10221b;
+  --fg-1: #243a31;
+  --fg-2: #5d7068;
+  --fg-3: #869891;
 
-  /* Status colors - warm toned */
-  --ok: #6b8c5a;                   /* Sage green */
-  --warn: #d9a844;                 /* Golden */
-  --risk: #c97856;                 /* Terracotta */
-  --crit: #b84a3a;                 /* Deep coral */
-  --data: #7a9db5;                 /* Dusty blue */
-  --data-2: #8b8c7a;               /* Sage */
+  /* Status colors */
+  --ok: #2f8f5b;
+  --warn: #c98618;
+  --risk: #c35345;
+  --crit: #a93a34;
+  --data: #217fa3;
+  --data-2: #647b5d;
 
   --ok-bg: rgba(107, 140, 90, 0.1);
   --warn-bg: rgba(217, 168, 68, 0.1);
   --risk-bg: rgba(201, 120, 86, 0.1);
   --data-bg: rgba(122, 157, 181, 0.1);
 
-  --shadow-soft: 0 8px 16px rgba(107, 68, 35, 0.08);
-  --shadow-card: 0 12px 32px rgba(107, 68, 35, 0.12);
-  --shadow-glow: 0 0 0 1px rgba(107, 68, 35, 0.04), 0 16px 40px rgba(107, 68, 35, 0.12);
+  --shadow-soft: 0 8px 16px rgba(16, 34, 27, 0.08);
+  --shadow-card: 0 12px 32px rgba(16, 34, 27, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(16, 34, 27, 0.04), 0 16px 40px rgba(16, 34, 27, 0.12);
 
-  --radius: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Courier New', monospace;
@@ -2068,7 +2068,7 @@ body {
   padding: 26px 24px; margin-bottom: 16px; color: #fff;
   box-shadow: 0 20px 44px rgba(0, 0, 0, 0.16);
 }
-.vlg-status-emoji { font-size: clamp(58px, 15vw, 90px); line-height: 1; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25)); }
+.vlg-status-icon { font-size: clamp(58px, 15vw, 90px); line-height: 1; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25)); }
 .vlg-status-word { font-size: clamp(32px, 8.5vw, 48px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
 .vlg-status-sub { font-size: clamp(17px, 4.5vw, 22px); margin-top: 6px; font-weight: 600; opacity: 0.96; }
 .vlg-status-area { font-size: 16px; margin-top: 8px; opacity: 0.9; font-weight: 700; }

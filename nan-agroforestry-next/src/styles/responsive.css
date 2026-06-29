@@ -1,5 +1,5 @@
-/* Boba Tea Theme - Responsive Design */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Baloo+2:wght@500;600;700;800&family=Baloo+Thai+2:wght@500;600;700;800&display=swap');
+/* Responsive design */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
 * {
   margin: 0;
@@ -57,13 +57,13 @@ p {
 }
 
 a {
-  color: var(--boba);
+  color: var(--sugar-1);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--peach-dark);
+  color: var(--sugar-2);
   text-decoration: underline;
 }
 
@@ -124,8 +124,8 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--boba);
-  box-shadow: 0 0 0 3px rgba(107, 68, 35, 0.1);
+  border-color: var(--sugar-0);
+  box-shadow: 0 0 0 3px rgba(21, 134, 106, 0.12);
   transform: translateY(-1px);
 }
 
@@ -375,12 +375,12 @@ input::placeholder {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-boba-light);
+  background: var(--bg-4);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-boba-med);
+  background: var(--sugar-0);
 }
 
 /* Loading animation */
