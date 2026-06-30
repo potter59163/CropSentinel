@@ -15,6 +15,7 @@ import { PlantGlyph } from './components/PlantGlyph';
 import { ResultPlan } from './components/ResultPlan';
 import { Methodology } from './components/Methodology';
 import { Icon, type IconName } from './components/Icon';
+import { Splash } from './components/Splash';
 
 const DEFAULT_INPUT: FarmInput = {
   currentCropId: 'ข้าวโพดเลี้ยงสัตว์', sizeRai: 10, elevationM: 420,
@@ -215,6 +216,7 @@ export function App() {
 
   return (
     <div className="agro-app">
+      <Splash />
       <header className="agro-header">
         <div className="agro-brand">
           <span className="agro-brand-mark"><Icon name="tree" size={34} strokeWidth={1.7} /></span>
@@ -230,7 +232,7 @@ export function App() {
           <button className={tab === 'planner' ? 'on' : ''} onClick={() => setTab('planner')}>แพลนเนอร์</button>
           <button className={tab === 'method' ? 'on' : ''} onClick={() => setTab('method')}>วิธีการ &amp; ความน่าเชื่อถือ</button>
         </div>
-        <span className="chip data thai agro-model-chip"><span className="dot" />Server-side SDM · GBIF + NASA POWER + GISTDA features</span>
+        <span className="chip data thai agro-model-chip"><span className="dot" />AI แนะนำพืช จากดาวเทียม ดิน และภูมิอากาศจริง</span>
       </header>
 
       {tab === 'method' && <Methodology />}
@@ -240,8 +242,8 @@ export function App() {
           <div className="agro-wizard-shell">
             <aside className="agro-wizard-side">
               <div className="agro-side-head">
-                <span className="agro-impact-k">Farm design</span>
-                <b className="thai">Decision support</b>
+                <span className="agro-impact-k">ออกแบบแปลง</span>
+                <b className="thai">ผู้ช่วยวางแผนวนเกษตร</b>
               </div>
               <div className="agro-side-summary">
                 <div><Icon name="plot" size={17} /><span className="thai">{isFiniteNumber(input.sizeRai) ? `${input.sizeRai} ไร่` : 'ยังไม่กรอกขนาด'}</span></div>
@@ -391,37 +393,37 @@ export function App() {
 
           <div className={`agro-impact ${prot?.inside || sat?.verdict === 'forest' || fireNear(prot) > 0 ? 'danger' : sat?.verdict === 'restore' || prot?.near || prot?.riverNear || floodNear(prot) > 0 ? 'ok' : 'data'}`}>
             <div className="agro-impact-main">
-              <span className="agro-impact-k">Forest decision</span>
+              <span className="agro-impact-k">พื้นที่นี้ควรทำอะไร</span>
               <h2 className="thai">{missionLabel(sat, prot, climate)}</h2>
               <p className="thai">{missionText(sat, prot, climate)}</p>
             </div>
             <div className="agro-impact-grid">
               <div>
-                <span>GISTDA fire</span>
-                <b>{prot ? `${fireNear(prot)} near · ${prot.disasterFire7dNan ?? prot.fireHotspots} Nan` : '—'}</b>
+                <span>ไฟป่ารอบแปลง</span>
+                <b>{prot ? `${fireNear(prot)} จุด · ทั้งน่าน ${prot.disasterFire7dNan ?? prot.fireHotspots}` : '—'}</b>
               </div>
               <div>
-                <span>GISTDA flood</span>
-                <b>{prot?.disasterStatus === 'live' ? `${prot.disasterFlood7dNear} near · ${prot.disasterFloodFreqNear} freq` : 'รอ Disaster API'}</b>
+                <span>น้ำท่วม</span>
+                <b>{prot?.disasterStatus === 'live' ? `${prot.disasterFlood7dNear} จุด · ซ้ำซาก ${prot.disasterFloodFreqNear}` : 'รอเปิด API'}</b>
               </div>
               <div>
-                <span>GISTDA water</span>
-                <b>{prot?.riverNear ? `≤ ${prot.riverDistanceM?.toLocaleString('en-US')} m` : 'ไม่พบใกล้ 3 km'}</b>
+                <span>ใกล้ลำน้ำ</span>
+                <b>{prot?.riverNear ? `≤ ${prot.riverDistanceM?.toLocaleString('en-US')} ม.` : 'ไม่พบใน 3 กม.'}</b>
               </div>
               <div>
-                <span>GISTDA drought</span>
-                <b>{prot?.disasterDroughtLayers?.length ? prot.disasterDroughtLayers.join(' / ') : 'รอ layer'}</b>
+                <span>ภัยแล้ง</span>
+                <b>{prot?.disasterDroughtLayers?.length ? prot.disasterDroughtLayers.join(' / ') : 'รอข้อมูล'}</b>
               </div>
               <div>
-                <span>Agroforest fit</span>
-                <b>{activeSystem.scoreParts.agroforestry ? `${Math.round(activeSystem.scoreParts.agroforestry * 100)}% system` : '—'}</b>
+                <span>ความเป็นวนเกษตร</span>
+                <b>{activeSystem.scoreParts.agroforestry ? `${Math.round(activeSystem.scoreParts.agroforestry * 100)}%` : '—'}</b>
               </div>
               <div>
-                <span>Carbon 10 yr</span>
-                <b>{activeSystem.carbon10.toLocaleString('en-US')} tCO₂e</b>
+                <span>คาร์บอน 10 ปี</span>
+                <b>{activeSystem.carbon10.toLocaleString('en-US')} ตัน CO₂</b>
               </div>
               <div>
-                <span>Profit 10 yr</span>
+                <span>กำไร 10 ปี</span>
                 <b>{bahtK(activeSystem.profit10)}</b>
               </div>
             </div>
@@ -430,7 +432,7 @@ export function App() {
           {selectedRows(input).length > 0 && (
             <div className="agro-selection-summary">
               <div>
-                <span className="agro-impact-k">Farmer input used</span>
+                <span className="agro-impact-k">พืชที่คุณเลือก</span>
                 <h2 className="thai">พืชที่คุณเลือกถูกนำเข้าแผนแล้ว</h2>
               </div>
               <div className="agro-selection-grid">
@@ -582,7 +584,7 @@ export function App() {
       </>)}
 
       <footer className="agro-foot thai">
-        ข้อมูล: Google Maps (เลือกพิกัดแปลง) · GISTDA (พื้นที่อนุรักษ์ + ลำน้ำ + Disaster Open API ไฟป่า/น้ำท่วม/ภัยแล้ง) · NASA POWER + Open-Meteo (ภูมิอากาศ/ความสูง) · SoilGrids/ISRIC (ดินจริง) · GBIF (จุดพบพืช) — ต้นแบบ space tech for forest
+        ข้อมูลจริงจาก Google Maps · GISTDA · NASA POWER · SoilGrids · GBIF · ดูที่มาทั้งหมดได้ที่แท็บ “วิธีการ”
       </footer>
     </div>
   );
