@@ -352,145 +352,42 @@ export function App() {
         </div>
       )}
 
-      {prot && (
-        <div className={`agro-gistda ${prot.inside ? 'danger' : prot.near ? 'warn' : 'ok'}`}>
-          <span className="agro-gistda-icon"><Icon name={prot.inside ? 'shieldX' : prot.near ? 'shield' : 'checkCircle'} size={24} /></span>
-          <div className="agro-gistda-body">
-            {prot.inside ? (
-              <><b className="thai">แปลงอยู่ในเขต{prot.type} {prot.name ?? ''}</b>
-                <div className="thai">ห้ามปลูก/แผ้วถางตามกฎหมาย — ทำวนเกษตรได้เฉพาะนอกเขต หรือร่วมโครงการฟื้นฟูกับหน่วยงาน</div></>
-            ) : prot.near ? (
-              <><b className="thai">ใกล้เขต{prot.type} {prot.name ?? ''} (~3 กม.)</b>
-                <div className="thai">วนเกษตรหลายชั้นช่วยเป็นแนวกันชนปกป้องป่าและลดการรุกป่า</div></>
-            ) : (
-              <><b className="thai">ไม่อยู่ในเขตอนุรักษ์ — ปลูกได้</b>
-                <div className="thai">เหมาะกับการฟื้นฟูพื้นที่เกษตรเชิงเดี่ยวให้เป็นวนเกษตร</div></>
-            )}
-            <div className="agro-gistda-src">ที่มา: {prot.source}</div>
-          </div>
-        </div>
-      )}
-
-      {prot?.riverNear && (
-        <div className="agro-gistda water">
-          <span className="agro-gistda-icon"><Icon name="drop" size={24} /></span>
-          <div className="agro-gistda-body">
-            <b className="thai">GISTDA ลำน้ำ: ใกล้ลำน้ำภายใน {prot.riverDistanceM?.toLocaleString('en-US')} ม.</b>
-            <div className="thai">
-              แนะนำทำแนวกันชนริมน้ำด้วยไม้ยืนต้น/พืชคลุมดิน ลดการชะล้างหน้าดินและสารเคมีลงลำน้ำน่าน
-              {prot.riverAmphoe ? ` · พื้นที่ ${prot.riverTambon ?? ''} ${prot.riverAmphoe}` : ''}
-            </div>
-            <div className="agro-gistda-src">ที่มา: {prot.source} · ชั้นข้อมูลแม่น้ำ</div>
-          </div>
-        </div>
-      )}
-
-      {prot && prot.fireHotspots > 0 && (
-        <div className={`agro-gistda ${prot.fireNearby > 0 ? 'danger' : 'warn'}`}>
-          <span className="agro-gistda-icon"><Icon name="fire" size={24} /></span>
-          <div className="agro-gistda-body">
-            <b className="thai">GISTDA ไฟป่า: น่านพบ hotspot {prot.fireHotspots.toLocaleString('en-US')} จุด{prot.fireNearby > 0 ? ` · รอบแปลง 50 กม. ${prot.fireNearby} จุด` : ''}</b>
-            <div className="thai">
-              {prot.fireProtected > 0 ? `หลายจุดอยู่ในพื้นที่ป่า/อนุรักษ์ (${prot.fireProtected.toLocaleString('en-US')} จุด) · ` : ''}
-              แนะนำออกแบบแนวกันไฟสีเขียว ลดพื้นที่โล่งเชิงเดี่ยว และเพิ่มความชื้นด้วยพืชคลุมดิน
-            </div>
-            <div className="agro-gistda-src">
-              ที่มา: GISTDA FR_Fire · MODIS/Terra-Aqua + VIIRS/Suomi-NPP
-              {prot.fireMaxConfidence ? ` · confidence สูงสุด ${prot.fireMaxConfidence}` : ''}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {prot?.disasterStatus === 'live' && (
-        <div className={`agro-gistda ${fireNear(prot) > 0 ? 'danger' : floodNear(prot) > 0 ? 'warn' : 'ok'}`}>
-          <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
-          <div className="agro-gistda-body">
-            <b className="thai">
-              GISTDA Disaster API: ไฟป่า 7 วันรอบแปลง {prot.disasterFire7dNear?.toLocaleString('en-US')} จุด · น้ำท่วม 7 วัน {prot.disasterFlood7dNear?.toLocaleString('en-US')} พื้นที่
-            </b>
-            <div className="thai">
-              ทั้งจังหวัดน่าน: VIIRS {prot.disasterFire7dNan?.toLocaleString('en-US')} จุด · น้ำท่วม {prot.disasterFlood7dNan?.toLocaleString('en-US')} พื้นที่
-              {' '}· รอบแปลง {prot.disasterRadiusKm} กม.: burn scar {prot.disasterBurnScarNear?.toLocaleString('en-US')} · flood frequency {prot.disasterFloodFreqNear?.toLocaleString('en-US')}
-            </div>
-            <div className="agro-gistda-src">
-              ที่มา: {prot.disasterSource} · ภัยแล้งพร้อมใช้ {prot.disasterDroughtLayers?.join(' / ') || '—'}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {prot?.disasterStatus === 'missing-key' && (
-        <div className="agro-gistda warn">
-          <span className="agro-gistda-icon"><Icon name="key" size={24} /></span>
-          <div className="agro-gistda-body">
-            <b className="thai">GISTDA Disaster API ยังไม่เปิดใน production</b>
-            <div className="thai">ตั้งค่า Environment Variable `GISTDA_DISASTER_API_KEY` บน Vercel เพื่อเปิดข้อมูลไฟป่า น้ำท่วม และภัยแล้งแบบ official API</div>
-            <div className="agro-gistda-src">key จะอยู่ฝั่ง Next.js API route เท่านั้น ไม่ถูกส่งเข้า frontend bundle</div>
-          </div>
-        </div>
-      )}
-
-      {sat && (
-        <div className={`agro-gistda ${sat.verdict === 'forest' ? 'danger' : sat.verdict === 'restore' ? 'ok' : 'warn'}`}>
-          <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
-          <div className="agro-gistda-body">
-            {sat.verdict === 'forest' ? (
-              <><b className="thai">ภาพดาวเทียม: พื้นที่นี้เป็นป่า ({sat.lcTh}, tree cover {sat.tc}%)</b>
-                <div className="thai">ไม่ควรแผ้วถางเพื่อทำเกษตร — ควรอนุรักษ์/ฟื้นฟูสภาพป่า</div></>
-            ) : sat.verdict === 'restore' ? (
-              <><b className="thai">ภาพดาวเทียม: {sat.lcTh}{sat.lossyr ? ` · เคยเป็นป่า สูญเสียปี ${sat.lossyr + 543}` : ''} · NDVI {sat.ndvi ?? '—'}</b>
-                <div className="thai">พื้นที่เสื่อมโทรม/เกษตรเชิงเดี่ยว — เหมาะอย่างยิ่งกับการฟื้นเป็นวนเกษตร</div></>
-            ) : (
-              <><b className="thai">ภาพดาวเทียม: {sat.lcTh} · NDVI {sat.ndvi ?? '—'}</b>
-                <div className="thai">ปลูกวนเกษตรเสริมความหลากหลายได้</div></>
-            )}
-            <div className="agro-gistda-src">ที่มา: {sat.source} (ผ่าน Google Earth Engine) · cell ใกล้สุด {sat.distanceKm} กม.</div>
-          </div>
-        </div>
-      )}
-
-      {soil && (
-        <div className={`agro-gistda ${soil.acidity === 'strong' || soil.fertility < 0.45 ? 'warn' : 'ok'}`}>
-          <span className="agro-gistda-icon"><Icon name="soil" size={24} /></span>
-          <div className="agro-gistda-body">
-            <b className="thai">ดินจริง: {soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}</b>
-            <div className="thai">
-              อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg ·
-              เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% ·
-              ความอุดมสมบูรณ์ {soil.fertilityTh}
-              {soil.acidity === 'strong' ? ' — ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
-              {' '}ระบบนำค่าดินนี้ไปปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรดแล้ว
-            </div>
-            <div className="agro-gistda-src">ที่มา: {soil.source} · ความลึก {soil.depthLabel} · ค่าประมาณเชิงพื้นที่ ควรยืนยันด้วยชุดตรวจดินจริงก่อนลงทุน</div>
-          </div>
-        </div>
-      )}
-
       {systems && activeSystem && (
         <section className="agro-results">
-          {selectedRows(input).length > 0 && (
-            <div className="agro-selection-summary">
-              <div>
-                <span className="agro-impact-k">Farmer input used</span>
-                <h2 className="thai">พืชที่คุณเลือกถูกนำเข้าแผนแล้ว</h2>
-              </div>
-              <div className="agro-selection-grid">
-                {selectedRows(input).map((row) => (
-                  <div key={row.layer} className="agro-selection-row">
-                    <b className="thai agro-sel-head"><PlantGlyph plantId="" layer={row.layer} size={18} /> {row.meta.th}</b>
-                    <span className="thai agro-sel-plants">
-                      {row.plants.map((p) => (
-                        <span key={p!.id} className="agro-sel-plant">
-                          <PlantGlyph plantId={p!.id} layer={p!.layer} size={18} /> {p!.nameTh}
-                        </span>
-                      ))}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          <div className="agro-results-head">
+            <h2 className="thai">ระบบวนเกษตรที่แนะนำ</h2>
+            <div className="thai agro-results-sub">
+              แปลง {input.sizeRai} ไร่ · ความสูง {input.elevationM} ม.
+              {climate && Number.isFinite(climate.t2m)
+                ? ` · อุณหภูมิ ${climate.t2m.toFixed(1)}°C · ฝน ${climate.prec.toFixed(0)} มม./ปี · เดือนแล้ง ${climate.drym} (NASA POWER)`
+                : ' · ใช้เกณฑ์ความสูง (ออฟไลน์)'}
+              {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
             </div>
-          )}
+            <div className="agro-results-actions">
+              <button type="button" className="agro-osm-link thai" onClick={() => navigator.clipboard?.writeText(window.location.href)}><Icon name="copy" size={16} /> คัดลอกลิงก์แผน</button>
+              <button type="button" className="agro-osm-link thai" onClick={() => window.print()}><Icon name="print" size={16} /> พิมพ์/PDF</button>
+            </div>
+          </div>
+          <div className="agro-plan-tabs" role="tablist" aria-label="เลือกแผนวนเกษตร">
+            {systems.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={activePlan === i}
+                className={activePlan === i ? 'on' : ''}
+                onClick={() => setActivePlan(i)}
+              >
+                <span className="thai">แผน {i + 1}</span>
+                <b className="thai">{s.badge}</b>
+                <em>{bahtK(s.profit10)} · agroforest {Math.round(s.scoreParts.agroforestry * 100)}%</em>
+              </button>
+            ))}
+          </div>
+
+          <div className="agro-plan-panel" role="tabpanel">
+            <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
+          </div>
 
           <div className={`agro-impact ${prot?.inside || sat?.verdict === 'forest' || fireNear(prot) > 0 ? 'danger' : sat?.verdict === 'restore' || prot?.near || prot?.riverNear || floodNear(prot) > 0 ? 'ok' : 'data'}`}>
             <div className="agro-impact-main">
@@ -530,44 +427,157 @@ export function App() {
             </div>
           </div>
 
-          <div className="agro-results-head">
-            <h2 className="thai">ระบบวนเกษตรที่แนะนำ</h2>
-            <div className="thai agro-results-sub">
-              แปลง {input.sizeRai} ไร่ · ความสูง {input.elevationM} ม.
-              {climate && Number.isFinite(climate.t2m)
-                ? ` · อุณหภูมิ ${climate.t2m.toFixed(1)}°C · ฝน ${climate.prec.toFixed(0)} มม./ปี · เดือนแล้ง ${climate.drym} (NASA POWER)`
-                : ' · ใช้เกณฑ์ความสูง (ออฟไลน์)'}
-              {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
+          {selectedRows(input).length > 0 && (
+            <div className="agro-selection-summary">
+              <div>
+                <span className="agro-impact-k">Farmer input used</span>
+                <h2 className="thai">พืชที่คุณเลือกถูกนำเข้าแผนแล้ว</h2>
+              </div>
+              <div className="agro-selection-grid">
+                {selectedRows(input).map((row) => (
+                  <div key={row.layer} className="agro-selection-row">
+                    <b className="thai agro-sel-head"><PlantGlyph plantId="" layer={row.layer} size={18} /> {row.meta.th}</b>
+                    <span className="thai agro-sel-plants">
+                      {row.plants.map((p) => (
+                        <span key={p!.id} className="agro-sel-plant">
+                          <PlantGlyph plantId={p!.id} layer={p!.layer} size={18} /> {p!.nameTh}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="agro-results-actions">
-              <button type="button" className="agro-osm-link thai" onClick={() => navigator.clipboard?.writeText(window.location.href)}><Icon name="copy" size={16} /> คัดลอกลิงก์แผน</button>
-              <button type="button" className="agro-osm-link thai" onClick={() => window.print()}><Icon name="print" size={16} /> พิมพ์/PDF</button>
-            </div>
-          </div>
-          <div className="agro-plan-tabs" role="tablist" aria-label="เลือกแผนวนเกษตร">
-            {systems.map((s, i) => (
-              <button
-                key={i}
-                type="button"
-                role="tab"
-                aria-selected={activePlan === i}
-                className={activePlan === i ? 'on' : ''}
-                onClick={() => setActivePlan(i)}
-              >
-                <span className="thai">แผน {i + 1}</span>
-                <b className="thai">{s.badge}</b>
-                <em>{bahtK(s.profit10)} · agroforest {Math.round(s.scoreParts.agroforestry * 100)}%</em>
-              </button>
-            ))}
-          </div>
+          )}
 
-          <div className="agro-plan-panel" role="tabpanel">
-            <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
-          </div>
           <div className="agro-disclaimer thai">
             * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic ทั้งความสูง (เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง) และดินจริงจาก SoilGrids (การระบายน้ำ/ความเป็นกรด/ความอุดมสมบูรณ์) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอและตรวจดินจริงก่อนลงมือ
           </div>
         </section>
+      )}
+
+      {(prot || sat || soil) && (
+        <details className="agro-context">
+          <summary className="thai"><Icon name="info" size={18} /> ข้อมูลพื้นที่จากดาวเทียม: GISTDA · ป่า/ลำน้ำ/ภัยพิบัติ · ดินจริง</summary>
+          <div className="agro-context-body">
+
+            {prot && (
+              <div className={`agro-gistda ${prot.inside ? 'danger' : prot.near ? 'warn' : 'ok'}`}>
+                <span className="agro-gistda-icon"><Icon name={prot.inside ? 'shieldX' : prot.near ? 'shield' : 'checkCircle'} size={24} /></span>
+                <div className="agro-gistda-body">
+                  {prot.inside ? (
+                    <><b className="thai">แปลงอยู่ในเขต{prot.type} {prot.name ?? ''}</b>
+                      <div className="thai">ห้ามปลูก/แผ้วถางตามกฎหมาย — ทำวนเกษตรได้เฉพาะนอกเขต หรือร่วมโครงการฟื้นฟูกับหน่วยงาน</div></>
+                  ) : prot.near ? (
+                    <><b className="thai">ใกล้เขต{prot.type} {prot.name ?? ''} (~3 กม.)</b>
+                      <div className="thai">วนเกษตรหลายชั้นช่วยเป็นแนวกันชนปกป้องป่าและลดการรุกป่า</div></>
+                  ) : (
+                    <><b className="thai">ไม่อยู่ในเขตอนุรักษ์ — ปลูกได้</b>
+                      <div className="thai">เหมาะกับการฟื้นฟูพื้นที่เกษตรเชิงเดี่ยวให้เป็นวนเกษตร</div></>
+                  )}
+                  <div className="agro-gistda-src">ที่มา: {prot.source}</div>
+                </div>
+              </div>
+            )}
+
+            {prot?.riverNear && (
+              <div className="agro-gistda water">
+                <span className="agro-gistda-icon"><Icon name="drop" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">GISTDA ลำน้ำ: ใกล้ลำน้ำภายใน {prot.riverDistanceM?.toLocaleString('en-US')} ม.</b>
+                  <div className="thai">
+                    แนะนำทำแนวกันชนริมน้ำด้วยไม้ยืนต้น/พืชคลุมดิน ลดการชะล้างหน้าดินและสารเคมีลงลำน้ำน่าน
+                    {prot.riverAmphoe ? ` · พื้นที่ ${prot.riverTambon ?? ''} ${prot.riverAmphoe}` : ''}
+                  </div>
+                  <div className="agro-gistda-src">ที่มา: {prot.source} · ชั้นข้อมูลแม่น้ำ</div>
+                </div>
+              </div>
+            )}
+
+            {prot && prot.fireHotspots > 0 && (
+              <div className={`agro-gistda ${prot.fireNearby > 0 ? 'danger' : 'warn'}`}>
+                <span className="agro-gistda-icon"><Icon name="fire" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">GISTDA ไฟป่า: น่านพบ hotspot {prot.fireHotspots.toLocaleString('en-US')} จุด{prot.fireNearby > 0 ? ` · รอบแปลง 50 กม. ${prot.fireNearby} จุด` : ''}</b>
+                  <div className="thai">
+                    {prot.fireProtected > 0 ? `หลายจุดอยู่ในพื้นที่ป่า/อนุรักษ์ (${prot.fireProtected.toLocaleString('en-US')} จุด) · ` : ''}
+                    แนะนำออกแบบแนวกันไฟสีเขียว ลดพื้นที่โล่งเชิงเดี่ยว และเพิ่มความชื้นด้วยพืชคลุมดิน
+                  </div>
+                  <div className="agro-gistda-src">
+                    ที่มา: GISTDA FR_Fire · MODIS/Terra-Aqua + VIIRS/Suomi-NPP
+                    {prot.fireMaxConfidence ? ` · confidence สูงสุด ${prot.fireMaxConfidence}` : ''}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {prot?.disasterStatus === 'live' && (
+              <div className={`agro-gistda ${fireNear(prot) > 0 ? 'danger' : floodNear(prot) > 0 ? 'warn' : 'ok'}`}>
+                <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">
+                    GISTDA Disaster API: ไฟป่า 7 วันรอบแปลง {prot.disasterFire7dNear?.toLocaleString('en-US')} จุด · น้ำท่วม 7 วัน {prot.disasterFlood7dNear?.toLocaleString('en-US')} พื้นที่
+                  </b>
+                  <div className="thai">
+                    ทั้งจังหวัดน่าน: VIIRS {prot.disasterFire7dNan?.toLocaleString('en-US')} จุด · น้ำท่วม {prot.disasterFlood7dNan?.toLocaleString('en-US')} พื้นที่
+                    {' '}· รอบแปลง {prot.disasterRadiusKm} กม.: burn scar {prot.disasterBurnScarNear?.toLocaleString('en-US')} · flood frequency {prot.disasterFloodFreqNear?.toLocaleString('en-US')}
+                  </div>
+                  <div className="agro-gistda-src">
+                    ที่มา: {prot.disasterSource} · ภัยแล้งพร้อมใช้ {prot.disasterDroughtLayers?.join(' / ') || '—'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {prot?.disasterStatus === 'missing-key' && (
+              <div className="agro-gistda warn">
+                <span className="agro-gistda-icon"><Icon name="key" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">GISTDA Disaster API ยังไม่เปิดใน production</b>
+                  <div className="thai">ตั้งค่า Environment Variable `GISTDA_DISASTER_API_KEY` บน Vercel เพื่อเปิดข้อมูลไฟป่า น้ำท่วม และภัยแล้งแบบ official API</div>
+                  <div className="agro-gistda-src">key จะอยู่ฝั่ง Next.js API route เท่านั้น ไม่ถูกส่งเข้า frontend bundle</div>
+                </div>
+              </div>
+            )}
+
+            {sat && (
+              <div className={`agro-gistda ${sat.verdict === 'forest' ? 'danger' : sat.verdict === 'restore' ? 'ok' : 'warn'}`}>
+                <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
+                <div className="agro-gistda-body">
+                  {sat.verdict === 'forest' ? (
+                    <><b className="thai">ภาพดาวเทียม: พื้นที่นี้เป็นป่า ({sat.lcTh}, tree cover {sat.tc}%)</b>
+                      <div className="thai">ไม่ควรแผ้วถางเพื่อทำเกษตร — ควรอนุรักษ์/ฟื้นฟูสภาพป่า</div></>
+                  ) : sat.verdict === 'restore' ? (
+                    <><b className="thai">ภาพดาวเทียม: {sat.lcTh}{sat.lossyr ? ` · เคยเป็นป่า สูญเสียปี ${sat.lossyr + 543}` : ''} · NDVI {sat.ndvi ?? '—'}</b>
+                      <div className="thai">พื้นที่เสื่อมโทรม/เกษตรเชิงเดี่ยว — เหมาะอย่างยิ่งกับการฟื้นเป็นวนเกษตร</div></>
+                  ) : (
+                    <><b className="thai">ภาพดาวเทียม: {sat.lcTh} · NDVI {sat.ndvi ?? '—'}</b>
+                      <div className="thai">ปลูกวนเกษตรเสริมความหลากหลายได้</div></>
+                  )}
+                  <div className="agro-gistda-src">ที่มา: {sat.source} (ผ่าน Google Earth Engine) · cell ใกล้สุด {sat.distanceKm} กม.</div>
+                </div>
+              </div>
+            )}
+
+            {soil && (
+              <div className={`agro-gistda ${soil.acidity === 'strong' || soil.fertility < 0.45 ? 'warn' : 'ok'}`}>
+                <span className="agro-gistda-icon"><Icon name="soil" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">ดินจริง: {soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}</b>
+                  <div className="thai">
+                    อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg ·
+                    เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% ·
+                    ความอุดมสมบูรณ์ {soil.fertilityTh}
+                    {soil.acidity === 'strong' ? ' — ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
+                    {' '}ระบบนำค่าดินนี้ไปปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรดแล้ว
+                  </div>
+                  <div className="agro-gistda-src">ที่มา: {soil.source} · ความลึก {soil.depthLabel} · ค่าประมาณเชิงพื้นที่ ควรยืนยันด้วยชุดตรวจดินจริงก่อนลงทุน</div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </details>
       )}
       </>)}
 

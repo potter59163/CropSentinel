@@ -208,6 +208,33 @@ body::before {
 .agro-sel-plants { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 5px; }
 .agro-sel-plant { display: inline-flex; align-items: center; gap: 5px; }
 
+/* ── icon + glyph alignment helpers (added) ────────────────────────────── */
+.ui-icon { display: block; flex-shrink: 0; }
+.agro-brand-mark { display: inline-flex; color: var(--ok); }
+.agro-brand-mark .ui-icon { width: 34px; height: 34px; }
+.agro-pick-head b { display: inline-flex; align-items: center; gap: 6px; }
+.agro-pick-headglyph { display: inline-flex; align-items: center; }
+.agro-sel-head { display: inline-flex; align-items: center; gap: 6px; }
+.agro-layer-tag { display: inline-flex; align-items: center; gap: 6px; }
+.agro-layer-glyph { display: inline-flex; align-items: center; }
+.agro-step-hint { color: var(--fg-3); font-size: 12.5px; line-height: 1.6; }
+.agro-loc-tools { display: flex; flex-direction: column; gap: 8px; }
+.agro-gps-wide {
+  width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; border-radius: var(--radius);
+}
+
+/* ── context details (area data, tucked below the plan) ────────────────── */
+.agro-context { margin-top: 18px; border: 1.5px solid var(--line-soft); border-radius: var(--radius-lg); background: var(--surface-soft); overflow: hidden; }
+.agro-context > summary {
+  display: flex; align-items: center; gap: 8px; padding: 14px 16px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 600; color: var(--fg-0); list-style: none;
+}
+.agro-context > summary::-webkit-details-marker { display: none; }
+.agro-context[open] > summary { border-bottom: 1.5px solid var(--line-soft); }
+.agro-context-body { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+.agro-context-body .agro-gistda { margin: 0; }
+
 /* ── compact plant picker (grouped by strata) ──────────────────────────── */
 .agro-pick { display: flex; flex-direction: column; gap: 10px; }
 .agro-pick-layer {
