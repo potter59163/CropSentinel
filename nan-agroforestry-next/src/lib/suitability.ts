@@ -23,6 +23,7 @@ interface SpeciesModel {
   n: number;
 }
 const M = model as unknown as {
+  version?: number;
   base: string[]; sq: string[]; features: string[];
   mean: number[]; std: number[]; median: number[];
   species: Record<string, SpeciesModel>;
@@ -60,6 +61,9 @@ export function disasterFeatureContext(risk: ProtectedArea | null) {
 
 // Soil features in the SAME physical units the model was trained on (SoilGrids).
 export function soilFeatureContext(soil: SoilContext | null) {
+  const drainageIdx = soil?.drainage === 'good' ? 0.82 : soil?.drainage === 'moderate' ? 0.55 : soil?.drainage === 'poor' ? 0.25 : undefined;
+  const acidityIdx = soil?.acidity === 'neutral' ? 0.88 : soil?.acidity === 'slight' ? 0.74 : soil?.acidity === 'moderate' ? 0.48 : soil?.acidity === 'strong' ? 0.22 : undefined;
+  const fertilityIdx = soil ? soil.fertility : undefined;
   if (soil?.sdmFeatureSource !== 'soilgrids') {
     return {
       soil_ph: undefined,
@@ -67,6 +71,9 @@ export function soilFeatureContext(soil: SoilContext | null) {
       soil_sand: undefined,
       soil_oc: undefined,
       soil_cec: undefined,
+      soil_drainage_idx: drainageIdx,
+      soil_acidity_idx: acidityIdx,
+      soil_fertility_idx: fertilityIdx,
     };
   }
   return {
@@ -75,6 +82,9 @@ export function soilFeatureContext(soil: SoilContext | null) {
     soil_sand: soil?.sandPct,
     soil_oc: soil?.organicCarbonPct,
     soil_cec: soil?.cec,
+    soil_drainage_idx: drainageIdx,
+    soil_acidity_idx: acidityIdx,
+    soil_fertility_idx: fertilityIdx,
   };
 }
 
@@ -139,6 +149,8 @@ export const modelMeta = () => {
   const weak = all.filter((s) => s.auc < AUC_MIN);
   return {
     count: sp.length,
+    version: M.version ?? null,
+    featureCount: M.features?.length ?? 0,
     avgAuc: sp.reduce((s, v) => s + v.auc, 0) / Math.max(1, sp.length),
     minAuc: sp.reduce((m, v) => Math.min(m, v.auc), 1),
     weakCount: weak.length,

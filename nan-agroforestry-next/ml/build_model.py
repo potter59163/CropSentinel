@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-Species Distribution Model (SDM) v3.
+Species Distribution Model (SDM) v4.
+
+What changed from v3:
+  - Keeps SoilGrids numeric properties in the trained feature set.
+  - Adds derived soil indices (drainage/acidity/fertility) that can be computed
+    consistently from SoilGrids during training and from LDD/SoilGrids at runtime.
+  - Keeps all-layer GBIF training, pseudo-background cells, GISTDA disaster
+    features, spatial-block validation, and the logistic/GBM ensemble export.
 
 What changed from v2:
   - GBIF occurrence cap is higher and covers every plant layer, not canopy only.
@@ -22,7 +29,7 @@ random.seed(9)
 SSL = ssl.create_default_context(cafile=certifi.where())
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, 'cache'); os.makedirs(CACHE, exist_ok=True)
-OUT = os.path.join(HERE, '..', 'src', 'data', 'sdm_model.json')
+OUT = os.getenv('SDM_OUT') or os.path.join(HERE, '..', 'src', 'data', 'sdm_model.json')
 
 SPECIES = {
     # canopy
@@ -54,30 +61,51 @@ SPECIES = {
 
 REGION = (5.0, 28.0, 92.0, 112.0)  # lat0, lat1, lon0, lon1 (SE Asia)
 GRID = float(os.getenv('SDM_GRID', '0.25'))
-PRES_CAP = int(os.getenv('SDM_PRES_CAP', '450'))
+PRES_CAP = int(os.getenv('SDM_PRES_CAP', '650'))
 BACKGROUND_CAP = int(os.getenv('SDM_BACKGROUND_CAP', '900'))
 POWER_WORKERS = int(os.getenv('SDM_POWER_WORKERS', '10'))
 GISTDA_CELL_CAP = int(os.getenv('SDM_GISTDA_CELL_CAP', '140'))
+SKIP_GBIF_TOPUP = os.getenv('SDM_SKIP_GBIF_TOPUP', '0') == '1'
 MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
 CLIMATE_BASE = ['t2m', 'prec', 'drym', 'pseas', 'trange', 'solar', 'rh', 'gwet', 'elev']
 DISASTER_BASE = ['fire7d_near', 'burn_freq_near', 'flood7d_near', 'flood_freq_near', 'drought_layers']
-# Real soil from SoilGrids (ISRIC), same physical units as runtime src/lib/soil.ts
-SOIL_BASE = ['soil_ph', 'soil_clay', 'soil_sand', 'soil_oc', 'soil_cec']
-BASE = CLIMATE_BASE + DISASTER_BASE + SOIL_BASE
-SQ = ['t2m', 'prec', 'elev', 'fire7d_near', 'flood_freq_near']
+# Real soil from SoilGrids (ISRIC), same physical units as runtime src/lib/soil.ts.
+# The *_idx features are derived from the same raw values; at runtime they can
+# also be derived from LDD soil-group context when SoilGrids is missing.
+SOIL_RAW = ['soil_ph', 'soil_clay', 'soil_sand', 'soil_oc', 'soil_cec']
+SOIL_DERIVED = ['soil_drainage_idx', 'soil_acidity_idx', 'soil_fertility_idx']
+SOIL_BASE = SOIL_RAW + SOIL_DERIVED
+# Ablation switch: SDM_DISABLE_SOIL=1 trains without any soil columns, using the
+# exact same cached presence/background/climate pool, to isolate whether an AUC
+# change comes from soil features or from a change in the occurrence data itself.
+DISABLE_SOIL = os.getenv('SDM_DISABLE_SOIL', '0') == '1'
+BASE = CLIMATE_BASE + DISASTER_BASE + ([] if DISABLE_SOIL else SOIL_BASE)
+SQ = ['t2m', 'prec', 'elev', 'fire7d_near', 'flood_freq_near'] + ([] if DISABLE_SOIL else ['soil_acidity_idx'])
 FEATURES = BASE + [f'{n}_sq' for n in SQ]
 
 SOILGRIDS = 'https://rest.isric.org/soilgrids/v2.0/properties/query'
 SOIL_PROPS = ['phh2o', 'soc', 'clay', 'sand', 'cec']
 SOIL_DEPTHS = ['0-5cm', '5-15cm']
 SOIL_CONV = {'phh2o': lambda v: v / 10, 'soc': lambda v: v / 100, 'clay': lambda v: v / 10, 'sand': lambda v: v / 10, 'cec': lambda v: v}
+# ISRIC's free SoilGrids endpoint is slow and occasionally hangs under bulk use;
+# give it its own short timeout/retry budget so a handful of bad cells can't
+# stall the whole pipeline for minutes each (the generic http_json() below is
+# tuned for GBIF/NASA POWER, which behave far better).
+SOIL_TIMEOUT = float(os.getenv('SDM_SOIL_TIMEOUT', '12'))
+SOIL_TRIES = int(os.getenv('SDM_SOIL_TRIES', '2'))
+# Hard wall-clock budget (seconds) for the whole soil-fetch stage. Whatever is
+# still missing when the budget runs out is left as None (median-imputed at
+# train time and at runtime), so the pipeline always finishes in bounded time
+# instead of hanging on a slow/unreachable API.
+SOIL_TIME_BUDGET_SEC = float(os.getenv('SDM_SOIL_TIME_BUDGET_SEC', '600'))
+SOIL_WORKERS = int(os.getenv('SDM_SOIL_WORKERS', '8'))
 
 
-def http_json(url, tries=4):
+def http_json(url, tries=4, timeout=45):
     for i in range(tries):
         try:
-            with urllib.request.urlopen(url, timeout=45, context=SSL) as r:
+            with urllib.request.urlopen(url, timeout=timeout, context=SSL) as r:
                 return json.load(r)
         except Exception:
             if i == tries - 1:
@@ -100,13 +128,13 @@ def taxon_key(sci: str):
 
 def fetch_presence() -> Dict[str, List[List[float]]]:
     path = os.path.join(CACHE, 'presence_v3.json')
-    if os.path.exists(path):
-        cached = json.load(open(path))
-        return {k: v[:PRES_CAP] for k, v in cached.items()}
-    out = {}
+    out = json.load(open(path)) if os.path.exists(path) else {}
+    if SKIP_GBIF_TOPUP and out:
+        return {k: v[:PRES_CAP] for k, v in out.items()}
     for tid, sci in SPECIES.items():
+        cached_cells = {tuple(c) for c in out.get(tid, [])}
         key = taxon_key(sci)
-        cells = set()
+        cells = set(cached_cells)
 
         def pull(regional: bool):
             off = 0
@@ -137,7 +165,8 @@ def fetch_presence() -> Dict[str, List[List[float]]]:
                 if d.get('endOfRecords'):
                     break
 
-        pull(True)
+        if len(cells) < PRES_CAP:
+            pull(True)
         if len(cells) < 80:
             pull(False)
         out[tid] = [list(c) for c in list(cells)[:PRES_CAP]]
@@ -289,7 +318,7 @@ def soil_one(c: Tuple[float, float]):
     for d in SOIL_DEPTHS:
         q.append(('depth', d))
     try:
-        d = http_json(SOILGRIDS + '?' + urllib.parse.urlencode(q), tries=3)
+        d = http_json(SOILGRIDS + '?' + urllib.parse.urlencode(q), tries=SOIL_TRIES, timeout=SOIL_TIMEOUT)
     except Exception:
         return k, None
     out = {}
@@ -309,25 +338,62 @@ def soil_one(c: Tuple[float, float]):
         'soil_sand': out.get('sand'),
         'soil_oc': out.get('soc'),
         'soil_cec': out.get('cec'),
+        **soil_indices(out.get('phh2o'), out.get('clay'), out.get('sand'), out.get('soc'), out.get('cec')),
+    }
+
+
+def clamp01(v: float) -> float:
+    return max(0.0, min(1.0, v))
+
+
+def soil_indices(ph, clay, sand, oc, cec) -> dict:
+    if ph is None or clay is None or sand is None:
+        return {name: None for name in SOIL_DERIVED}
+    drainage = clamp01((float(sand) - float(clay) + 50.0) / 100.0)
+    acidity = clamp01(1.0 - abs(float(ph) - 6.3) / 2.2)
+    fertility = clamp01((float(oc or 0) / 3.0) * 0.45 + (float(cec or 0) / 250.0) * 0.3 + acidity * 0.25)
+    return {
+        'soil_drainage_idx': drainage,
+        'soil_acidity_idx': acidity,
+        'soil_fertility_idx': fertility,
     }
 
 
 def fetch_soil(cells: List[Tuple[float, float]]) -> Dict[str, dict]:
     path = os.path.join(CACHE, 'soil_v3.json')
     data = json.load(open(path)) if os.path.exists(path) else {}
+    for vals in data.values():
+        if vals and vals.get('soil_drainage_idx') is None:
+            vals.update(soil_indices(vals.get('soil_ph'), vals.get('soil_clay'), vals.get('soil_sand'), vals.get('soil_oc'), vals.get('soil_cec')))
     todo = [c for c in cells if cell_key(c) not in data]
     if todo:
-        print(f'    SoilGrids soil todo={len(todo)} (cached={len(data)})')
+        print(f'    SoilGrids soil todo={len(todo)} (cached={len(data)}) budget={SOIL_TIME_BUDGET_SEC:.0f}s workers={SOIL_WORKERS}')
     done = 0
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
-        futs = [ex.submit(soil_one, c) for c in todo]
-        for fut in concurrent.futures.as_completed(futs):
-            k, vals = fut.result()
-            data[k] = vals or {name: None for name in SOIL_BASE}
-            done += 1
-            if done % 25 == 0 or done == len(todo):
-                json.dump(data, open(path, 'w'))
-                print(f'    SoilGrids {done}/{len(todo)}')
+    start = time.monotonic()
+    timed_out = False
+    with concurrent.futures.ThreadPoolExecutor(max_workers=SOIL_WORKERS) as ex:
+        futs = {ex.submit(soil_one, c): c for c in todo}
+        pending = set(futs)
+        while pending:
+            remaining_budget = SOIL_TIME_BUDGET_SEC - (time.monotonic() - start)
+            if remaining_budget <= 0:
+                timed_out = True
+                break
+            done_now, pending = concurrent.futures.wait(pending, timeout=remaining_budget, return_when=concurrent.futures.FIRST_COMPLETED)
+            for fut in done_now:
+                k, vals = fut.result()
+                data[k] = vals or {name: None for name in SOIL_BASE}
+                done += 1
+                if done % 25 == 0 or done == len(todo):
+                    json.dump(data, open(path, 'w'))
+                    print(f'    SoilGrids {done}/{len(todo)} ({time.monotonic() - start:.0f}s elapsed)')
+        if timed_out and pending:
+            # Do NOT cache these as a permanent None — that would stop them from
+            # ever being retried. Leave them absent from `data` so the next run's
+            # `todo` picks them back up (median-imputed for *this* run only).
+            print(f'    SoilGrids time budget hit — {len(pending)} cells left unfetched this run (will retry next run; median-imputed for now)')
+            for fut in pending:
+                fut.cancel()
     json.dump(data, open(path, 'w'))
     return data
 
@@ -359,12 +425,15 @@ def main():
     print('2) features: DEM + NASA POWER + GISTDA Disaster...')
     feat = fetch_features(cells)
 
-    print('2b) soil: SoilGrids (ISRIC) for climate-present cells...')
-    climate_cells = [c for c in cells if feat.get(cell_key(c), {}).get('t2m') is not None]
-    soil = fetch_soil(climate_cells)
-    for c in cells:
-        feat.setdefault(cell_key(c), {}).update(soil.get(cell_key(c), {}))
-    json.dump(feat, open(os.path.join(CACHE, 'features_v3.json'), 'w'))
+    if DISABLE_SOIL:
+        print('2b) soil: skipped (SDM_DISABLE_SOIL=1, ablation run — no soil columns in BASE)')
+    else:
+        print('2b) soil: SoilGrids (ISRIC) for climate-present cells...')
+        climate_cells = [c for c in cells if feat.get(cell_key(c), {}).get('t2m') is not None]
+        soil = fetch_soil(climate_cells)
+        for c in cells:
+            feat.setdefault(cell_key(c), {}).update(soil.get(cell_key(c), {}))
+        json.dump(feat, open(os.path.join(CACHE, 'features_v3.json'), 'w'))
 
     def base_vec(cell):
         f = feat.get(cell_key(cell), {})
@@ -396,8 +465,14 @@ def main():
 
     print(f'3) train v3 ({len(pool)} cells, {len(FEATURES)} features)...')
     model = {
-        'version': 3,
+        'version': 4,
         'validation': 'spatial-block-2deg-group-kfold',
+        'featureSources': {
+            'climate': 'NASA POWER climatology + Open-Meteo elevation',
+            'disaster': 'GISTDA Disaster Open API / cached zero-impute outside Thailand',
+            'soilRaw': 'SoilGrids topsoil 0-15 cm numeric properties',
+            'soilDerived': 'drainage/acidity/fertility indices derived from SoilGrids for training; runtime can derive the same indices from LDD/SoilGrids',
+        },
         'base': BASE,
         'sq': SQ,
         'features': FEATURES,
