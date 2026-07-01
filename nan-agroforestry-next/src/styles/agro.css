@@ -40,6 +40,40 @@ button { -webkit-tap-highlight-color: transparent; }
 .agro-input:focus { outline: none; border-color: var(--ok); box-shadow: 0 0 0 3px oklch(0.78 0.16 154 / 0.14); }
 select.agro-input { cursor: pointer; }
 
+.agro-zone-panel {
+  display: flex; flex-direction: column; gap: 10px; padding: 13px;
+  border: 1px solid var(--line-soft); border-radius: 14px; background: var(--bg-1);
+}
+.agro-zone-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.agro-zone-head b { display: block; color: var(--fg-0); font-size: 14px; }
+.agro-zone-head span { display: block; margin-top: 3px; color: var(--fg-3); font-size: 12px; line-height: 1.5; }
+.agro-zone-add,
+.agro-zone-remove {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--bg-2); color: var(--fg-1);
+  min-height: 36px; padding: 7px 11px; font-weight: 800; cursor: pointer;
+}
+.agro-zone-remove { min-width: 48px; color: var(--fg-3); }
+.agro-zone-remove:disabled { opacity: .45; cursor: not-allowed; }
+.agro-zone-list { display: grid; gap: 8px; }
+.agro-zone-row {
+  display: grid; grid-template-columns: 34px minmax(180px, 1fr) minmax(120px, .45fr) auto;
+  align-items: end; gap: 8px; padding: 10px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--bg-2);
+}
+.agro-zone-index {
+  display: grid; place-items: center; width: 28px; height: 28px; align-self: center;
+  border-radius: 999px; background: var(--data-bg); color: var(--data); font: 800 12px/1 var(--font-mono);
+}
+.agro-zone-row label { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.agro-zone-row label span { color: var(--fg-3); font-size: 11px; font-weight: 800; }
+.agro-zone-row .agro-input { min-height: 40px; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.agro-zone-total {
+  display: inline-flex; width: fit-content; max-width: 100%; padding: 7px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; line-height: 1.35;
+}
+.agro-zone-total.ok { color: var(--ok); background: var(--ok-bg); }
+.agro-zone-total.warn { color: var(--warn); background: var(--warn-bg); }
+
 .agro-elev-row { display: flex; gap: 8px; }
 .agro-gps-btn {
   flex-shrink: 0; background: linear-gradient(135deg, #3ec0e0, #3e87e0); color: #06222b; border: 0;
@@ -292,6 +326,11 @@ select.agro-input { cursor: pointer; }
   background: linear-gradient(135deg, oklch(0.34 0.09 154 / 0.5), oklch(0.3 0.06 200 / 0.4));
   border: 1px solid oklch(0.6 0.12 154 / 0.4); border-radius: 12px; padding: 9px 12px; font-size: 12.5px;
   color: var(--fg-1); font-family: var(--font-thai); }
+.agro-transition-strip {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 12px;
+  border: 1px solid oklch(0.72 0.13 222 / 0.34); background: var(--data-bg);
+  color: var(--fg-1); font-family: var(--font-thai); font-size: 12.5px;
+}
 .agro-carbon b { color: var(--ok); font-family: var(--font-mono); }
 .agro-carbon-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 999px; color: var(--ok); }
 .agro-carbon-copy { min-width: 0; }
@@ -366,6 +405,12 @@ select.agro-input { cursor: pointer; }
   .agro-form { gap: 14px; }
   .agro-form-grid { grid-template-columns: 1fr; gap: 14px; }
   .agro-form-grid .agro-field:last-child { grid-column: auto; }
+  .agro-zone-head { flex-direction: column; }
+  .agro-zone-add { width: 100%; }
+  .agro-zone-row { grid-template-columns: 28px 1fr; align-items: stretch; }
+  .agro-zone-row label,
+  .agro-zone-remove { grid-column: 2; }
+  .agro-zone-index { align-self: start; }
   .agro-label { line-height: 1.45; }
   .agro-hint { display: block; margin-top: 2px; }
   .agro-amphoe,
@@ -419,5 +464,6 @@ select.agro-input { cursor: pointer; }
   .agro-plant-row { display: grid; grid-template-columns: auto minmax(0, 1fr); }
   .agro-picked { grid-column: 2; justify-self: start; }
   .agro-suit { grid-column: 2; justify-self: start; }
-  .agro-carbon { font-size: 12px; }
+  .agro-carbon,
+  .agro-transition-strip { font-size: 12px; }
 }

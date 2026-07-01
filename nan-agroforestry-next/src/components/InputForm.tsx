@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CropAssumption, FarmInput, Goal, Layer } from '../data/types';
+import type { CropAssumption, ExistingZone, FarmInput, Goal, Layer } from '../data/types';
 import { byLayer, LAYER_META, PLANTS } from '../data/plants';
 import { NAN_AMPHOE, NAN_CENTER } from '../data/nan';
 import { Card, Field } from './ui';
@@ -14,7 +14,10 @@ const goals: Array<{ id: Goal; label: string; desc: string }> = [
   { id: 'profit', label: 'กำไรสูงสุด', desc: 'มองยาว 10 ปี' },
 ];
 
-const CURRENT_CROPS = ['ข้าวโพดเลี้ยงสัตว์', 'ข้าวไร่', 'ยางพารา', 'มันสำปะหลัง', 'พื้นที่ว่าง/เพิ่งถาง'];
+const CURRENT_CROPS = [
+  'ข้าวโพดเลี้ยงสัตว์', 'ข้าวไร่', 'มันสำปะหลัง', 'ยางพารา',
+  'ไม้ผลผสม', 'สวนผสม', 'ป่า/ไม้ยืนต้นเดิม', 'พื้นที่ว่าง/เพิ่งถาง', 'พื้นที่เสื่อมโทรม', 'อื่นๆ',
+];
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 
 export function InputForm({ value, onChange, step, invalidFields = [] }: {
@@ -25,6 +28,30 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
   const set = (patch: Partial<FarmInput>) => onChange({ ...value, ...patch });
   const invalid = (field: string) => invalidFields.includes(field);
   const numberValue = (n: number) => Number.isFinite(n) ? n : '';
+  const existingZones = value.existingZones?.length
+    ? value.existingZones
+    : [{ id: 'zone-1', cropId: value.currentCropId ?? 'ข้าวโพดเลี้ยงสัตว์', areaRai: Number.isFinite(value.sizeRai) ? value.sizeRai : 1 }];
+  const zoneTotal = existingZones.reduce((sum, z) => sum + (Number.isFinite(z.areaRai) ? z.areaRai : 0), 0);
+  const zoneGap = Number.isFinite(value.sizeRai) ? zoneTotal - value.sizeRai : 0;
+  const setZones = (zones: ExistingZone[]) => {
+    const clean = zones.map((z) => ({
+      ...z,
+      cropId: z.cropId || CURRENT_CROPS[0],
+      areaRai: Number.isFinite(z.areaRai) ? z.areaRai : 0,
+    }));
+    set({ existingZones: clean, currentCropId: clean[0]?.cropId ?? value.currentCropId });
+  };
+  const updateZone = (id: string, patch: Partial<ExistingZone>) => {
+    setZones(existingZones.map((z) => z.id === id ? { ...z, ...patch } : z));
+  };
+  const addZone = () => {
+    const remaining = Number.isFinite(value.sizeRai) ? Math.max(0.5, Math.round((value.sizeRai - zoneTotal) * 10) / 10) : 1;
+    setZones([...existingZones, { id: `zone-${Date.now()}`, cropId: CURRENT_CROPS[0], areaRai: remaining }]);
+  };
+  const removeZone = (id: string) => {
+    if (existingZones.length <= 1) return;
+    setZones(existingZones.filter((z) => z.id !== id));
+  };
   const selectedByLayer = value.selectedByLayer ?? { canopy: [], shrub: [], groundcover: [], root: [] };
   const selectedPlantIds = LAYERS.flatMap((layer) => selectedByLayer[layer] ?? []);
   const assumption = (plantId: string) => value.cropAssumptions?.find((a) => a.plantId === plantId) ?? { plantId };
@@ -85,14 +112,48 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
                 onChange={(e) => set({ sizeRai: e.target.value.trim() === '' ? Number.NaN : Number(e.target.value) })}
               />
             </Field>
-            <Field label="ตอนนี้ปลูกอะไร" hint="ถ้ามี">
-              <select className="agro-input" value={value.currentCropId ?? ''} onChange={(e) => set({ currentCropId: e.target.value || null })}>
-                <option value="">— เลือก / ยังไม่ได้ปลูก —</option>
-                {CURRENT_CROPS.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </Field>
           </div>
-          <div className="agro-step-hint thai">บอกข้อมูลแปลงคร่าวๆ ก่อน เดี๋ยวขั้นถัดไปค่อยปักตำแหน่งบนแผนที่</div>
+          <div className="agro-zone-panel">
+            <div className="agro-zone-head">
+              <div>
+                <b className="thai">การใช้พื้นที่เดิม / โซนในแปลง</b>
+                <span className="thai">ถ้าแปลงเดียวแบ่งหลายส่วน ให้แยกเป็นหลายโซน ระบบจะเอาไปคิดต้นทุนเปลี่ยนผ่านปีแรก</span>
+              </div>
+              <button type="button" className="agro-zone-add thai" onClick={addZone}><Icon name="plot" size={16} /> เพิ่มโซน</button>
+            </div>
+
+            <div className="agro-zone-list">
+              {existingZones.map((zone, index) => (
+                <div key={zone.id} className="agro-zone-row">
+                  <span className="agro-zone-index">{index + 1}</span>
+                  <label>
+                    <span className="thai">พืช/สภาพพื้นที่เดิม</span>
+                    <select className="agro-input" value={zone.cropId} onChange={(e) => updateZone(zone.id, { cropId: e.target.value })}>
+                      {CURRENT_CROPS.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="thai">พื้นที่โซน (ไร่)</span>
+                    <input
+                      type="number"
+                      min={0.1}
+                      step={0.1}
+                      className="agro-input"
+                      value={numberValue(zone.areaRai)}
+                      onChange={(e) => updateZone(zone.id, { areaRai: e.target.value.trim() === '' ? Number.NaN : Number(e.target.value) })}
+                    />
+                  </label>
+                  <button type="button" className="agro-zone-remove thai" onClick={() => removeZone(zone.id)} disabled={existingZones.length <= 1}>ลบ</button>
+                </div>
+              ))}
+            </div>
+
+            <div className={`agro-zone-total thai ${Math.abs(zoneGap) > 0.2 ? 'warn' : 'ok'}`}>
+              รวมโซน {zoneTotal.toLocaleString('en-US')} / {Number.isFinite(value.sizeRai) ? value.sizeRai.toLocaleString('en-US') : '-'} ไร่
+              {Math.abs(zoneGap) > 0.2 ? ` · ${zoneGap > 0 ? 'เกินขนาดแปลง' : 'ยังไม่ครบขนาดแปลง'} ${Math.abs(zoneGap).toFixed(1)} ไร่` : ' · สอดคล้องกับขนาดแปลง'}
+            </div>
+          </div>
+          <div className="agro-step-hint thai">ข้อมูลนี้จะถูกใช้เป็นต้นทุนเตรียมพื้นที่/เปลี่ยนผ่าน ไม่ใช่แค่ข้อความประกอบผลลัพธ์</div>
         </>)}
 
         {step === 1 && (<>

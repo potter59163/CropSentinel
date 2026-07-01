@@ -30,6 +30,7 @@ export interface Plant {
 
 export interface FarmInput {
   currentCropId: string | null;
+  existingZones?: ExistingZone[];
   sizeRai: number;
   elevationM: number;
   locationLabel: string;
@@ -42,6 +43,14 @@ export interface FarmInput {
 }
 
 export interface CashflowPoint { year: number; income: number; cost: number; net: number; cumulative: number }
+
+export interface ExistingZone {
+  id: string;
+  cropId: string;
+  areaRai: number;
+  keepRatio?: number;
+  note?: string;
+}
 
 export interface CropAssumption {
   plantId: string;
@@ -109,6 +118,8 @@ export interface SystemPlan {
   carbon10: number;             // cumulative tCO2e over 10 yr
   productProfit10: number;
   ecosystemValue10: number;
+  transitionCost: number;
+  transitionNotes: string[];
   score: number;
   scoreParts: {
     agroforestry: number;

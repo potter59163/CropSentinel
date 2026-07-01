@@ -61,6 +61,18 @@ describe('buildSystems', () => {
     expect(by.down30).toBeLessThanOrEqual(by.base);
     expect(by.base).toBeLessThanOrEqual(by.up30);
   });
+
+  it('uses existing land-use zones as first-year transition cost', () => {
+    const [withoutZones] = buildSystems(baseInput(), null, null, null);
+    const [withZones] = buildSystems(baseInput({
+      existingZones: [{ id: 'z1', cropId: 'ยางพารา', areaRai: 10 }],
+    }), null, null, null);
+
+    expect(withZones.transitionCost).toBeGreaterThan(0);
+    expect(withZones.cashflow[0].cost).toBe(withZones.transitionCost);
+    expect(withZones.cashflow[0].net).toBeLessThan(withoutZones.cashflow[0].net);
+    expect(withZones.profit10).toBeLessThan(withoutZones.profit10);
+  });
 });
 
 describe('plantSuitability — agronomic guardrails', () => {
@@ -88,7 +100,7 @@ describe('plantSuitability — agronomic guardrails', () => {
     const soil = {
       ph: 5.0, organicCarbonPct: 1, nitrogenPct: 0.1, clayPct: 45, sandPct: 25, siltPct: 30, cec: 120,
       texture: '', textureEn: '', drainage: 'poor', drainageTh: '', acidity: 'strong', acidityTh: '',
-      fertility: 0.4, fertilityTh: '', depthLabel: '', source: '',
+      fertility: 0.4, fertilityTh: '', depthLabel: '', source: '', sdmFeatureSource: 'soilgrids',
     } as SoilContext;
     const s = plantSuitability(plant('cashew'), climate(400), null, soil).score;
     expect(s).toBeGreaterThanOrEqual(0);

@@ -19,6 +19,7 @@ import { Splash } from './components/Splash';
 
 const DEFAULT_INPUT: FarmInput = {
   currentCropId: 'ข้าวโพดเลี้ยงสัตว์', sizeRai: 10, elevationM: 420,
+  existingZones: [{ id: 'zone-1', cropId: 'ข้าวโพดเลี้ยงสัตว์', areaRai: 10 }],
   locationLabel: 'ปัว', lat: 19.179, lng: 100.907,
   selectedByLayer: { canopy: [], shrub: [], groundcover: [], root: [] },
   goal: 'balanced',
@@ -100,23 +101,33 @@ function validateInput(input: FarmInput): FieldIssue[] {
 
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 function selectedRows(input: FarmInput) {
+  const selectedByLayer = input.selectedByLayer ?? DEFAULT_INPUT.selectedByLayer;
   return LAYERS.map((layer) => ({
     layer,
     meta: LAYER_META[layer],
-    plants: (input.selectedByLayer[layer] ?? [])
+    plants: (selectedByLayer[layer] ?? [])
       .map((id) => PLANTS.find((p) => p.id === id))
     .filter(Boolean),
   })).filter((row) => row.plants.length);
 }
 
 function selectedPlantCount(input: FarmInput) {
-  return LAYERS.reduce((sum, layer) => sum + (input.selectedByLayer[layer]?.length ?? 0), 0);
+  const selectedByLayer = input.selectedByLayer ?? DEFAULT_INPUT.selectedByLayer;
+  return LAYERS.reduce((sum, layer) => sum + (selectedByLayer[layer]?.length ?? 0), 0);
 }
 
 function goalLabel(goal: FarmInput['goal']) {
   if (goal === 'fast') return 'คืนทุนเร็ว';
   if (goal === 'profit') return 'กำไรสูงสุด';
   return 'สมดุล';
+}
+
+function existingZoneRows(input: FarmInput) {
+  const zones = (input.existingZones ?? [])
+    .filter((z) => z.cropId && Number.isFinite(z.areaRai) && z.areaRai > 0);
+  if (zones.length) return zones;
+  if (input.currentCropId) return [{ id: 'legacy-current-crop', cropId: input.currentCropId, areaRai: input.sizeRai }];
+  return [];
 }
 
 export function App() {
@@ -249,6 +260,7 @@ export function App() {
                 <div><Icon name="plot" size={17} /><span className="thai">{isFiniteNumber(input.sizeRai) ? `${input.sizeRai} ไร่` : 'ยังไม่กรอกขนาด'}</span></div>
                 <div><Icon name="pin" size={17} /><span className="thai">{input.locationLabel || 'ยังไม่เลือกตำแหน่ง'}</span></div>
                 <div><Icon name="target" size={17} /><span className="thai">{goalLabel(input.goal)}</span></div>
+                <div><Icon name="soil" size={17} /><span className="thai">{existingZoneRows(input).length ? `${existingZoneRows(input).length} โซนเดิม` : 'ยังไม่ระบุโซนเดิม'}</span></div>
                 <div><Icon name="leaf" size={17} /><span className="thai">{selectedPlantCount(input) ? `${selectedPlantCount(input)} ชนิด` : 'ให้ระบบเติมพืช'}</span></div>
               </div>
               <div className="agro-stepper">
@@ -391,6 +403,27 @@ export function App() {
             <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
           </div>
 
+          {existingZoneRows(input).length > 0 && (
+            <div className="agro-selection-summary agro-transition-summary">
+              <div>
+                <span className="agro-impact-k">ข้อมูลแปลงเดิม</span>
+                <h2 className="thai">โซนเดิมถูกใช้ใน cashflow แล้ว</h2>
+              </div>
+              <div className="agro-selection-grid">
+                {existingZoneRows(input).map((zone) => (
+                  <div key={zone.id} className="agro-selection-row">
+                    <b className="thai">{zone.cropId}</b>
+                    <span className="thai">{zone.areaRai.toLocaleString('en-US')} ไร่ · ใช้ประเมินต้นทุนเตรียมพื้นที่ปีแรก</span>
+                  </div>
+                ))}
+                <div className="agro-selection-row agro-transition-cost">
+                  <b className="thai">ต้นทุนเปลี่ยนผ่านที่หักในกราฟ</b>
+                  <span className="thai">{activeSystem.transitionCost.toLocaleString('en-US')} บาท · อยู่ในปีที่ 1 ของกราฟ cashflow</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className={`agro-impact ${prot?.inside || sat?.verdict === 'forest' || fireNear(prot) > 0 ? 'danger' : sat?.verdict === 'restore' || prot?.near || prot?.riverNear || floodNear(prot) > 0 ? 'ok' : 'data'}`}>
             <div className="agro-impact-main">
               <span className="agro-impact-k">พื้นที่นี้ควรทำอะไร</span>
@@ -453,14 +486,14 @@ export function App() {
           )}
 
           <div className="agro-disclaimer thai">
-            * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic ทั้งความสูง (เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง) และดินจริงจาก SoilGrids (การระบายน้ำ/ความเป็นกรด/ความอุดมสมบูรณ์) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอและตรวจดินจริงก่อนลงมือ
+            * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic ทั้งความสูง (เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง) และดินจาก GIS: LDD กลุ่มชุดดิน จ.น่าน + SoilGrids (การระบายน้ำ/ความเป็นกรด/ความอุดมสมบูรณ์) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอและตรวจดินจริงก่อนลงมือ
           </div>
         </section>
       )}
 
       {(prot || sat || soil) && (
         <details className="agro-context">
-          <summary className="thai"><Icon name="info" size={18} /> ข้อมูลพื้นที่จากดาวเทียม: GISTDA · ป่า/ลำน้ำ/ภัยพิบัติ · ดินจริง</summary>
+          <summary className="thai"><Icon name="info" size={18} /> ข้อมูลพื้นที่จาก GIS/ดาวเทียม: GISTDA · ป่า/ลำน้ำ/ภัยพิบัติ · LDD/SoilGrids</summary>
           <div className="agro-context-body">
 
             {prot && (
@@ -565,7 +598,9 @@ export function App() {
               <div className={`agro-gistda ${soil.acidity === 'strong' || soil.fertility < 0.45 ? 'warn' : 'ok'}`}>
                 <span className="agro-gistda-icon"><Icon name="soil" size={24} /></span>
                 <div className="agro-gistda-body">
-                  <b className="thai">ดินจริง: {soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}</b>
+                  <b className="thai">
+                    ดินเชิงพื้นที่: {soil.ldd ? `${soil.ldd.soilGroupLabel} · ` : ''}{soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}
+                  </b>
                   <div className="thai">
                     อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg ·
                     เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% ·
@@ -573,7 +608,13 @@ export function App() {
                     {soil.acidity === 'strong' ? ' — ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
                     {' '}ระบบนำค่าดินนี้ไปปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรดแล้ว
                   </div>
-                  <div className="agro-gistda-src">ที่มา: {soil.source} · ความลึก {soil.depthLabel} · ค่าประมาณเชิงพื้นที่ ควรยืนยันด้วยชุดตรวจดินจริงก่อนลงทุน</div>
+                  {soil.ldd && (
+                    <div className="thai">
+                      LDD: ดินบน {soil.ldd.textureTopTh} · ดินล่าง {soil.ldd.textureLowTh} · pH ดินบน {soil.ldd.phTopRange}
+                      {soil.ldd.limitations.length ? ` · ข้อควรระวัง: ${soil.ldd.limitations.join(' / ')}` : ''}
+                    </div>
+                  )}
+                  <div className="agro-gistda-src">ที่มา: {soil.source} · ความลึก/มาตราส่วน {soil.depthLabel} · ค่าประมาณเชิงพื้นที่ ควรยืนยันด้วยชุดตรวจดินจริงก่อนลงทุน</div>
                 </div>
               </div>
             )}
@@ -584,7 +625,7 @@ export function App() {
       </>)}
 
       <footer className="agro-foot thai">
-        ข้อมูลจริงจาก Google Maps · GISTDA · NASA POWER · SoilGrids · GBIF · ดูที่มาทั้งหมดได้ที่แท็บ “วิธีการ”
+        ข้อมูลจาก Google Maps · GISTDA · NASA POWER · LDD กลุ่มชุดดิน · SoilGrids · GBIF · ดูที่มาทั้งหมดได้ที่แท็บ “วิธีการ”
       </footer>
     </div>
   );

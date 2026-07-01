@@ -7,8 +7,17 @@ const layerSelection = z.object({
   root: z.array(z.string()).default([]),
 });
 
+const existingZoneSchema = z.object({
+  id: z.string().min(1).max(80),
+  cropId: z.string().min(1).max(80),
+  areaRai: z.number().positive().max(500),
+  keepRatio: z.number().min(0).max(1).optional(),
+  note: z.string().max(160).optional(),
+});
+
 export const farmInputSchema = z.object({
   currentCropId: z.string().nullable(),
+  existingZones: z.array(existingZoneSchema).max(12).optional(),
   sizeRai: z.number().positive().max(500),
   elevationM: z.number().min(0).max(2600),
   locationLabel: z.string().min(1).max(120),

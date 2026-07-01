@@ -1,9 +1,10 @@
-// Real plot soil context from SoilGrids (ISRIC, 250 m global grid).
+// Plot soil context from SoilGrids (ISRIC, 250 m global grid) plus optional
+// LDD Thai soil-group overlay. SoilGrids gives continuous numeric properties;
+// LDD gives local GIS soil-group constraints for Nan.
 // This was impossible in the old Vite build (SoilGrids blocks browser CORS), but
-// the Next.js server can fetch it freely — so soil is back as a real agronomic layer.
-// It is NOT fed into the trained SDM (that needs a retrain); it acts as an
-// expert-style guardrail/adjustment on top of the model, like the elevation cap.
+// the Next.js server can fetch it freely.
 import { clamp } from './format';
+import type { LddSoilGroupContext } from './ldd';
 
 const SOILGRIDS = 'https://rest.isric.org/soilgrids/v2.0/properties/query';
 // rooting-zone topsoil; both depths are averaged for a single agronomic read
@@ -31,6 +32,8 @@ export interface SoilContext {
   fertilityTh: string;
   depthLabel: string;
   source: string;
+  sdmFeatureSource: 'soilgrids' | 'none';
+  ldd?: LddSoilGroupContext;
 }
 
 // SoilGrids returns integers in "mapped units"; divide to reach physical units.
@@ -150,5 +153,59 @@ export async function fetchSoil(lat: number, lng: number): Promise<SoilContext |
     fertilityTh: fertility >= 0.66 ? 'ดี' : fertility >= 0.45 ? 'ปานกลาง' : 'ต่ำ',
     depthLabel: '0–15 ซม. (เฉลี่ย)',
     source: 'SoilGrids (ISRIC) 250 m',
+    sdmFeatureSource: 'soilgrids',
+  };
+}
+
+function textureFractionsFromLdd(ldd: LddSoilGroupContext) {
+  const code = ldd.textureTopCode;
+  if (code.includes('zSC')) return { sandPct: 45, siltPct: 25, clayPct: 30, textureEn: 'slope complex' };
+  if (code.includes('zW')) return { sandPct: 20, siltPct: 40, clayPct: 40, textureEn: 'water/wetland' };
+  if (code.includes('sl')) return { sandPct: 65, siltPct: 20, clayPct: 15, textureEn: 'sandy loam' };
+  if (code.includes('sil')) return { sandPct: 18, siltPct: 62, clayPct: 20, textureEn: 'silt loam' };
+  if (code.includes('sicl')) return { sandPct: 12, siltPct: 50, clayPct: 38, textureEn: 'silty clay loam' };
+  if (code.includes('cl')) return { sandPct: 32, siltPct: 32, clayPct: 36, textureEn: 'clay loam' };
+  if (code.includes('c')) return { sandPct: 20, siltPct: 25, clayPct: 55, textureEn: 'clay' };
+  return { sandPct: 40, siltPct: 40, clayPct: 20, textureEn: 'loam' };
+}
+
+export function mergeLddSoil(soil: SoilContext | null, ldd: LddSoilGroupContext | null): SoilContext | null {
+  if (!ldd) return soil;
+  if (soil) {
+    return {
+      ...soil,
+      drainage: ldd.drainage,
+      drainageTh: ldd.drainageTh,
+      acidity: ldd.acidity,
+      acidityTh: `${ldd.acidityTh} (LDD pH ${ldd.phTopRange})`,
+      fertility: Math.max(0, Math.min(1, soil.fertility * 0.55 + ldd.fertility * 0.45)),
+      fertilityTh: ldd.fertilityTh === 'ไม่ระบุ' ? soil.fertilityTh : ldd.fertilityTh,
+      source: `${ldd.source} + ${soil.source}`,
+      ldd,
+    };
+  }
+
+  const ph = ldd.phEstimate ?? 5.8;
+  const texture = textureFractionsFromLdd(ldd);
+  return {
+    ph: Math.round(ph * 10) / 10,
+    organicCarbonPct: 0,
+    nitrogenPct: 0,
+    cec: 0,
+    clayPct: texture.clayPct,
+    sandPct: texture.sandPct,
+    siltPct: texture.siltPct,
+    texture: ldd.textureTopTh,
+    textureEn: texture.textureEn,
+    drainage: ldd.drainage,
+    drainageTh: ldd.drainageTh,
+    acidity: ldd.acidity,
+    acidityTh: `${ldd.acidityTh} (LDD pH ${ldd.phTopRange})`,
+    fertility: ldd.fertility,
+    fertilityTh: ldd.fertilityTh,
+    depthLabel: 'LDD กลุ่มชุดดิน (ไม่ใช่ผล lab รายแปลง)',
+    source: ldd.source,
+    sdmFeatureSource: 'none',
+    ldd,
   };
 }

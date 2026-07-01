@@ -60,6 +60,15 @@ export function disasterFeatureContext(risk: ProtectedArea | null) {
 
 // Soil features in the SAME physical units the model was trained on (SoilGrids).
 export function soilFeatureContext(soil: SoilContext | null) {
+  if (soil?.sdmFeatureSource !== 'soilgrids') {
+    return {
+      soil_ph: undefined,
+      soil_clay: undefined,
+      soil_sand: undefined,
+      soil_oc: undefined,
+      soil_cec: undefined,
+    };
+  }
   return {
     soil_ph: soil?.ph,
     soil_clay: soil?.clayPct,

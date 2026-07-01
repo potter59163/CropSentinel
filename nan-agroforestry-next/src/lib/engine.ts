@@ -1,4 +1,4 @@
-import type { Plant, Layer, FarmInput, SystemPlan, LayerPick, CashflowPoint, Goal, CropAssumption, SoilHealthProxy } from '../data/types';
+import type { Plant, Layer, FarmInput, SystemPlan, LayerPick, CashflowPoint, Goal, CropAssumption, SoilHealthProxy, ExistingZone } from '../data/types';
 import { PLANTS, co2Of } from '../data/plants';
 import { disasterFeatureContext, plantSuitability } from './suitability';
 import type { Climate } from './climate';
@@ -12,6 +12,18 @@ const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.3, groundcove
 const MAX_VALUE = Math.max(...PLANTS.map((p) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear));
 const MAX_CARBON = Math.max(...PLANTS.map((p) => co2Of(p.id)));
 const CARBON_VALUE_THB = 220;
+const TRANSITION_COST_PER_RAI: Record<string, number> = {
+  'ข้าวโพดเลี้ยงสัตว์': 2400,
+  'ข้าวไร่': 1900,
+  'มันสำปะหลัง': 2100,
+  'ยางพารา': 6800,
+  'ไม้ผลผสม': 1500,
+  'สวนผสม': 1200,
+  'ป่า/ไม้ยืนต้นเดิม': 800,
+  'พื้นที่ว่าง/เพิ่งถาง': 1400,
+  'พื้นที่เสื่อมโทรม': 2600,
+  'อื่นๆ': 1800,
+};
 
 interface Scored {
   plant: Plant;
@@ -169,6 +181,32 @@ const isFarmerPick = (input: FarmInput, id: string, layer: Layer) => selectedIds
 const assumptionFor = (input: FarmInput, plantId: string): CropAssumption | undefined =>
   input.cropAssumptions?.find((a) => a.plantId === plantId);
 
+function normalizedExistingZones(input: FarmInput): ExistingZone[] {
+  const zones = (input.existingZones ?? [])
+    .filter((z) => z.cropId && Number.isFinite(z.areaRai) && z.areaRai > 0)
+    .map((z) => ({ ...z, areaRai: Math.min(z.areaRai, input.sizeRai) }));
+  if (zones.length) return zones;
+  if (input.currentCropId) {
+    return [{ id: 'legacy-current-crop', cropId: input.currentCropId, areaRai: input.sizeRai }];
+  }
+  return [];
+}
+
+function transitionContext(input: FarmInput) {
+  const zones = normalizedExistingZones(input);
+  const zoneArea = zones.reduce((sum, z) => sum + z.areaRai, 0);
+  const cost = zones.reduce((sum, z) => sum + z.areaRai * (TRANSITION_COST_PER_RAI[z.cropId] ?? TRANSITION_COST_PER_RAI['อื่นๆ']), 0);
+  const notes = zones.length
+    ? [
+      `ใช้โซนเดิม ${zones.map((z) => `${z.cropId} ${z.areaRai.toLocaleString('en-US')} ไร่`).join(' · ')} เพื่อคิดต้นทุนเตรียมพื้นที่/เปลี่ยนผ่านปีแรกประมาณ ${cost.toLocaleString('en-US')} บาท`,
+    ]
+    : ['ยังไม่ได้ระบุการใช้พื้นที่เดิม จึงยังไม่บวกต้นทุนเปลี่ยนผ่านเฉพาะแปลง'];
+  if (zones.length && Math.abs(zoneArea - input.sizeRai) > Math.max(0.5, input.sizeRai * 0.15)) {
+    notes.push(`พื้นที่รวมของโซนเดิม ${zoneArea.toLocaleString('en-US')} ไร่ ไม่เท่ากับขนาดแปลง ${input.sizeRai.toLocaleString('en-US')} ไร่ ควรตรวจตัวเลขก่อนใช้จริง`);
+  }
+  return { zones, zoneArea, cost: Math.round(cost), notes };
+}
+
 function applyAssumption(p: Plant, assumption?: CropAssumption): Plant {
   if (!assumption) return p;
   const survival = assumption.survivalRate == null ? 1 : clamp(assumption.survivalRate, 0.1, 1.2);
@@ -203,16 +241,17 @@ function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean
   return net;
 }
 
-function cashflowFromPicks(picks: LayerPick[], canopyShadeMature: number, canopyMatureYears: number, priceMultiplier = 1): CashflowPoint[] {
+function cashflowFromPicks(picks: LayerPick[], canopyShadeMature: number, canopyMatureYears: number, priceMultiplier = 1, transitionCost = 0): CashflowPoint[] {
   const flows = picks.map((p) =>
     plantFlow(p.plant, p.shareRai, p.suitability, p.layer !== 'canopy', p.layer !== 'canopy' ? canopyShadeMature : 0, canopyMatureYears, priceMultiplier)
   );
   const cashflow: CashflowPoint[] = [];
   let cum = 0;
   for (let y = 0; y < HORIZON; y++) {
-    const net = flows.reduce((s, f) => s + f[y], 0);
+    const setupCost = y === 0 ? transitionCost : 0;
+    const net = flows.reduce((s, f) => s + f[y], 0) - setupCost;
     cum += net;
-    cashflow.push({ year: y + 1, income: 0, cost: 0, net: Math.round(net), cumulative: Math.round(cum) });
+    cashflow.push({ year: y + 1, income: 0, cost: Math.round(setupCost), net: Math.round(net), cumulative: Math.round(cum) });
   }
   return cashflow;
 }
@@ -238,7 +277,8 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
     score,
     label: score >= 0.68 ? 'ดี' : score >= 0.48 ? 'ปานกลาง' : 'เสี่ยงเสื่อม',
     signals: [
-      soil ? `ดินจริง: ${soil.texture} · pH ${soil.ph} (${soil.acidityTh}) · อินทรียวัตถุ ${soil.organicCarbonPct}% · ${soil.drainageTh}` : '',
+      soil ? `ดินเชิงพื้นที่: ${soil.ldd ? `${soil.ldd.soilGroupLabel} · ` : ''}${soil.texture} · pH ${soil.ph} (${soil.acidityTh}) · อินทรียวัตถุ ${soil.organicCarbonPct}% · ${soil.drainageTh}` : '',
+      soil?.ldd?.limitations.length ? `ข้อจำกัด LDD: ${soil.ldd.limitations.join(' / ')}` : '',
       soil && soil.acidity === 'strong' ? 'ดินกรดจัด ควรใส่ปูนโดโลไมต์/ปูนขาวปรับ pH ก่อนปลูกไม้ผลที่ไวต่อกรด' : '',
       soil && soil.organicCarbonPct < 1 ? 'อินทรียวัตถุต่ำ ควรเพิ่มปุ๋ยอินทรีย์/พืชคลุมดินเร่งฟื้นดิน' : '',
       cover ? 'มีพืชคลุมดินช่วยลดการชะล้าง' : 'ยังควรเพิ่มพืชคลุมดิน',
@@ -250,7 +290,7 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
     ].filter(Boolean),
     limitations: [
       soil
-        ? `ดินจาก ${soil.source} เป็นค่าประมาณเชิงพื้นที่ ~250 ม. ควรยืนยันด้วยชุดตรวจดินจริง (pH, NPK, อินทรียวัตถุ) ก่อนลงทุนจริง`
+        ? `ดินจาก ${soil.source} เป็นค่าประมาณเชิงพื้นที่/แผนที่ชุดดิน ควรยืนยันด้วยชุดตรวจดินจริง (pH, NPK, อินทรียวัตถุ) ก่อนลงทุนจริง`
         : 'ยังไม่มีข้อมูลดินจริง — เป็น proxy จากภูมิอากาศ/ภัยพิบัติ ไม่ใช่ผลตรวจ pH, NPK',
     ],
   };
@@ -319,7 +359,8 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   grounds.forEach((s) => addPick(s, 'groundcover', grounds.length, true));
   roots.forEach((s) => addPick(s, 'root', roots.length, true));
 
-  const cashflow = cashflowFromPicks(picks, canopyShadeMature, canopyMatureYears, 1);
+  const transition = transitionContext(input);
+  const cashflow = cashflowFromPicks(picks, canopyShadeMature, canopyMatureYears, 1, transition.cost);
   const paybackYear = payback(cashflow);
   const cum = cashflow.at(-1)?.cumulative ?? 0;
   const sensitivity = [
@@ -327,7 +368,7 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
     { id: 'base' as const, label: 'ราคาฐาน', priceMultiplier: 1 },
     { id: 'up30' as const, label: 'ราคาเพิ่ม 30%', priceMultiplier: 1.3 },
   ].map((s) => {
-    const flow = cashflowFromPicks(picks, canopyShadeMature, canopyMatureYears, s.priceMultiplier);
+    const flow = cashflowFromPicks(picks, canopyShadeMature, canopyMatureYears, s.priceMultiplier, transition.cost);
     const profit10 = flow.at(-1)?.cumulative ?? 0;
     return { ...s, cashflow: flow, profit10, annualAvg: Math.round(profit10 / HORIZON), paybackYear: payback(flow) };
   });
@@ -361,15 +402,18 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
     suitability, carbonPerYear: Math.round(carbonPerYear * 10) / 10, carbon10: Math.round(carbon10),
     productProfit10: Math.round(cum),
     ecosystemValue10: Math.round(carbon10 * CARBON_VALUE_THB),
-    score, scoreParts, agroforestryParts: agro.parts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts, soil), warnings: warningsFor(picks, canopyShadeMature, agro.parts, soil),
+    transitionCost: transition.cost,
+    transitionNotes: transition.notes,
+    score, scoreParts, agroforestryParts: agro.parts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts, soil, transition.notes), warnings: warningsFor(picks, canopyShadeMature, agro.parts, soil, transition),
     sensitivity,
     soilHealth: soilHealthProxy(picks, climate, risk, soil),
   };
 }
 
-function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: SystemPlan['scoreParts'], soil: SoilContext | null): string[] {
+function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: SystemPlan['scoreParts'], soil: SoilContext | null, transitionNotes: string[]): string[] {
   const r: string[] = [];
   if (soil) r.push(`ดินจริง (${soil.source}): ${soil.texture} · pH ${soil.ph} · ${soil.drainageTh} · ความอุดมสมบูรณ์ ${soil.fertilityTh} — ใช้ปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรด`);
+  r.push(transitionNotes[0]);
   const canopy = picks.filter((p) => p.layer === 'canopy').map((p) => p.plant.nameTh).join(' + ');
   const layerCount = new Set(picks.map((p) => p.layer)).size;
   r.push(`โครงสร้าง ${layerCount} ชั้น (${picks.length} ชนิด): เรือนยอด ${canopy}` +
@@ -390,8 +434,9 @@ function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: Syst
   return r;
 }
 
-function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: SystemPlan['agroforestryParts'], soil: SoilContext | null): string[] {
+function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: SystemPlan['agroforestryParts'], soil: SoilContext | null, transition?: ReturnType<typeof transitionContext>): string[] {
   const w: string[] = [];
+  if (transition?.notes[1]) w.push(transition.notes[1]);
   for (const p of picks) {
     if (p.suitability < 0.45) w.push(`${p.plant.nameTh} เหมาะกับพื้นที่นี้ปานกลาง (${Math.round(p.suitability * 100)}%) — พิจารณาชนิดอื่นเสริม`);
     if (p.modelConfidence === 'low') w.push(`${p.plant.nameTh} มีข้อมูลโมเดลน้อย/ความแม่นยำต่ำ จึงใช้เกณฑ์พื้นที่แทนการจัดอันดับจาก SDM`);

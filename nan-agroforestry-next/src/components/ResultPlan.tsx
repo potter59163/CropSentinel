@@ -210,6 +210,16 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
         </div>
       </div>
 
+      {sys.transitionCost > 0 && (
+        <div className="agro-transition-strip">
+          <span className="agro-carbon-icon"><Icon name="plot" size={23} /></span>
+          <div className="agro-carbon-copy thai">
+            <div>ต้นทุนเปลี่ยนผ่านแปลงเดิม ~<b>{bahtK(sys.transitionCost)}</b> หักในปีที่ 1</div>
+            <span>{sys.transitionNotes[0]}</span>
+          </div>
+        </div>
+      )}
+
       <CashflowChart cashflow={sys.cashflow} paybackYear={sys.paybackYear} />
 
       <div className="agro-sensitivity">
