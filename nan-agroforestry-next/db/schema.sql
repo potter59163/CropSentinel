@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS plan_outputs (
 CREATE TABLE IF NOT EXISTS crop_assumptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   plant_id text NOT NULL,
-  source text NOT NULL DEFAULT 'recorp_template',
+  source text NOT NULL DEFAULT 'recoftc_template',
   price_per_kg numeric,
   yield_kg_per_rai numeric,
   establish_cost_per_rai numeric,

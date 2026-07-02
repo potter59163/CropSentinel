@@ -4,10 +4,10 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'วนเกษตรน่าน | Nan Agroforestry Planner',
-  description: 'ระบบวิเคราะห์วนเกษตรชั้นเดียว สำหรับเกษตรกรน่านและ ReCorp – ใช้ดาวเทียม AI ข้อมูล GISTDA และการคำนวณรายได้10ปี',
+  description: 'ระบบวิเคราะห์วนเกษตรชั้นเดียว สำหรับเกษตรกรน่านและ RECOFTC – ใช้ดาวเทียม AI ข้อมูล GISTDA และการคำนวณรายได้10ปี',
   applicationName: 'Nan Agroforestry Planner',
   metadataBase: new URL('https://nan-agroforestry.vercel.app'),
-  keywords: ['วนเกษตร', 'agroforestry', 'น่าน', 'ReCorp', 'ระบบสนับสนุนการตัดสินใจ', 'ชานมไข่มุก'],
+  keywords: ['วนเกษตร', 'agroforestry', 'น่าน', 'RECOFTC', 'ระบบสนับสนุนการตัดสินใจ', 'ชานมไข่มุก'],
   authors: [{ name: 'Potter' }],
   creator: 'Potter',
   publisher: 'CropSentinel',
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'วนเกษตรน่าน | Nan Agroforestry Planner',
-    description: 'ระบบวิเคราะห์วนเกษตรสำหรับเกษตรกรและ ReCorp',
+    description: 'ระบบวิเคราะห์วนเกษตรสำหรับเกษตรกรและ RECOFTC',
     creator: '@CropSentinel',
   },
   robots: {

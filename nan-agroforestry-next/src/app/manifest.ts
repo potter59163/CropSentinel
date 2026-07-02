@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'วนเกษตรน่าน | Nan Agroforestry Planner',
     short_name: 'วนเกษตรน่าน',
-    description: 'ระบบออกแบบวนเกษตรหลายชั้น สำหรับเกษตรกรน่านและ ReCorp field pilots – ใช้ดาวเทียม AI ข้อมูล GISTDA',
+    description: 'ระบบออกแบบวนเกษตรหลายชั้น สำหรับเกษตรกรน่านและ RECOFTC field pilots – ใช้ดาวเทียม AI ข้อมูล GISTDA',
     start_url: '/',
     scope: '/',
     display: 'standalone',

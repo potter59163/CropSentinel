@@ -21,7 +21,7 @@ const FLOW: Array<{ icon: IconName; title: string; body: string }> = [
 const OUTPUTS: Array<{ icon: IconName; title: string; body: string }> = [
   { icon: 'target', title: 'อันดับแผน', body: 'จัดอันดับจากกำไร ความเหมาะสมพืช ความเสี่ยง GISTDA โครงสร้างวนเกษตร และคาร์บอน' },
   { icon: 'carbon', title: 'ตัวเลขเศรษฐกิจ', body: 'แยกกำไรจากสินค้าเกษตรออกจากมูลค่าระบบนิเวศ และดูกรณีราคาลด/เพิ่มได้' },
-  { icon: 'edit', title: 'ปรับสมมติฐานได้', body: 'ราคา ผลผลิต ต้นทุน และอัตรารอดควรแก้ตามข้อมูลจริงของ ReCorp หรือเกษตรกรในพื้นที่' },
+  { icon: 'edit', title: 'ปรับสมมติฐานได้', body: 'ราคา ผลผลิต ต้นทุน และอัตรารอดควรแก้ตามข้อมูลจริงของ RECOFTC หรือเกษตรกรในพื้นที่' },
 ];
 
 const GUARDRAILS: Array<{ icon: IconName; title: string; body: string }> = [
@@ -59,7 +59,7 @@ export function Methodology() {
           <span className="agro-impact-k">ภาพรวม</span>
           <h2 className="thai">ระบบนี้ช่วยตัดสินใจอย่างไร</h2>
           <p className="thai">
-            เป้าหมายคือช่วย ReCorp/เจ้าหน้าที่ออกแบบแปลงวนเกษตรที่คุยกับเกษตรกรได้จริง:
+            เป้าหมายคือช่วย RECOFTC/เจ้าหน้าที่ออกแบบแปลงวนเกษตรที่คุยกับเกษตรกรได้จริง:
             เห็นรายได้ ความเสี่ยง สิ่งที่ต้องตรวจซ้ำ และเหตุผลของแต่ละแผนในหน้าเดียว
           </p>
         </div>

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const feedbackSchema = z.object({
   planRunId: z.string().uuid().optional(),
   farmPlotId: z.string().uuid().optional(),
-  reviewerRole: z.enum(['farmer', 'recorp', 'officer', 'developer', 'expert']),
+  reviewerRole: z.enum(['farmer', 'recoftc', 'officer', 'developer', 'expert']),
   understandableScore: z.number().int().min(1).max(5).optional(),
   agronomicScore: z.number().int().min(1).max(5).optional(),
   priceYieldScore: z.number().int().min(1).max(5).optional(),

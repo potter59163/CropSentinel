@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "Production-grade Nan agroforestry decision support system for ReCorp field pilots",
+  "description": "Production-grade Nan agroforestry decision support system for RECOFTC field pilots",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

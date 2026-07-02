@@ -6,8 +6,8 @@ import type { FarmInput } from '../data/types';
 
 // Offline batch validation: run every sample plot through the engine (no live
 // climate/soil — elevation envelope path), assert nothing crashes, and write a
-// results CSV ReCorp/experts can review before the field pilot.
-const SAMPLE = join(process.cwd(), 'data-templates/recorp-farm-plots-30-sample.csv');
+// results CSV RECOFTC/experts can review before the field pilot.
+const SAMPLE = join(process.cwd(), 'data-templates/recoftc-farm-plots-30-sample.csv');
 const OUTPUT = join(process.cwd(), 'data-templates/batch-results.csv');
 
 function parseCsv(text: string): Record<string, string>[] {
@@ -39,7 +39,7 @@ function toInput(r: Record<string, string>): FarmInput {
 
 const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
-describe('batch — ReCorp 30-plot sample', () => {
+describe('batch — RECOFTC 30-plot sample', () => {
   it('runs every plot and writes a results CSV', () => {
     const rows = parseCsv(readFileSync(SAMPLE, 'utf8'));
     expect(rows.length).toBeGreaterThanOrEqual(20);

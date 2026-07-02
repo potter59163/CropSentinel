@@ -1,6 +1,6 @@
 # Nan Agroforestry Next
 
-Production-grade Next.js version of the Nan Agroforestry Planner for ReCorp field pilots.
+Production-grade Next.js version of the Nan Agroforestry Planner for RECOFTC field pilots.
 
 ## What changed from the Vite prototype
 
@@ -9,7 +9,7 @@ Production-grade Next.js version of the Nan Agroforestry Planner for ReCorp fiel
 - `sdm_model.json` stays server-side and is not shipped in browser chunks.
 - Farm design calculator supports target income and crop-level price/yield/survival overrides.
 - Neon Postgres + PostGIS schema is included for field pilot data.
-- ReCorp data templates are included for 30-plot batch tests and expert feedback.
+- RECOFTC data templates are included for 30-plot batch tests and expert feedback.
 
 ## Local development
 
@@ -45,9 +45,9 @@ The schema starts with point geometries for `farm_plots` and can be extended to 
 
 ## Field data templates
 
-- `data-templates/recorp-farm-plots-30-sample.csv`: 30 Nan sample plots for batch testing low/mid/highland cases.
-- `data-templates/recorp-crop-assumptions-template.csv`: crop economics and expert validation template.
-- `data-templates/field-feedback-template.csv`: farmer/ReCorp/officer feedback capture.
+- `data-templates/recoftc-farm-plots-30-sample.csv`: 30 Nan sample plots for batch testing low/mid/highland cases.
+- `data-templates/recoftc-crop-assumptions-template.csv`: crop economics and expert validation template.
+- `data-templates/field-feedback-template.csv`: farmer/RECOFTC/officer feedback capture.
 
 ## Vercel
 
