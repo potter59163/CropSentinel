@@ -9,7 +9,22 @@ import { clamp, pct } from './format';
 const HORIZON = 10;
 // vertical land-share per layer (rai-equivalent of monoculture yield in the mixed stand)
 const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.3, groundcover: 0.4, root: 0.4 };
-const MAX_VALUE = Math.max(...PLANTS.map((p) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear));
+
+// Fraction of the HORIZON a crop actually produces income over, using the same
+// ramp-up curve as the cashflow model. A slow crop like teak (first yield at
+// year 15) returns ~0, so it can no longer top the economic ranking on annual
+// potential it never realises inside the 10-year window.
+function realizedHorizonFraction(p: Plant): number {
+  if (!p.perennial) return 1;
+  let sum = 0;
+  for (let y = 1; y <= HORIZON; y++) {
+    if (y >= p.yearsToYield) sum += clamp((y - p.yearsToYield) / Math.max(1, p.yearsToMature - p.yearsToYield), 0, 1);
+  }
+  return sum / HORIZON;
+}
+// realised (not peak-potential) revenue per rai over the horizon
+const realizedValue = (p: Plant) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear * realizedHorizonFraction(p);
+const MAX_VALUE = Math.max(...PLANTS.map(realizedValue));
 const MAX_CARBON = Math.max(...PLANTS.map((p) => co2Of(p.id)));
 const CARBON_VALUE_THB = 220;
 const TRANSITION_COST_PER_RAI: Record<string, number> = {
@@ -36,6 +51,7 @@ interface Scored {
   riskFit: number;
   carbonFit: number;
   soilFit: number;
+  realized: number; // fraction of the 10-yr horizon the crop actually yields over
 }
 
 // Real soil (SoilGrids) as an expert agronomic adjustment — drainage vs the
@@ -148,22 +164,26 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: Soi
     const water = waterFit(p, climate, risk);
     const riskScore = riskFit(p, climate, risk);
     const soilScore = soilFit(p, soil);
+    // SDM is 62% of the blend so it stays the dominant signal, but water/soil/
+    // risk can now nudge the score both ways (not just downward) — good soil no
+    // longer fails to help a species the SDM rates only middling.
     const rawSuit = clamp((s.score * 0.62) + (water * 0.12) + (riskScore * 0.1) + (soilScore * 0.1) + ((co2Of(p.id) / MAX_CARBON) * 0.06), 0, 1);
-    // soil guardrail mirrors the elevation cap: a severe drainage/acidity
-    // mismatch keeps a crop from ever looking "great" on this plot.
+    // hard agronomic guardrails still apply: a severe elevation or drainage/
+    // acidity mismatch keeps a crop from ever looking "great" on this plot.
     const soilCap = 0.55 + soilScore * 0.45;
-    const deploySuit = Math.min(rawSuit, s.score, agronomicCap(p, climate), soilCap);
+    const deploySuit = Math.min(rawSuit, agronomicCap(p, climate), soilCap);
     out[p.layer].push({
       plant: p,
       suit: deploySuit,
       source: s.source,
       auc: s.auc,
       confidence: s.confidence,
-      value: (p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear) / MAX_VALUE,
+      value: realizedValue(p) / MAX_VALUE,
       waterFit: water,
       riskFit: riskScore,
       carbonFit: co2Of(p.id) / MAX_CARBON,
       soilFit: soilScore,
+      realized: realizedHorizonFraction(p),
     });
   }
   return out;
@@ -171,9 +191,15 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: Soi
 
 function goalRank(goal: Goal, s: Scored): number {
   const fast = s.plant.perennial ? clamp(1 - (s.plant.yearsToYield - 1) / 9, 0, 1) : 1;
-  if (goal === 'fast') return 0.3 * s.suit + 0.32 * fast + 0.16 * s.value + 0.12 * s.waterFit + 0.1 * s.riskFit;
-  if (goal === 'profit') return 0.24 * s.suit + 0.48 * s.value + 0.1 * s.waterFit + 0.1 * s.riskFit + 0.08 * s.carbonFit;
-  return 0.36 * s.suit + 0.22 * s.value + 0.17 * s.waterFit + 0.13 * s.riskFit + 0.12 * s.carbonFit;
+  let base: number;
+  if (goal === 'fast') base = 0.3 * s.suit + 0.32 * fast + 0.16 * s.value + 0.12 * s.waterFit + 0.1 * s.riskFit;
+  else if (goal === 'profit') base = 0.24 * s.suit + 0.48 * s.value + 0.1 * s.waterFit + 0.1 * s.riskFit + 0.08 * s.carbonFit;
+  else base = 0.36 * s.suit + 0.22 * s.value + 0.17 * s.waterFit + 0.13 * s.riskFit + 0.12 * s.carbonFit;
+  // Every goal lives inside the 10-yr horizon, so a crop that yields little/
+  // nothing in that window (e.g. teak, first cut ~year 15) shouldn't be auto-
+  // ranked as a primary. Farmer-selected plants are forced in elsewhere and
+  // bypass this ranking, so this only discounts *system* picks.
+  return base * (0.4 + 0.6 * s.realized);
 }
 
 const selectedIds = (input: FarmInput, layer: Layer) => input.selectedByLayer?.[layer] ?? [];
@@ -306,9 +332,14 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
     .filter(Boolean) as Scored[];
   const canopyPicks = [...selectedCanopy];
   if (!canopyPicks.some((s) => s.plant.id === primary.plant.id)) canopyPicks.unshift(primary);
+  const notPicked = (s: Scored) => !canopyPicks.some((p) => p.plant.id === s.plant.id);
   while (canopyPicks.length < 2) {
-    const next = canopyRanked.find((s) => !canopyPicks.some((p) => p.plant.id === s.plant.id) && s.suit >= 0.38)
-      ?? canopyRanked.find((s) => !canopyPicks.some((p) => p.plant.id === s.plant.id));
+    // prefer a productive, suitable second canopy; fall back progressively so we
+    // always reach 2, but never reach for a non-yielding timber tree first.
+    const next = canopyRanked.find((s) => notPicked(s) && s.suit >= 0.38 && s.realized >= 0.2)
+      ?? canopyRanked.find((s) => notPicked(s) && s.realized >= 0.2)
+      ?? canopyRanked.find((s) => notPicked(s) && s.suit >= 0.38)
+      ?? canopyRanked.find(notPicked);
     if (!next) break;
     canopyPicks.push(next);
   }
@@ -385,7 +416,9 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   }
 
   const suitability = picks.reduce((s, p) => s + p.suitability, 0) / picks.length;
-  const economics = clamp(cum / 8_000_000, 0, 1);
+  // per-rai so small and large plots are scored on the same footing (matches how
+  // carbonScore below already normalises by area). ~800k baht/rai over 10 yr = "excellent".
+  const economics = clamp(cum / Math.max(1, sizeRai * 800_000), 0, 1);
   const water = picks.reduce((s, p) => s + p.scoreParts.waterFit, 0) / picks.length;
   const disaster = picks.reduce((s, p) => s + p.scoreParts.riskFit, 0) / picks.length;
   const carbonScore = clamp(carbon10 / Math.max(1, sizeRai * 42), 0, 1);
@@ -458,9 +491,14 @@ export function buildSystems(input: FarmInput, climate: Climate | null, risk: Pr
   // candidate primary canopy species (suitable first), then build a grid of
   // candidate systems over primary × goal, and label 3 by their REAL metrics.
   const baseRank = [...scored.canopy].sort((a, b) => goalRank('balanced', b) - goalRank('balanced', a));
-  const decent = baseRank.filter((s) => s.suit >= 0.38);
+  // Only auto-nominate canopy species that actually produce income within the
+  // 10-yr horizon; a timber tree like teak (first cut ~year 15) would otherwise
+  // get picked as a "free" canopy that shades nothing and quietly zeroes its own
+  // yield. Farmers can still force it in via selectedByLayer.
+  const productive = baseRank.filter((s) => s.realized >= 0.2);
+  const decent = productive.filter((s) => s.suit >= 0.38);
   const primaries: Scored[] = [];
-  for (const s of [...decent, ...baseRank]) { if (primaries.length >= 5) break; if (!primaries.some((p) => p.plant.id === s.plant.id)) primaries.push(s); }
+  for (const s of [...decent, ...productive, ...baseRank]) { if (primaries.length >= 5) break; if (!primaries.some((p) => p.plant.id === s.plant.id)) primaries.push(s); }
 
   const cands: SystemPlan[] = [];
   for (const p of primaries) for (const g of ['balanced', 'fast', 'profit'] as Goal[]) cands.push(buildSystem(scored, input, g, p, climate, risk, soil));

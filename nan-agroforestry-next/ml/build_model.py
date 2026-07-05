@@ -463,7 +463,7 @@ def main():
             out.append(int(math.floor(la / 2) * 1000 + math.floor(lo / 2)))
         return np.array(out)
 
-    print(f'3) train v3 ({len(pool)} cells, {len(FEATURES)} features)...')
+    print(f'3) train v4 ({len(pool)} cells, {len(FEATURES)} features)...')
     model = {
         'version': 4,
         'validation': 'spatial-block-2deg-group-kfold',
