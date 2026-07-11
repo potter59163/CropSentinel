@@ -1,44 +1,49 @@
-/* ── First-run guided tour (coach-marks / spotlight) ───────────────────────── */
+/* ── First-run guided tour (SVG spotlight coach-marks) ─────────────────────── */
 
 .tour-root {
   position: fixed;
   inset: 0;
   z-index: 9000;
-  pointer-events: none;               /* children opt back in */
-  animation: tour-fade 0.25s ease;
+  animation: tour-fade 0.28s ease;
 }
 @keyframes tour-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* full-screen click catcher — keeps the user on the guided Next/Back path */
+/* SVG dimmer + spotlight — visual only, clicks are caught by .tour-blocker */
+.tour-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* the cut-out (in the mask) and the visible ring share geometry and morph
+   smoothly between steps by transitioning the SVG x/y/width/height */
+.tour-hole,
+.tour-ring {
+  transition:
+    x 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    y 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tour-ring {
+  stroke: var(--color-sun, #dba93a);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 5px rgba(219, 169, 58, 0.6));
+  animation: tour-ring-pulse 1.9s ease-in-out infinite;
+}
+@keyframes tour-ring-pulse {
+  0%, 100% { stroke-opacity: 0.95; stroke-width: 2.5; }
+  50%      { stroke-opacity: 0.4;  stroke-width: 3.5; }
+}
+
+/* full-screen transparent click catcher (keeps the guided Next/Back flow) */
 .tour-blocker {
   position: absolute;
   inset: 0;
   pointer-events: auto;
   cursor: default;
-}
-
-/* the spotlight cut-out: transparent element whose huge box-shadow dims the rest */
-.tour-hole {
-  position: fixed;
-  border-radius: 14px;
-  pointer-events: none;
-  transition: top 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              left 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              height 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-}
-/* soft glowing ring hugging the highlighted element */
-.tour-hole::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: 0 0 0 2px var(--color-sun, #dba93a), 0 0 0 6px rgba(219, 169, 58, 0.28);
-  animation: tour-pulse 1.8s ease-in-out infinite;
-}
-@keyframes tour-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px var(--color-sun, #dba93a), 0 0 0 5px rgba(219, 169, 58, 0.30); }
-  50%      { box-shadow: 0 0 0 2px var(--color-sun, #dba93a), 0 0 0 11px rgba(219, 169, 58, 0.05); }
 }
 
 /* the explanation card */
@@ -50,14 +55,16 @@
   border-radius: 18px;
   padding: 18px 18px 15px;
   box-shadow: 0 18px 48px rgba(10, 22, 16, 0.30), 0 2px 6px rgba(10, 22, 16, 0.12);
-  animation: tour-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 1;
+  animation: tour-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* slide smoothly when the spotlight moves to the next target */
+  transition: top 0.42s cubic-bezier(0.4, 0, 0.2, 1), left 0.42s cubic-bezier(0.4, 0, 0.2, 1);
 }
 @keyframes tour-pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
 
 .tour-place-sheet {
   border-radius: 20px 20px 16px 16px;
-  animation: tour-sheet 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+  transition: none;                    /* pinned bottom sheet doesn't slide */
+  animation: tour-sheet 0.34s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 @keyframes tour-sheet { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 
@@ -67,7 +74,7 @@
   gap: 10px;
   margin-bottom: 8px;
 }
-.tour-emoji { font-size: 22px; line-height: 1; }
+.tour-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
 .tour-count {
   font-size: 12px;
   font-weight: 700;
@@ -76,16 +83,22 @@
   background: var(--bg-2, #e1ece6);
   padding: 3px 9px;
   border-radius: 999px;
+  flex-shrink: 0;
 }
 .tour-x {
   margin-left: auto;
-  width: 28px;
-  height: 28px;
+  flex: 0 0 auto;                       /* never let flex squash the circle to an oval */
+  width: 30px;
+  height: 30px;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   border: 0;
   background: var(--bg-1, #edf5ef);
   color: var(--fg-2, #5d7068);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -169,7 +182,7 @@
 }
 .tour-btn.primary:hover { background: #0a5648; }
 
-/* ── the floating "?" re-open button ──────────────────────────────────────── */
+/* ── the header "?" re-open control ───────────────────────────────────────── */
 .tour-help-fab {
   display: inline-flex;
   align-items: center;
@@ -189,16 +202,18 @@
 .tour-help-fab:hover { background: var(--bg-1, #edf5ef); box-shadow: var(--shadow-soft, 0 8px 16px rgba(16,34,27,0.08)); }
 .tour-help-fab:active { transform: translateY(1px); }
 .tour-help-q {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 auto;                       /* keep it a perfect circle, never an oval */
   width: 18px;
   height: 18px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   background: var(--color-forest, #0c6654);
   color: #fff;
   font-size: 12px;
   font-weight: 800;
+  line-height: 1;
 }
 
 @media (max-width: 640px) {
@@ -213,6 +228,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tour-hole, .tour-callout, .tour-root { transition: none; animation: none; }
-  .tour-hole::after { animation: none; }
+  .tour-hole, .tour-ring, .tour-callout, .tour-root { transition: none; animation: none; }
+  .tour-ring { animation: none; }
 }
