@@ -51,7 +51,7 @@ const tfetch = (url: string, ms = 12000) =>
   fetch(url, { signal: AbortSignal.timeout(ms), next: { revalidate: 60 * 60 * 24 * 30 } });
 
 // Simplified USDA texture triangle (covers the classes that occur in Nan).
-function classifyTexture(sand: number, silt: number, clay: number): { en: string; th: string } {
+export function classifyTexture(sand: number, silt: number, clay: number): { en: string; th: string } {
   if (clay >= 40) {
     if (silt >= 40) return { en: 'silty clay', th: 'ดินเหนียวปนทรายแป้ง' };
     if (sand >= 45) return { en: 'sandy clay', th: 'ดินเหนียวปนทราย' };
@@ -70,21 +70,21 @@ function classifyTexture(sand: number, silt: number, clay: number): { en: string
   return { en: 'sandy loam', th: 'ดินร่วนปนทราย' };
 }
 
-function classifyDrainage(sand: number, clay: number): { d: Drainage; th: string } {
+export function classifyDrainage(sand: number, clay: number): { d: Drainage; th: string } {
   if (clay >= 35) return { d: 'poor', th: 'ระบายน้ำช้า (เสี่ยงแฉะ)' };
   if (sand >= 65) return { d: 'good', th: 'ระบายน้ำเร็ว (แห้งง่าย)' };
   if (clay >= 27) return { d: 'moderate', th: 'ระบายน้ำปานกลาง' };
   return { d: 'good', th: 'ระบายน้ำดี' };
 }
 
-function classifyAcidity(ph: number): { a: Acidity; th: string } {
+export function classifyAcidity(ph: number): { a: Acidity; th: string } {
   if (ph < 5.0) return { a: 'strong', th: 'กรดจัด' };
   if (ph < 5.5) return { a: 'moderate', th: 'กรดปานกลาง' };
   if (ph < 6.6) return { a: 'slight', th: 'กรดเล็กน้อย' };
   return { a: 'neutral', th: 'เป็นกลาง/ด่าง' };
 }
 
-function fertilityScore(ocPct: number, cec: number, ph: number) {
+export function fertilityScore(ocPct: number, cec: number, ph: number) {
   const oc = clamp(ocPct / 3, 0, 1);        // ~3% organic carbon = excellent
   const c = clamp(cec / 250, 0, 1);          // CEC 250 mmol(c)/kg = high
   const p = clamp(1 - Math.abs(ph - 6.3) / 2, 0, 1); // ideal pH ≈ 6.3

@@ -34,6 +34,10 @@ export interface ProtectedArea {
   fireProtected: number;
   fireMaxConfidence?: number;
   fireDate?: number;
+  // 'unavailable'/'partial' means the count is NOT a real "zero fires" reading —
+  // the query failed, so absence must not be shown to the farmer as zero-risk.
+  fireStatus?: 'ok' | 'partial' | 'unavailable';
+  riverStatus?: 'ok' | 'unavailable';
   disasterStatus?: 'live' | 'missing-key' | 'unavailable' | 'bad-request';
   disasterSource?: string;
   disasterUpdatedAt?: string;
@@ -76,6 +80,7 @@ async function checkRiver(lat: number, lng: number) {
       const a = f[0].attributes ?? {};
       return {
         riverNear: true,
+        riverStatus: 'ok' as const,
         riverDistanceM: distance,
         riverOrder: Number(attr(a, 'STR_ORDER')) || undefined,
         riverTambon: attr(a, 'TAMBON_T'),
@@ -83,7 +88,7 @@ async function checkRiver(lat: number, lng: number) {
       };
     }
   }
-  return { riverNear: false };
+  return { riverNear: false, riverStatus: 'ok' as const };
 }
 
 async function queryFire(service: string, params: Record<string, string>): Promise<any[]> {
@@ -101,17 +106,23 @@ async function queryFire(service: string, params: Record<string, string>): Promi
 }
 
 async function checkFire(lat: number, lng: number) {
-  const [modis, nppNearby] = await Promise.all([
-    queryFire('FR_Fire/hotspot_daily', { where: "pv_tn='น่าน'" }).catch(() => []),
-    queryFire('FR_Fire/hotspot_npp_daily', {
+  // Track each query's success so a failed fetch reads as "unknown", not "0 fires".
+  const wrap = (p: Promise<any[]>) => p.then((r) => ({ ok: true, r })).catch(() => ({ ok: false, r: [] as any[] }));
+  const [modisRes, nppRes] = await Promise.all([
+    wrap(queryFire('FR_Fire/hotspot_daily', { where: "pv_tn='น่าน'" })),
+    wrap(queryFire('FR_Fire/hotspot_npp_daily', {
       geometry: `${lng},${lat}`,
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
       distance: '50000',
       units: 'esriSRUnit_Meter',
-    }).catch(() => []),
+    })),
   ]);
+  const modis = modisRes.r;
+  const nppNearby = nppRes.r;
+  const fireStatus: 'ok' | 'partial' | 'unavailable' =
+    modisRes.ok && nppRes.ok ? 'ok' : modisRes.ok || nppRes.ok ? 'partial' : 'unavailable';
   const attrs = [...modis, ...nppNearby].map((f) => f.attributes ?? {});
   const confidence = attrs
     .map((a) => Number(attr(a, 'confident')))
@@ -125,6 +136,7 @@ async function checkFire(lat: number, lng: number) {
     fireProtected: attrs.filter((a) => String(attr(a, 'lu_name') ?? '').includes('ป่า')).length,
     fireMaxConfidence: confidence.length ? Math.max(...confidence) : undefined,
     fireDate: dates.length ? Math.max(...dates) : undefined,
+    fireStatus,
   };
 }
 
@@ -168,8 +180,8 @@ function normalizeDisaster(body: any) {
 export async function checkProtected(lat: number, lng: number): Promise<ProtectedArea> {
   const src = 'GISTDA · ข้อมูลทรัพยากรธรรมชาติ';
   const [river, fire, disaster] = await Promise.all([
-    checkRiver(lat, lng).catch(() => ({ riverNear: false })),
-    checkFire(lat, lng).catch(() => ({ fireHotspots: 0, fireNearby: 0, fireProtected: 0 })),
+    checkRiver(lat, lng).catch(() => ({ riverNear: false, riverStatus: 'unavailable' as const })),
+    checkFire(lat, lng).catch(() => ({ fireHotspots: 0, fireNearby: 0, fireProtected: 0, fireStatus: 'unavailable' as const })),
     checkDisaster(lat, lng).catch(() => ({
       disasterStatus: 'unavailable' as DisasterStatus,
       disasterFire7dNan: 0,

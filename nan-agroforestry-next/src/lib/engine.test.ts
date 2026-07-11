@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSystems } from './engine';
+import { buildSystems, waterFit } from './engine';
 import { plantSuitability } from './suitability';
 import { PLANTS } from '../data/plants';
 import type { Climate } from './climate';
@@ -105,5 +105,26 @@ describe('plantSuitability — agronomic guardrails', () => {
     const s = plantSuitability(plant('cashew'), climate(400), null, soil).score;
     expect(s).toBeGreaterThanOrEqual(0);
     expect(s).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('waterFit honesty — must stay neutral when climate is absent or NaN', () => {
+  const mango = plant('mango');   // water: 'med'
+  const cashew = plant('cashew'); // water: 'low'
+  const nanClimate = { t2m: NaN, prec: NaN, drym: NaN, pseas: NaN, trange: NaN, solar: NaN, rh: NaN, gwet: NaN, elev: 400 };
+  const realClimate = { t2m: 26, prec: 1450, drym: 3, pseas: 62, trange: 22, solar: 18, rh: 79, gwet: 0.65, elev: 400 };
+
+  it('returns the neutral 0.7 for null climate', () => {
+    expect(waterFit(mango, null, null)).toBe(0.7);
+  });
+
+  it('returns the neutral 0.7 for a NaN-feature (climate-outage) fallback — no manufactured water edge', () => {
+    // both med- and low-water crops must be neutral so absent weather cannot reorder them
+    expect(waterFit(mango, nanClimate, null)).toBe(0.7);
+    expect(waterFit(cashew, nanClimate, null)).toBe(0.7);
+  });
+
+  it('DOES differentiate on real climate (guard is not over-broad)', () => {
+    expect(waterFit(mango, realClimate, null)).not.toBe(0.7);
   });
 });

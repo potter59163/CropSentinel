@@ -135,7 +135,10 @@ function gbmPredict(sp: SpeciesModel, x: number[]) {
 
 export function plantSuitability(plant: Plant, c: Climate | null, risk: ProtectedArea | null = null, soil: SoilContext | null = null): Suit {
   const sp = READY && plant.sdmId ? M.species[plant.sdmId] : undefined;
-  if (sp && sp.auc >= AUC_MIN && c) {
+  // Require real weather features (not just a non-null climate) — an
+  // elevation-only fallback carries NaN features, and running the SDM on those
+  // would silently impute training medians and mislabel it source:'model'.
+  if (sp && sp.auc >= AUC_MIN && c && Number.isFinite(c.t2m)) {
     const x = vector(c, risk, soil);
     const score = sp.preferred === 'gbm' && sp.gbm ? gbmPredict(sp, x) : logitPredict(sp, x);
     return { score: applyAgronomicGuardrail(score, plant, c.elev), source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };

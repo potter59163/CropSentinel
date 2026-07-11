@@ -31,9 +31,13 @@ async function powerFeatures(lat: number, lng: number) {
   };
 }
 
-const NAN_FEATS = { t2m: NaN, prec: NaN, drym: NaN, pseas: NaN, trange: NaN, solar: NaN, rh: NaN, gwet: NaN };
-
+// Deliberately does NOT swallow the POWER error. If we returned NaN features
+// here, the SDM would silently impute the training median and still report
+// source:'model' at full confidence — i.e. rank crops as if we had real climate
+// when we have none. Throwing lets planRunner catch it, surface a warning, and
+// fall back to the honest elevation-only envelope (source:'envelope', low
+// confidence). Callers that hit this directly must handle the rejection.
 export async function fetchClimate(lat: number, lng: number, elevationM: number): Promise<Climate> {
-  const pw = await powerFeatures(lat, lng).catch(() => NAN_FEATS);
+  const pw = await powerFeatures(lat, lng);
   return { ...pw, elev: elevationM };
 }

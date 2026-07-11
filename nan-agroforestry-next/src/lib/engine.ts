@@ -76,9 +76,13 @@ function soilFit(p: Plant, soil: SoilContext | null): number {
   return clamp(s, 0.4, 1);
 }
 
-function waterFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null): number {
+export function waterFit(p: Plant, climate: Climate | null, risk: ProtectedArea | null): number {
   const disaster = disasterFeatureContext(risk);
-  if (!climate) return 0.7;
+  // NaN weather features (climate-outage fallback carries a real elevation but
+  // NaN weather) must stay NEUTRAL — otherwise every NaN comparison below is
+  // false, silently asserting "no water stress" and manufacturing a water-fit
+  // edge for med-water crops from data we don't have. Mirrors suitability.ts.
+  if (!climate || !Number.isFinite(climate.t2m)) return 0.7;
   const dryStress = climate.drym >= 5 || climate.gwet < 0.46 || climate.rh < 68 || disaster.drought_layers >= 2;
   const wetStress = climate.prec > 1600 || climate.gwet > 0.62 || disaster.flood_freq_near >= Math.log1p(10);
   if (dryStress) {
@@ -303,10 +307,10 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
     score,
     label: score >= 0.68 ? 'ดี' : score >= 0.48 ? 'ปานกลาง' : 'เสี่ยงเสื่อม',
     signals: [
-      soil ? `ดินเชิงพื้นที่: ${soil.ldd ? `${soil.ldd.soilGroupLabel} · ` : ''}${soil.texture} · pH ${soil.ph} (${soil.acidityTh}) · อินทรียวัตถุ ${soil.organicCarbonPct}% · ${soil.drainageTh}` : '',
+      soil ? `ดินเชิงพื้นที่: ${soil.ldd ? `${soil.ldd.soilGroupLabel} · ` : ''}${soil.texture} · pH ${soil.ph} (${soil.acidityTh})${soil.sdmFeatureSource === 'soilgrids' ? ` · อินทรียวัตถุ ${soil.organicCarbonPct}%` : ' · อินทรียวัตถุ: ยังไม่มีผลตรวจ'} · ${soil.drainageTh}` : '',
       soil?.ldd?.limitations.length ? `ข้อจำกัด LDD: ${soil.ldd.limitations.join(' / ')}` : '',
       soil && soil.acidity === 'strong' ? 'ดินกรดจัด ควรใส่ปูนโดโลไมต์/ปูนขาวปรับ pH ก่อนปลูกไม้ผลที่ไวต่อกรด' : '',
-      soil && soil.organicCarbonPct < 1 ? 'อินทรียวัตถุต่ำ ควรเพิ่มปุ๋ยอินทรีย์/พืชคลุมดินเร่งฟื้นดิน' : '',
+      soil && soil.sdmFeatureSource === 'soilgrids' && soil.organicCarbonPct < 1 ? 'อินทรียวัตถุต่ำ ควรเพิ่มปุ๋ยอินทรีย์/พืชคลุมดินเร่งฟื้นดิน' : '',
       cover ? 'มีพืชคลุมดินช่วยลดการชะล้าง' : 'ยังควรเพิ่มพืชคลุมดิน',
       nFix ? 'มีพืชตรึงไนโตรเจนช่วยบำรุงดิน' : 'ยังไม่มีพืชตระกูลถั่วบำรุงดิน',
       perennial >= 0.45 ? 'สัดส่วนไม้ยืนต้นช่วยเพิ่มอินทรียวัตถุระยะยาว' : 'ไม้ยืนต้นยังน้อยเมื่อเทียบกับพืชล้มลุก',

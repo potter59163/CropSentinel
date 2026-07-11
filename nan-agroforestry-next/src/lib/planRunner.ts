@@ -14,7 +14,10 @@ export async function runPlan(input: FarmInput) {
   const [climate, protectedArea, soilGrids] = await Promise.all([
     fetchClimate(lat, lng, input.elevationM).catch((error) => {
       warnings.push(`NASA POWER/Open-Meteo climate unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
-      return null;
+      // Keep the plot's REAL elevation so elevation-based filtering still works;
+      // NaN weather features make plantSuitability fall through to the honest
+      // envelope (low confidence) instead of running the SDM on imputed medians.
+      return { t2m: NaN, prec: NaN, drym: NaN, pseas: NaN, trange: NaN, solar: NaN, rh: NaN, gwet: NaN, elev: input.elevationM };
     }),
     checkProtected(lat, lng).catch((error) => {
       warnings.push(`GISTDA unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
