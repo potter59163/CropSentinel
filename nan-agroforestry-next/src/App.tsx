@@ -191,7 +191,7 @@ export function App() {
     {
       icon: 'leaf',
       title: 'ขั้น 3 · เลือกพืชที่อยากปลูก',
-      body: 'แตะเลือกพืชในแต่ละชั้นได้ตามใจ — หรือ “เว้นว่างไว้” แล้วให้ระบบเลือกชนิดที่เหมาะกับพื้นที่ให้เอง ไม่ต้องรู้จักพืชมาก่อนก็ได้',
+      body: 'แตะเลือกพืชในแต่ละชั้นได้ตามใจ · หรือ “เว้นว่างไว้” แล้วให้ระบบเลือกชนิดที่เหมาะกับพื้นที่ให้เอง ไม่ต้องรู้จักพืชมาก่อนก็ได้',
       target: '.agro-pick',
       onEnter: () => gotoStep(2),
     },
@@ -351,14 +351,14 @@ export function App() {
       const isRateLimited = status === 429; // transient — valid input, just too fast
       const isClientError = status >= 400 && status < 500 && !isRateLimited;
       const msg = error instanceof DOMException && error.name === 'AbortError'
-        ? 'ใช้เวลานานเกินไป — อินเทอร์เน็ตอาจช้า ลองใหม่อีกครั้ง'
+        ? 'ใช้เวลานานเกินไป · อินเทอร์เน็ตอาจช้า ลองใหม่อีกครั้ง'
         : isRateLimited
           ? 'ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่'
           : isClientError
-            ? 'ข้อมูลที่กรอกไม่ถูกต้อง — โปรดตรวจสอบค่าที่กรอก (เช่น ขนาดแปลง 0.5–500 ไร่) แล้วแก้ไข'
+            ? 'ข้อมูลที่กรอกไม่ถูกต้อง · โปรดตรวจสอบค่าที่กรอก (เช่น ขนาดแปลง 0.5–500 ไร่) แล้วแก้ไข'
             : status >= 500
               ? 'เซิร์ฟเวอร์ขัดข้องชั่วคราว ลองใหม่อีกครั้งในอีกสักครู่'
-              : 'เชื่อมต่อไม่ได้ — ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+              : 'เชื่อมต่อไม่ได้ · ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
       setApiWarnings([msg]);
       // only offer a retry when re-sending the same request could plausibly succeed
       // (bad input won't — but a rate-limit or transient error will)
@@ -386,7 +386,7 @@ export function App() {
         </div>
         <div className="agro-nav">
           <button className={tab === 'planner' ? 'on' : ''} onClick={() => setTab('planner')}>แพลนเนอร์</button>
-          <button className={tab === 'method' ? 'on' : ''} onClick={() => setTab('method')}>วิธีการ &amp; ความน่าเชื่อถือ</button>
+          <button className={tab === 'method' ? 'on' : ''} onClick={() => setTab('method')}>วิธีการ<span className="agro-nav-more">&nbsp;&amp; ความน่าเชื่อถือ</span></button>
           <button type="button" className="tour-help-fab thai" onClick={startTour} aria-label="เปิดคู่มือการใช้งาน" title="ดูวิธีใช้งานอีกครั้ง">
             <span className="tour-help-q" aria-hidden>?</span><span className="tour-help-label">คู่มือ</span>
           </button>
@@ -542,7 +542,7 @@ export function App() {
             <div className="agro-results-actions">
               <button type="button" className="agro-osm-link thai" onClick={copyPlanLink}>
                 <Icon name={copyState === 'ok' ? 'checkCircle' : 'copy'} size={16} />
-                {' '}{copyState === 'ok' ? 'คัดลอกแล้ว' : copyState === 'fail' ? 'คัดลอกไม่ได้ — ใช้ลิงก์จากแถบที่อยู่' : 'คัดลอกลิงก์แผน'}
+                {' '}{copyState === 'ok' ? 'คัดลอกแล้ว' : copyState === 'fail' ? 'คัดลอกไม่ได้ · ใช้ลิงก์จากแถบที่อยู่' : 'คัดลอกลิงก์แผน'}
               </button>
               <button type="button" className="agro-osm-link thai" onClick={() => window.print()}><Icon name="print" size={16} /> พิมพ์/PDF</button>
             </div>
@@ -600,7 +600,7 @@ export function App() {
                 <span>ไฟป่ารอบแปลง</span>
                 {/* Only show a count when the read is trustworthy — a failed/partial
                     GISTDA fire query returns 0, which must NOT read as "no fire". */}
-                <b>{!prot ? '—'
+                <b>{!prot ? 'ไม่มีข้อมูล'
                   : (prot.disasterStatus === 'live' || prot.fireStatus === 'ok')
                     ? `${fireNear(prot)} จุด · ทั้งน่าน ${prot.disasterStatus === 'live' ? prot.disasterFire7dNan : prot.fireHotspots}`
                     : 'ดึงข้อมูลไม่สำเร็จ'}</b>
@@ -613,7 +613,7 @@ export function App() {
                 <span>ใกล้ลำน้ำ</span>
                 {/* '===ok' (not '!==unavailable') so any missing/legacy status also
                     degrades to the honest "fetch failed" rather than asserting no river. */}
-                <b>{!prot ? '—'
+                <b>{!prot ? 'ไม่มีข้อมูล'
                   : prot.riverNear ? `≤ ${prot.riverDistanceM?.toLocaleString('en-US')} ม.`
                   : prot.riverStatus === 'ok' ? 'ไม่พบใน 3 กม.'
                   : 'ดึงข้อมูลไม่สำเร็จ'}</b>
@@ -677,12 +677,12 @@ export function App() {
                 <div className="agro-gistda-body">
                   {prot.inside ? (
                     <><b className="thai">แปลงอยู่ในเขต{prot.type} {prot.name ?? ''}</b>
-                      <div className="thai">ห้ามปลูก/แผ้วถางตามกฎหมาย — ทำวนเกษตรได้เฉพาะนอกเขต หรือร่วมโครงการฟื้นฟูกับหน่วยงาน</div></>
+                      <div className="thai">ห้ามปลูก/แผ้วถางตามกฎหมาย · ทำวนเกษตรได้เฉพาะนอกเขต หรือร่วมโครงการฟื้นฟูกับหน่วยงาน</div></>
                   ) : prot.near ? (
                     <><b className="thai">ใกล้เขต{prot.type} {prot.name ?? ''} (~3 กม.)</b>
                       <div className="thai">วนเกษตรหลายชั้นช่วยเป็นแนวกันชนปกป้องป่าและลดการรุกป่า</div></>
                   ) : (
-                    <><b className="thai">ไม่อยู่ในเขตอนุรักษ์ — ปลูกได้</b>
+                    <><b className="thai">ไม่อยู่ในเขตอนุรักษ์ · ปลูกได้</b>
                       <div className="thai">เหมาะกับการฟื้นฟูพื้นที่เกษตรเชิงเดี่ยวให้เป็นวนเกษตร</div></>
                   )}
                   <div className="agro-gistda-src">ที่มา: {prot.source}</div>
@@ -744,7 +744,7 @@ export function App() {
                 <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
                 <div className="agro-gistda-body">
                   <b className="thai">ยังไม่ได้ประเมินความเสี่ยงภัยพิบัติรอบแปลงในรอบนี้</b>
-                  <div className="thai">ข้อมูลไฟป่า/น้ำท่วม/ภัยแล้งจาก GISTDA ยังไม่พร้อมใช้ขณะนี้ — <b>ไม่ได้แปลว่าไม่มีความเสี่ยง</b> ควรสอบถามเกษตรอำเภอ/อบต. เพิ่มเติม</div>
+                  <div className="thai">ข้อมูลไฟป่า/น้ำท่วม/ภัยแล้งจาก GISTDA ยังไม่พร้อมใช้ขณะนี้ · <b>ไม่ได้แปลว่าไม่มีความเสี่ยง</b> ควรสอบถามเกษตรอำเภอ/อบต. เพิ่มเติม</div>
                 </div>
               </div>
             )}
@@ -761,7 +761,7 @@ export function App() {
                 <span className="agro-gistda-icon"><Icon name="fire" size={24} /></span>
                 <div className="agro-gistda-body">
                   <b className="thai">ข้อมูลไฟป่า GISTDA ดึงไม่สำเร็จรอบนี้</b>
-                  <div className="thai">ยังไม่ได้ประเมินจุดความร้อนรอบแปลง — <b>ไม่ได้แปลว่าไม่มีไฟ</b> ช่วงหน้าแล้ง (ก.พ.–เม.ย.) ควรเฝ้าระวังและทำแนวกันไฟไว้เสมอ</div>
+                  <div className="thai">ยังไม่ได้ประเมินจุดความร้อนรอบแปลง · <b>ไม่ได้แปลว่าไม่มีไฟ</b> ช่วงหน้าแล้ง (ก.พ.–เม.ย.) ควรเฝ้าระวังและทำแนวกันไฟไว้เสมอ</div>
                 </div>
               </div>
             )}
@@ -772,10 +772,10 @@ export function App() {
                 <div className="agro-gistda-body">
                   {sat.verdict === 'forest' ? (
                     <><b className="thai">ภาพดาวเทียม: พื้นที่นี้เป็นป่า ({sat.lcTh}, tree cover {sat.tc}%)</b>
-                      <div className="thai">ไม่ควรแผ้วถางเพื่อทำเกษตร — ควรอนุรักษ์/ฟื้นฟูสภาพป่า</div></>
+                      <div className="thai">ไม่ควรแผ้วถางเพื่อทำเกษตร · ควรอนุรักษ์/ฟื้นฟูสภาพป่า</div></>
                   ) : sat.verdict === 'restore' ? (
                     <><b className="thai">ภาพดาวเทียม: {sat.lcTh}{sat.lossyr ? ` · เคยเป็นป่า สูญเสียปี ${sat.lossyr + 543}` : ''} · NDVI {sat.ndvi ?? '—'}</b>
-                      <div className="thai">พื้นที่เสื่อมโทรม/เกษตรเชิงเดี่ยว — เหมาะอย่างยิ่งกับการฟื้นเป็นวนเกษตร</div></>
+                      <div className="thai">พื้นที่เสื่อมโทรม/เกษตรเชิงเดี่ยว · เหมาะอย่างยิ่งกับการฟื้นเป็นวนเกษตร</div></>
                   ) : (
                     <><b className="thai">ภาพดาวเทียม: {sat.lcTh} · NDVI {sat.ndvi ?? '—'}</b>
                       <div className="thai">ปลูกวนเกษตรเสริมความหลากหลายได้</div></>
@@ -795,9 +795,9 @@ export function App() {
                   <div className="thai">
                     {soil.sdmFeatureSource === 'soilgrids'
                       ? <>อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg · เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% · </>
-                      : <>อินทรียวัตถุ/ไนโตรเจน/CEC: <b>ยังไม่มีผลตรวจ</b> (พื้นที่นี้ไม่มีข้อมูล SoilGrids — ต้องเก็บตัวอย่างส่งแล็บ) · เนื้อดินโดยประมาณจากกลุ่มชุดดิน · </>}
+                      : <>อินทรียวัตถุ/ไนโตรเจน/CEC: <b>ยังไม่มีผลตรวจ</b> (พื้นที่นี้ไม่มีข้อมูล SoilGrids · ต้องเก็บตัวอย่างส่งแล็บ) · เนื้อดินโดยประมาณจากกลุ่มชุดดิน · </>}
                     ความอุดมสมบูรณ์ {soil.fertilityTh}
-                    {soil.acidity === 'strong' ? ' — ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
+                    {soil.acidity === 'strong' ? ' · ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
                     {' '}ระบบนำค่าดินนี้ไปปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรดแล้ว
                   </div>
                   {soil.ldd && (

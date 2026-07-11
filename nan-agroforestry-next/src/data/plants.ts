@@ -1,10 +1,10 @@
 import type { Plant, Layer } from './types';
 
 export const LAYER_META: Record<Layer, { th: string; en: string; desc: string }> = {
-  canopy: { th: 'ไม้ยืนต้น', en: 'Canopy', desc: 'ชั้นเรือนยอด — โครงสร้างหลักของระบบ (บังคับ ≥2 ชนิด)' },
-  shrub: { th: 'ไม้พุ่ม', en: 'Shrub', desc: 'ชั้นกลาง — รายได้ต่อเนื่องใต้ร่มไม้ใหญ่' },
+  canopy: { th: 'ไม้ยืนต้น', en: 'Canopy', desc: 'ชั้นเรือนยอด · โครงสร้างหลักของระบบ (บังคับ ≥2 ชนิด)' },
+  shrub: { th: 'ไม้พุ่ม', en: 'Shrub', desc: 'ชั้นกลาง · รายได้ต่อเนื่องใต้ร่มไม้ใหญ่' },
   groundcover: { th: 'ไม้คลุมดิน', en: 'Ground cover', desc: 'คลุมดิน กันวัชพืช ลดการชะล้าง' },
-  root: { th: 'ไม้ลงดิน', en: 'Root crop', desc: 'พืชหัวใต้ดิน — รายได้เร็ว ใช้พื้นที่ใต้ดิน' },
+  root: { th: 'ไม้ลงดิน', en: 'Root crop', desc: 'พืชหัวใต้ดิน · รายได้เร็ว ใช้พื้นที่ใต้ดิน' },
 };
 
 // id, nameTh, nameEn, layer, category, elevMin, elevMax, perennial,

@@ -321,7 +321,7 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
     limitations: [
       soil
         ? `ดินจาก ${soil.source} เป็นค่าประมาณเชิงพื้นที่/แผนที่ชุดดิน ควรยืนยันด้วยชุดตรวจดินจริง (pH, NPK, อินทรียวัตถุ) ก่อนลงทุนจริง`
-        : 'ยังไม่มีข้อมูลดินจริง — เป็น proxy จากภูมิอากาศ/ภัยพิบัติ ไม่ใช่ผลตรวจ pH, NPK',
+        : 'ยังไม่มีข้อมูลดินจริง · เป็น proxy จากภูมิอากาศ/ภัยพิบัติ ไม่ใช่ผลตรวจ pH, NPK',
     ],
   };
 }
@@ -449,7 +449,7 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
 
 function reasonsFor(picks: LayerPick[], payback: number | null, scoreParts: SystemPlan['scoreParts'], soil: SoilContext | null, transitionNotes: string[]): string[] {
   const r: string[] = [];
-  if (soil) r.push(`ดินจริง (${soil.source}): ${soil.texture} · pH ${soil.ph} · ${soil.drainageTh} · ความอุดมสมบูรณ์ ${soil.fertilityTh} — ใช้ปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรด`);
+  if (soil) r.push(`ดินจริง (${soil.source}): ${soil.texture} · pH ${soil.ph} · ${soil.drainageTh} · ความอุดมสมบูรณ์ ${soil.fertilityTh} · ใช้ปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรด`);
   r.push(transitionNotes[0]);
   const canopy = picks.filter((p) => p.layer === 'canopy').map((p) => p.plant.nameTh).join(' + ');
   const layerCount = new Set(picks.map((p) => p.layer)).size;
@@ -475,11 +475,11 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: System
   const w: string[] = [];
   if (transition?.notes[1]) w.push(transition.notes[1]);
   for (const p of picks) {
-    if (p.suitability < 0.45) w.push(`${p.plant.nameTh} เหมาะกับพื้นที่นี้ปานกลาง (${Math.round(p.suitability * 100)}%) — พิจารณาชนิดอื่นเสริม`);
+    if (p.suitability < 0.45) w.push(`${p.plant.nameTh} เหมาะกับพื้นที่นี้ปานกลาง (${Math.round(p.suitability * 100)}%) · พิจารณาชนิดอื่นเสริม`);
     if (p.modelConfidence === 'low') w.push(`${p.plant.nameTh} มีข้อมูลโมเดลน้อย/ความแม่นยำต่ำ จึงใช้เกณฑ์พื้นที่แทนการจัดอันดับจาก SDM`);
-    if (soil?.drainage === 'poor' && p.plant.water === 'low') w.push(`${p.plant.nameTh}ชอบดินระบายน้ำดี แต่ดินแปลงนี้ระบายน้ำช้า — ควรยกร่อง/พูนโคนหรือเลี่ยงพื้นที่ลุ่ม`);
+    if (soil?.drainage === 'poor' && p.plant.water === 'low') w.push(`${p.plant.nameTh}ชอบดินระบายน้ำดี แต่ดินแปลงนี้ระบายน้ำช้า · ควรยกร่อง/พูนโคนหรือเลี่ยงพื้นที่ลุ่ม`);
   }
-  if (soil?.acidity === 'strong') w.push(`ดินกรดจัด (pH ${soil.ph}) — ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด`);
+  if (soil?.acidity === 'strong') w.push(`ดินกรดจัด (pH ${soil.ph}) · ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด`);
   const sun = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol < 0.35);
   if (sun && canopyShadeMature > 0.55) w.push(`${sun.plant.nameTh}ชอบแดด เมื่อเรือนยอดปิด ควรย้ายไปขอบแปลงหรือเปลี่ยนเป็นพืชทนร่มในปีท้ายๆ`);
   if (agro.strata < 0.9) w.push('โครงสร้างวนเกษตรยังไม่ครบชั้น ควรมีไม้ยืนต้นอย่างน้อย 2 ชนิดและพืชคลุมดิน/พืชหัวช่วยปิดหน้าดิน');

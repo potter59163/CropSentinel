@@ -160,7 +160,7 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
 
         {step === 1 && (<>
           <div className={invalid('location') ? 'agro-field-invalid' : ''}>
-            <Field label="ปักหมุดแปลงบนแผนที่ดาวเทียม" hint="แตะบนแผนที่เพื่อกำหนดจุด — ระบบดึงพิกัด + ความสูงให้อัตโนมัติ">
+            <Field label="ปักหมุดแปลงบนแผนที่ดาวเทียม" hint="แตะบนแผนที่เพื่อกำหนดจุด · ระบบดึงพิกัด + ความสูงให้อัตโนมัติ">
               <GoogleMapPicker
                 lat={value.lat ?? NAN_CENTER.lat}
                 lng={value.lng ?? NAN_CENTER.lng}
@@ -169,7 +169,7 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
                 onPick={useMapPoint}
               />
               {osm === 'error' && (
-                <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ — ใช้พิกัดจากแผนที่แล้ว แต่คงค่าความสูงเดิมไว้</div>
+                <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ · ใช้พิกัดจากแผนที่แล้ว แต่คงค่าความสูงเดิมไว้</div>
               )}
             </Field>
           </div>
@@ -178,7 +178,7 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
             <button type="button" className="agro-gps-btn agro-gps-wide" onClick={useGps} disabled={gps === 'loading'}>
               <Icon name="crosshair" size={18} /> {gps === 'loading' ? 'กำลังหาตำแหน่ง…' : 'ใช้ตำแหน่งปัจจุบัน (GPS)'}
             </button>
-            {gps === 'error' && <div className="agro-gps-err thai">ขอตำแหน่งไม่สำเร็จ — ปักหมุดบนแผนที่ หรือเลือกอำเภอด้านล่าง</div>}
+            {gps === 'error' && <div className="agro-gps-err thai">ขอตำแหน่งไม่สำเร็จ · ปักหมุดบนแผนที่ หรือเลือกอำเภอด้านล่าง</div>}
           </div>
 
           <Field label="หรือเลือกอำเภอในน่าน" hint="ตั้งพิกัด + ความสูงอัตโนมัติ">
@@ -245,7 +245,7 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
         )}
 
         {step === 3 && (<>
-          <Field label="เป้าหมายรายได้ต่อปี" hint="ถ้ามี — ใช้เทียบกับแผนที่ระบบออกแบบ" htmlFor="farm-target">
+          <Field label="เป้าหมายรายได้ต่อปี" hint="ถ้ามี · ใช้เทียบกับแผนที่ระบบออกแบบ" htmlFor="farm-target">
             <input
               id="farm-target"
               type="number"

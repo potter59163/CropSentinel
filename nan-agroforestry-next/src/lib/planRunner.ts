@@ -29,8 +29,8 @@ export async function runPlan(input: FarmInput) {
     }),
   ]);
   const soil = mergeLddSoil(soilGrids, lddSoilGroup);
-  if (!lddSoilGroup) warnings.push('ไม่พบ polygon กลุ่มชุดดิน LDD สำหรับพิกัดนี้ — ระบบใช้ SoilGrids/คะแนนกลางแทน');
-  if (!soilGrids) warnings.push('ไม่พบข้อมูลดิน SoilGrids สำหรับพิกัดนี้ — ระบบใช้ LDD หรือคะแนนดินกลางแทน');
+  if (!lddSoilGroup) warnings.push('ไม่พบ polygon กลุ่มชุดดิน LDD สำหรับพิกัดนี้ · ระบบใช้ SoilGrids/คะแนนกลางแทน');
+  if (!soilGrids) warnings.push('ไม่พบข้อมูลดิน SoilGrids สำหรับพิกัดนี้ · ระบบใช้ LDD หรือคะแนนดินกลางแทน');
   const satellite = satContext(lat, lng);
   const systems = buildSystems(input, climate, protectedArea, soil);
   return { systems, climate, protectedArea, satellite, soil, lddSoilGroup, warnings };

@@ -394,8 +394,11 @@ select.agro-input { cursor: pointer; }
   .agro-brand-name { font-size: 21px; }
   .agro-brand-en { display: block; width: 100%; margin-top: 1px; font-size: 11px; }
   .agro-brand-sub { font-size: 12px; line-height: 1.5; }
-  .agro-nav { width: 100%; justify-content: stretch; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg-1); }
-  .agro-nav button { flex: 1; border-radius: 999px; border-color: transparent; padding: 8px 10px; font-size: 12px; line-height: 1.25; white-space: normal; }
+  .agro-nav { width: 100%; justify-content: stretch; align-items: stretch; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg-1); gap: 4px; }
+  .agro-nav button { flex: 1; border-radius: 999px; border-color: transparent; padding: 9px 10px; font-size: 13px; line-height: 1.2; white-space: nowrap; }
+  .agro-nav-more { display: none; }              /* "& ความน่าเชื่อถือ" → keep the tab short on phones */
+  .agro-nav .tour-help-fab { flex: 0 0 auto; width: 42px; padding: 0; background: transparent; border-color: transparent; box-shadow: none; }
+  .agro-nav .tour-help-fab:hover { background: transparent; box-shadow: none; }
   .agro-model-chip { max-width: 100%; white-space: normal; line-height: 1.35; }
   .agro-intro { padding: 12px 13px; font-size: 13px; }
   .agro-proof { grid-template-columns: 1fr; }
