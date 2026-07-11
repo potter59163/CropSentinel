@@ -472,6 +472,48 @@ body::before {
 .agro-advanced[open] summary { border-bottom: 1.5px solid var(--line-soft); }
 .agro-advanced .agro-calc-grid { padding: 12px; }
 
+/* ── Location: GPS is the primary, recommended action ─────────────────────── */
+.agro-gps-primary { display: flex; flex-direction: column; gap: 10px; }
+.agro-gps-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "ic t" "ic d";
+  column-gap: 15px;
+  row-gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 17px 18px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #0e7a63, #0c6654);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(12, 102, 84, 0.28);
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+.agro-gps-hero:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(12, 102, 84, 0.34); }
+.agro-gps-hero:active { transform: translateY(0); }
+.agro-gps-hero:disabled { opacity: 0.72; cursor: wait; }
+.agro-gps-hero-ic { grid-area: ic; align-self: center; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); }
+.agro-gps-hero-t { grid-area: t; align-self: end; font-size: 17px; font-weight: 800; letter-spacing: 0.2px; }
+.agro-gps-hero-d { grid-area: d; align-self: start; font-size: 12.5px; line-height: 1.42; opacity: 0.92; }
+.agro-gps-hero-badge { position: absolute; top: 11px; right: 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.3px; background: var(--color-sun, #dba93a); color: #3a2a06; padding: 3px 10px; border-radius: 999px; }
+.agro-gps-primary.agro-field-invalid .agro-gps-hero { box-shadow: 0 0 0 3px rgba(201, 83, 69, 0.35), 0 10px 24px rgba(12, 102, 84, 0.28); }
+
+.agro-gps-current {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 10px 13px; border-radius: 11px;
+  background: var(--ok-bg, rgba(107, 140, 90, 0.1));
+  border: 1px solid rgba(47, 143, 91, 0.25);
+  color: var(--fg-1, #243a31); font-size: 13.5px; line-height: 1.4;
+}
+.agro-gps-current b { color: var(--color-forest, #0c6654); font-weight: 700; }
+
+.agro-loc-advanced { margin-top: 2px; }
+.agro-loc-advanced-body { display: flex; flex-direction: column; gap: 16px; padding: 14px; }
+.agro-loc-advanced summary { display: flex; align-items: center; gap: 8px; color: var(--fg-1); }
+
 @media (max-width: 430px) {
   .agro-step-ic { width: 38px; height: 38px; font-size: 17px; }
   .agro-step-t { font-size: 11px; }

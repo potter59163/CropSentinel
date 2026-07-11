@@ -159,26 +159,22 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
         </>)}
 
         {step === 1 && (<>
-          <div className={invalid('location') ? 'agro-field-invalid' : ''}>
-            <Field label="ปักหมุดแปลงบนแผนที่ดาวเทียม" hint="แตะบนแผนที่เพื่อกำหนดจุด · ระบบดึงพิกัด + ความสูงให้อัตโนมัติ">
-              <GoogleMapPicker
-                lat={value.lat ?? NAN_CENTER.lat}
-                lng={value.lng ?? NAN_CENTER.lng}
-                elevationM={value.elevationM}
-                loading={osm === 'loading'}
-                onPick={useMapPoint}
-              />
-              {osm === 'error' && (
-                <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ · ใช้พิกัดจากแผนที่แล้ว แต่คงค่าความสูงเดิมไว้</div>
-              )}
-            </Field>
-          </div>
-
-          <div className="agro-loc-tools">
-            <button type="button" className="agro-gps-btn agro-gps-wide" onClick={useGps} disabled={gps === 'loading'}>
-              <Icon name="crosshair" size={18} /> {gps === 'loading' ? 'กำลังหาตำแหน่ง…' : 'ใช้ตำแหน่งปัจจุบัน (GPS)'}
+          {/* Primary, recommended: one tap gets coordinates + elevation. Best for a
+              farmer standing in their own plot on a phone. */}
+          <div className={`agro-gps-primary ${invalid('location') ? 'agro-field-invalid' : ''}`}>
+            <button type="button" data-tour="gps" className="agro-gps-hero" onClick={useGps} disabled={gps === 'loading'}>
+              <span className="agro-gps-hero-badge thai">แนะนำ</span>
+              <span className="agro-gps-hero-ic"><Icon name="crosshair" size={26} /></span>
+              <span className="agro-gps-hero-t thai">{gps === 'loading' ? 'กำลังหาตำแหน่ง…' : 'ใช้ตำแหน่งปัจจุบัน (GPS)'}</span>
+              <span className="agro-gps-hero-d thai">ยืนอยู่ในแปลง? กดปุ่มนี้ปุ่มเดียว ระบบดึงพิกัดและความสูงให้อัตโนมัติ</span>
             </button>
-            {gps === 'error' && <div className="agro-gps-err thai">ขอตำแหน่งไม่สำเร็จ · ปักหมุดบนแผนที่ หรือเลือกอำเภอด้านล่าง</div>}
+            {gps === 'error' && <div className="agro-gps-err thai">ขอตำแหน่งไม่สำเร็จ (อาจไม่ได้อนุญาต GPS) · เลือกอำเภอ หรือปักหมุดบนแผนที่ด้านล่างแทนได้</div>}
+            {Number.isFinite(value.lat) && Number.isFinite(value.lng) && (
+              <div className="agro-gps-current thai">
+                <Icon name="pin" size={15} /> ตำแหน่งที่เลือก: <b>{value.locationLabel || `${value.lat!.toFixed(3)}, ${value.lng!.toFixed(3)}`}</b>
+                {Number.isFinite(value.elevationM) ? <> · ความสูง <b>{value.elevationM.toLocaleString('en-US')} ม.</b></> : null}
+              </div>
+            )}
           </div>
 
           <Field label="หรือเลือกอำเภอในน่าน" hint="ตั้งพิกัด + ความสูงอัตโนมัติ">
@@ -193,19 +189,39 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
             </div>
           </Field>
 
-          <Field label="ระดับความสูง (เมตร รทก.)" hint="ระบบดึงให้อัตโนมัติ · ปรับเองได้" htmlFor="farm-elev">
-            <input
-              id="farm-elev"
-              type="number"
-              min={0}
-              max={2600}
-              step={10}
-              className={`agro-input ${invalid('elevationM') ? 'is-invalid' : ''}`}
-              value={numberValue(value.elevationM)}
-              aria-invalid={invalid('elevationM') || undefined}
-              onChange={(e) => set({ elevationM: e.target.value.trim() === '' ? Number.NaN : Number(e.target.value), locationLabel: 'กำหนดเอง' })}
-            />
-          </Field>
+          {/* Optional/advanced: pick on the satellite map or fine-tune elevation.
+              For planning a remote plot, on desktop, or when GPS is denied. */}
+          <details className="agro-advanced agro-loc-advanced">
+            <summary className="thai"><Icon name="pin" size={17} /> ปักหมุดบนแผนที่ดาวเทียม หรือปรับความสูงเอง (ไม่บังคับ)</summary>
+            <div className="agro-loc-advanced-body">
+              <Field label="ปักหมุดแปลงบนแผนที่ดาวเทียม" hint="แตะบนแผนที่เพื่อกำหนดจุด · ระบบดึงพิกัด + ความสูงให้อัตโนมัติ">
+                <GoogleMapPicker
+                  lat={value.lat ?? NAN_CENTER.lat}
+                  lng={value.lng ?? NAN_CENTER.lng}
+                  elevationM={value.elevationM}
+                  loading={osm === 'loading'}
+                  onPick={useMapPoint}
+                />
+                {osm === 'error' && (
+                  <div className="agro-gps-err thai">ดึงความสูงจากแผนที่ไม่สำเร็จ · ใช้พิกัดจากแผนที่แล้ว แต่คงค่าความสูงเดิมไว้</div>
+                )}
+              </Field>
+
+              <Field label="ระดับความสูง (เมตร รทก.)" hint="ระบบดึงให้อัตโนมัติ · ปรับเองได้" htmlFor="farm-elev">
+                <input
+                  id="farm-elev"
+                  type="number"
+                  min={0}
+                  max={2600}
+                  step={10}
+                  className={`agro-input ${invalid('elevationM') ? 'is-invalid' : ''}`}
+                  value={numberValue(value.elevationM)}
+                  aria-invalid={invalid('elevationM') || undefined}
+                  onChange={(e) => set({ elevationM: e.target.value.trim() === '' ? Number.NaN : Number(e.target.value), locationLabel: 'กำหนดเอง' })}
+                />
+              </Field>
+            </div>
+          </details>
         </>)}
 
         {step === 2 && (
