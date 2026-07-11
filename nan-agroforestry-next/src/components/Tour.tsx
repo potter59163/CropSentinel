@@ -15,6 +15,7 @@ export interface TourStep {
 interface Rect { top: number; left: number; width: number; height: number; }
 
 const DIM = 'rgba(10, 22, 16, 0.72)';
+const CALLOUT_H = 235; // conservative height reservation for placement decisions
 
 export function Tour({ steps, open, onClose }: {
   steps: TourStep[];
@@ -69,7 +70,14 @@ export function Tour({ steps, open, onClose }: {
         if (tries++ < 40) timer = window.setTimeout(attempt, 50);
         return;
       }
-      if (!scrolled) { el.scrollIntoView({ block: 'center', inline: 'nearest' }); scrolled = true; }
+      if (!scrolled) {
+        // Tall targets are aligned to the top of the viewport (not centred) so the
+        // callout has room BELOW them and never has to sit on top of the content.
+        const h = el.offsetHeight;
+        const centredRoomBelow = (window.innerHeight - h) / 2;
+        el.scrollIntoView({ block: centredRoomBelow < CALLOUT_H + 30 ? 'start' : 'center', inline: 'nearest' });
+        scrolled = true;
+      }
       // Wait for the size to settle before committing the first rect: on the very
       // first paint a full-width input can briefly measure at min-content width, and
       // committing that would make the spotlight flash at the wrong spot then slide.
@@ -123,30 +131,40 @@ export function Tour({ steps, open, onClose }: {
 
   if (!open) return null;
 
-  // Callout placement: bottom sheet on phones; below the target (or above when
-  // there's no room) on desktop; centred when the step has no target.
+  // Callout placement: sit next to the target on whichever side has real room, so
+  // it never covers the highlighted content. Only if no side fits does it pin to
+  // the larger margin as an edge bar.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const mobile = vw < 640;
   const W = Math.min(384, vw - 28);
-  const CH = 235;
+  const CH = CALLOUT_H;
+  const M = 14;
   let calloutStyle: React.CSSProperties;
-  let place: 'center' | 'bottom' | 'top' | 'sheet';
+  let place: 'center' | 'bottom' | 'top' | 'right' | 'left' | 'sheet';
   if (!rect) {
     place = 'center';
     calloutStyle = { width: W, left: Math.round((vw - W) / 2), top: Math.max(24, Math.round(vh / 2 - 150)) };
-  } else if (mobile) {
-    place = 'sheet';
-    calloutStyle = { left: 14, right: 14, bottom: 16, width: 'auto' };
-  } else if (rect.top + rect.height + CH < vh) {
-    place = 'bottom';
-    calloutStyle = { width: W, left: clamp(rect.left, 16, vw - W - 16), top: rect.top + rect.height + 16 };
-  } else if (rect.top - CH > 0) {
-    place = 'top';
-    calloutStyle = { width: W, left: clamp(rect.left, 16, vw - W - 16), top: rect.top - CH - 2 };
   } else {
-    place = 'center';
-    calloutStyle = { width: W, left: Math.round((vw - W) / 2), top: Math.max(24, Math.round(vh / 2 - 150)) };
+    const rBottom = rect.top + rect.height;
+    const rRight = rect.left + rect.width;
+    const below = vh - rBottom, above = rect.top, right = vw - rRight, left = rect.left;
+    if (below >= CH + M) {
+      place = 'bottom';
+      calloutStyle = { width: W, left: clamp(rect.left, M, vw - W - M), top: Math.round(rBottom + M) };
+    } else if (above >= CH + M) {
+      place = 'top';
+      calloutStyle = { width: W, left: clamp(rect.left, M, vw - W - M), top: Math.round(rect.top - CH - M) };
+    } else if (right >= W + M) {
+      place = 'right';
+      calloutStyle = { width: W, left: Math.round(rRight + M), top: clamp(rect.top, M, vh - CH - M) };
+    } else if (left >= W + M) {
+      place = 'left';
+      calloutStyle = { width: W, left: Math.round(rect.left - W - M), top: clamp(rect.top, M, vh - CH - M) };
+    } else {
+      // target fills the viewport — pin to the larger vertical margin as an edge bar
+      place = 'sheet';
+      calloutStyle = below >= above ? { left: 14, right: 14, bottom: 16, width: 'auto' } : { left: 14, right: 14, top: 16, width: 'auto' };
+    }
   }
 
   const holeGeo: React.CSSProperties | undefined = rect
