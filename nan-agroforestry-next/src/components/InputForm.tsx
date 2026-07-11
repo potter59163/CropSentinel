@@ -101,10 +101,12 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
       <div className="agro-step" key={step}>
         {step === 0 && (<>
           <div className="agro-form-grid agro-form-grid-2">
-            <Field label="ขนาดแปลง (ไร่)">
+            <Field label="ขนาดแปลง (ไร่)" htmlFor="farm-size">
               <input
+                id="farm-size"
                 type="number"
                 min={0.5}
+                max={500}
                 step={0.5}
                 className={`agro-input ${invalid('sizeRai') ? 'is-invalid' : ''}`}
                 value={numberValue(value.sizeRai)}
@@ -191,9 +193,13 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
             </div>
           </Field>
 
-          <Field label="ระดับความสูง (เมตร รทก.)" hint="ระบบดึงให้อัตโนมัติ · ปรับเองได้">
+          <Field label="ระดับความสูง (เมตร รทก.)" hint="ระบบดึงให้อัตโนมัติ · ปรับเองได้" htmlFor="farm-elev">
             <input
+              id="farm-elev"
               type="number"
+              min={0}
+              max={2600}
+              step={10}
               className={`agro-input ${invalid('elevationM') ? 'is-invalid' : ''}`}
               value={numberValue(value.elevationM)}
               aria-invalid={invalid('elevationM') || undefined}
@@ -239,10 +245,13 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
         )}
 
         {step === 3 && (<>
-          <Field label="เป้าหมายรายได้ต่อปี" hint="ถ้ามี — ใช้เทียบกับแผนที่ระบบออกแบบ">
+          <Field label="เป้าหมายรายได้ต่อปี" hint="ถ้ามี — ใช้เทียบกับแผนที่ระบบออกแบบ" htmlFor="farm-target">
             <input
+              id="farm-target"
               type="number"
               min={0}
+              max={20000000}
+              step={1000}
               className="agro-input"
               value={value.targetAnnualIncome ?? ''}
               placeholder="เช่น 180000 บาท/ปี"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FarmInput, SystemPlan } from './data/types';
 import type { Climate } from './lib/climate';
 import './styles/animations.css';
@@ -84,14 +84,14 @@ function isFiniteNumber(value: unknown) {
 
 function validateInput(input: FarmInput): FieldIssue[] {
   const issues: FieldIssue[] = [];
-  if (!isFiniteNumber(input.sizeRai) || input.sizeRai <= 0) {
-    issues.push({ field: 'sizeRai', step: 0, message: 'กรอกขนาดแปลงมากกว่า 0 ไร่' });
+  if (!isFiniteNumber(input.sizeRai) || input.sizeRai < 0.5 || input.sizeRai > 500) {
+    issues.push({ field: 'sizeRai', step: 0, message: 'กรอกขนาดแปลง 0.5–500 ไร่' });
   }
   if (!isFiniteNumber(input.lat) || !isFiniteNumber(input.lng)) {
     issues.push({ field: 'location', step: 1, message: 'เลือกตำแหน่งแปลงจากแผนที่ GPS หรืออำเภอ' });
   }
-  if (!isFiniteNumber(input.elevationM) || input.elevationM < 0 || input.elevationM > 2500) {
-    issues.push({ field: 'elevationM', step: 1, message: 'กรอกความสูง 0-2,500 เมตร' });
+  if (!isFiniteNumber(input.elevationM) || input.elevationM < 0 || input.elevationM > 2600) {
+    issues.push({ field: 'elevationM', step: 1, message: 'กรอกความสูง 0-2,600 เมตร' });
   }
   if (!input.goal) {
     issues.push({ field: 'goal', step: 3, message: 'เลือกเป้าหมายของแผน' });
@@ -139,7 +139,34 @@ export function App() {
   const [sat, setSat] = useState<SatContext | null>(null);
   const [soil, setSoil] = useState<SoilContext | null>(null);
   const [apiWarnings, setApiWarnings] = useState<string[]>([]);
+  const [runFailed, setRunFailed] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const copyTimerRef = useRef<number | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+
+  // Best-effort clipboard copy that NEVER throws (no prompt() — it is unsupported
+  // in some webviews and surfaces as an unhandled rejection). The share link is
+  // also already in the address bar, so a failure is a soft degrade.
+  const copyPlanLink = async () => {
+    const url = window.location.href;
+    let ok = false;
+    try {
+      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); ok = true; }
+    } catch { /* fall through to execCommand */ }
+    if (!ok) {
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      try {
+        ta.focus(); ta.select();
+        ok = document.execCommand('copy');
+      } catch { ok = false; }
+      finally { ta.remove(); } // always clean up the node, even if select/copy throws
+    }
+    setCopyState(ok ? 'ok' : 'fail');
+    if (copyTimerRef.current !== undefined) window.clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = window.setTimeout(() => setCopyState('idle'), 2500);
+  };
   const [tab, setTab] = useState<'planner' | 'method'>('planner');
   const [step, setStep] = useState(0);
   const [attemptedSteps, setAttemptedSteps] = useState<number[]>([]);
@@ -193,11 +220,20 @@ export function App() {
 
     setBusy(true);
     setApiWarnings([]);
+    // NOTE: runFailed is intentionally NOT reset here — keeping it true while a
+    // retry is in flight keeps the retry block mounted so its busy state renders
+    // (see the warning block below). It is cleared on success instead.
+    // Abort a stalled request instead of leaving a field officer stuck on
+    // "กำลังวิเคราะห์…" forever on a spotty rural connection. /api/plan fans out to
+    // several external sources, so give it a generous but finite budget.
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 25000);
     try {
       const response = await fetch('/api/plan', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error(`plan API ${response.status}`);
       const data = await response.json() as {
@@ -215,12 +251,35 @@ export function App() {
       setApiWarnings(data.warnings ?? []);
       setActivePlan(0);
       setSystems(data.systems);
-      persistPlan(data.systems);
+      setRunFailed(false); // clear any prior failure once a run succeeds
+      // Persistence (localStorage/history) is best-effort — a webview/private-mode
+      // failure must never masquerade as a failed plan or hide the computed result.
+      try { persistPlan(data.systems); } catch { /* ignore */ }
       setShowResult(true);
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
     } catch (error) {
-      setApiWarnings([error instanceof Error ? error.message : 'ไม่สามารถคำนวณแผนได้']);
+      // Never surface a raw "plan API 500" / "TypeError: Failed to fetch" to a
+      // farmer — map to plain Thai by failure mode. Distinguish a deterministic
+      // 4xx (bad input — retrying the same payload is pointless) from a transient
+      // 5xx/network error (retry makes sense).
+      const status = error instanceof Error ? Number(error.message.match(/plan API (\d+)/)?.[1] ?? 0) : 0;
+      const isRateLimited = status === 429; // transient — valid input, just too fast
+      const isClientError = status >= 400 && status < 500 && !isRateLimited;
+      const msg = error instanceof DOMException && error.name === 'AbortError'
+        ? 'ใช้เวลานานเกินไป — อินเทอร์เน็ตอาจช้า ลองใหม่อีกครั้ง'
+        : isRateLimited
+          ? 'ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่'
+          : isClientError
+            ? 'ข้อมูลที่กรอกไม่ถูกต้อง — โปรดตรวจสอบค่าที่กรอก (เช่น ขนาดแปลง 0.5–500 ไร่) แล้วแก้ไข'
+            : status >= 500
+              ? 'เซิร์ฟเวอร์ขัดข้องชั่วคราว ลองใหม่อีกครั้งในอีกสักครู่'
+              : 'เชื่อมต่อไม่ได้ — ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+      setApiWarnings([msg]);
+      // only offer a retry when re-sending the same request could plausibly succeed
+      // (bad input won't — but a rate-limit or transient error will)
+      setRunFailed(!isClientError);
     } finally {
+      window.clearTimeout(timeout);
       setBusy(false);
     }
   };
@@ -322,12 +381,26 @@ export function App() {
 
               <InputForm value={input} onChange={setInput} step={step} invalidFields={invalidFields} />
 
-              {apiWarnings.length > 0 && (
+              {/* Stay mounted while a retry is in flight (runFailed && busy) even
+                  though apiWarnings was cleared — otherwise the retry button unmounts
+                  before its busy state can render and the user gets no feedback. */}
+              {(apiWarnings.length > 0 || (runFailed && busy)) && (
                 <div className="agro-gistda warn">
                   <span className="agro-gistda-icon"><Icon name="warning" size={24} /></span>
                   <div className="agro-gistda-body">
-                    <b className="thai">ยังคำนวณไม่สำเร็จ</b>
-                    <div className="thai">{apiWarnings.join(' · ')}</div>
+                    {busy ? (
+                      <b className="thai">กำลังลองใหม่…</b>
+                    ) : (
+                      <>
+                        <b className="thai">ยังคำนวณไม่สำเร็จ</b>
+                        <div className="thai">{apiWarnings.join(' · ')}</div>
+                        {runFailed && (
+                          <button type="button" className="agro-wiz-btn submit" style={{ marginTop: 10 }} onClick={run}>
+                            <Icon name="sprout" size={18} /> ลองใหม่อีกครั้ง
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -378,7 +451,10 @@ export function App() {
               {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
             </div>
             <div className="agro-results-actions">
-              <button type="button" className="agro-osm-link thai" onClick={() => navigator.clipboard?.writeText(window.location.href)}><Icon name="copy" size={16} /> คัดลอกลิงก์แผน</button>
+              <button type="button" className="agro-osm-link thai" onClick={copyPlanLink}>
+                <Icon name={copyState === 'ok' ? 'checkCircle' : 'copy'} size={16} />
+                {' '}{copyState === 'ok' ? 'คัดลอกแล้ว' : copyState === 'fail' ? 'คัดลอกไม่ได้ — ใช้ลิงก์จากแถบที่อยู่' : 'คัดลอกลิงก์แผน'}
+              </button>
               <button type="button" className="agro-osm-link thai" onClick={() => window.print()}><Icon name="print" size={16} /> พิมพ์/PDF</button>
             </div>
           </div>
@@ -433,7 +509,12 @@ export function App() {
             <div className="agro-impact-grid">
               <div>
                 <span>ไฟป่ารอบแปลง</span>
-                <b>{prot ? `${fireNear(prot)} จุด · ทั้งน่าน ${prot.disasterFire7dNan ?? prot.fireHotspots}` : '—'}</b>
+                {/* Only show a count when the read is trustworthy — a failed/partial
+                    GISTDA fire query returns 0, which must NOT read as "no fire". */}
+                <b>{!prot ? '—'
+                  : (prot.disasterStatus === 'live' || prot.fireStatus === 'ok')
+                    ? `${fireNear(prot)} จุด · ทั้งน่าน ${prot.disasterStatus === 'live' ? prot.disasterFire7dNan : prot.fireHotspots}`
+                    : 'ดึงข้อมูลไม่สำเร็จ'}</b>
               </div>
               <div>
                 <span>น้ำท่วม</span>
@@ -441,7 +522,12 @@ export function App() {
               </div>
               <div>
                 <span>ใกล้ลำน้ำ</span>
-                <b>{prot?.riverNear ? `≤ ${prot.riverDistanceM?.toLocaleString('en-US')} ม.` : 'ไม่พบใน 3 กม.'}</b>
+                {/* '===ok' (not '!==unavailable') so any missing/legacy status also
+                    degrades to the honest "fetch failed" rather than asserting no river. */}
+                <b>{!prot ? '—'
+                  : prot.riverNear ? `≤ ${prot.riverDistanceM?.toLocaleString('en-US')} ม.`
+                  : prot.riverStatus === 'ok' ? 'ไม่พบใน 3 กม.'
+                  : 'ดึงข้อมูลไม่สำเร็จ'}</b>
               </div>
               <div>
                 <span>ภัยแล้ง</span>
@@ -564,13 +650,29 @@ export function App() {
               </div>
             )}
 
-            {prot?.disasterStatus === 'missing-key' && (
+            {(prot?.disasterStatus === 'missing-key' || prot?.disasterStatus === 'unavailable') && (
               <div className="agro-gistda warn">
-                <span className="agro-gistda-icon"><Icon name="key" size={24} /></span>
+                <span className="agro-gistda-icon"><Icon name="satellite" size={24} /></span>
                 <div className="agro-gistda-body">
-                  <b className="thai">GISTDA Disaster API ยังไม่เปิดใน production</b>
-                  <div className="thai">ตั้งค่า Environment Variable `GISTDA_DISASTER_API_KEY` บน Vercel เพื่อเปิดข้อมูลไฟป่า น้ำท่วม และภัยแล้งแบบ official API</div>
-                  <div className="agro-gistda-src">key จะอยู่ฝั่ง Next.js API route เท่านั้น ไม่ถูกส่งเข้า frontend bundle</div>
+                  <b className="thai">ยังไม่ได้ประเมินความเสี่ยงภัยพิบัติรอบแปลงในรอบนี้</b>
+                  <div className="thai">ข้อมูลไฟป่า/น้ำท่วม/ภัยแล้งจาก GISTDA ยังไม่พร้อมใช้ขณะนี้ — <b>ไม่ได้แปลว่าไม่มีความเสี่ยง</b> ควรสอบถามเกษตรอำเภอ/อบต. เพิ่มเติม</div>
+                </div>
+              </div>
+            )}
+
+            {/* Only when the broader disaster-unavailable box above is NOT already
+                showing (missing-key/unavailable) — otherwise the two boxes stack and
+                both say fire wasn't assessed. This fire-specific box still covers the
+                'live'/'bad-request'/undefined disaster cases where box 653 is silent. */}
+            {prot && prot.fireStatus && prot.fireStatus !== 'ok'
+              && prot.disasterStatus !== 'live'
+              && prot.disasterStatus !== 'missing-key'
+              && prot.disasterStatus !== 'unavailable' && (
+              <div className="agro-gistda warn">
+                <span className="agro-gistda-icon"><Icon name="fire" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">ข้อมูลไฟป่า GISTDA ดึงไม่สำเร็จรอบนี้</b>
+                  <div className="thai">ยังไม่ได้ประเมินจุดความร้อนรอบแปลง — <b>ไม่ได้แปลว่าไม่มีไฟ</b> ช่วงหน้าแล้ง (ก.พ.–เม.ย.) ควรเฝ้าระวังและทำแนวกันไฟไว้เสมอ</div>
                 </div>
               </div>
             )}
@@ -602,8 +704,9 @@ export function App() {
                     ดินเชิงพื้นที่: {soil.ldd ? `${soil.ldd.soilGroupLabel} · ` : ''}{soil.texture} · pH {soil.ph} ({soil.acidityTh}) · {soil.drainageTh}
                   </b>
                   <div className="thai">
-                    อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg ·
-                    เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% ·
+                    {soil.sdmFeatureSource === 'soilgrids'
+                      ? <>อินทรียวัตถุ {soil.organicCarbonPct}% · ไนโตรเจน {soil.nitrogenPct}% · CEC {soil.cec} mmol/kg · เนื้อดิน clay {soil.clayPct}% / sand {soil.sandPct}% / silt {soil.siltPct}% · </>
+                      : <>อินทรียวัตถุ/ไนโตรเจน/CEC: <b>ยังไม่มีผลตรวจ</b> (พื้นที่นี้ไม่มีข้อมูล SoilGrids — ต้องเก็บตัวอย่างส่งแล็บ) · เนื้อดินโดยประมาณจากกลุ่มชุดดิน · </>}
                     ความอุดมสมบูรณ์ {soil.fertilityTh}
                     {soil.acidity === 'strong' ? ' — ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด' : ''}
                     {' '}ระบบนำค่าดินนี้ไปปรับอันดับพืชตามการระบายน้ำ/ความเป็นกรดแล้ว

@@ -101,8 +101,8 @@ export function GoogleMapPicker({
       {err ? (
         <div className="agro-gmap agro-gmap-fallback thai">
           {err === 'missing-key'
-            ? 'ยังไม่ได้ตั้งค่า NEXT_PUBLIC_GOOGLE_MAPS_API_KEY'
-            : 'โหลด Google Maps ไม่สำเร็จ — ตรวจสอบ API key และการจำกัดสิทธิ์ (HTTP referrer / Maps JavaScript API)'}
+            ? 'แผนที่ดาวเทียมยังไม่พร้อมใช้ในขณะนี้ — เลือกตำแหน่งด้วยปุ่ม GPS หรืออำเภอด้านล่างได้เลย'
+            : 'โหลดแผนที่ไม่สำเร็จ (อินเทอร์เน็ตอาจช้า) — ใช้ GPS หรือเลือกอำเภอด้านล่างแทนได้'}
         </div>
       ) : (
         <div
@@ -115,7 +115,7 @@ export function GoogleMapPicker({
       <div className="agro-osm-meta">
         <span>lat {centerLat.toFixed(5)}</span>
         <span>lng {centerLng.toFixed(5)}</span>
-        <span>{elevationM.toLocaleString('en-US')} m</span>
+        <span>{Number.isFinite(elevationM) ? `${elevationM.toLocaleString('en-US')} m` : '— m'}</span>
         {loading && <span className="thai">กำลังดึงความสูง…</span>}
       </div>
     </div>

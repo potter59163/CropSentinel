@@ -8,10 +8,10 @@ export function Chip({ kind = 'data', children }: { kind?: string; children: Rea
   return <span className={`chip ${kind} thai`}><span className="dot" />{children}</span>;
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({ label, hint, htmlFor, children }: { label: string; hint?: string; htmlFor?: string; children: ReactNode }) {
   return (
     <div className="agro-field">
-      <label className="agro-label thai">{label}{hint && <span className="agro-hint"> · {hint}</span>}</label>
+      <label className="agro-label thai" htmlFor={htmlFor}>{label}{hint && <span className="agro-hint"> · {hint}</span>}</label>
       {children}
     </div>
   );
