@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 
 export interface TourStep {
   target?: string;          // CSS selector to spotlight; omit for a centered card
   title: string;
   body: string;
-  emoji?: string;
+  icon?: IconName;
   onEnter?: () => void;     // move the wizard to the right step before we measure
   padding?: number;         // extra px around the spotlight
 }
@@ -197,7 +197,7 @@ export function Tour({ steps, open, onClose }: {
       {showCallout && (
         <div className={`tour-callout tour-place-${place}`} style={calloutStyle}>
           <div className="tour-head">
-            <span className="tour-emoji" aria-hidden>{step.emoji ?? '🌱'}</span>
+            <span className="tour-icon" aria-hidden><Icon name={step.icon ?? 'sprout'} size={19} /></span>
             <span className="tour-count">{i + 1} / {steps.length}</span>
             <button type="button" className="tour-x" onClick={() => onClose(false)} aria-label="ปิดคำแนะนำ">✕</button>
           </div>

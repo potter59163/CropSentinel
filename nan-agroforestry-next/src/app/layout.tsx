@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from 'next';
+import { Noto_Sans_Thai } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
+
+// Self-hosted at build time (served from our own origin) — no render-blocking
+// @import, no external Google Fonts request, no layout shift. Only the weights we
+// actually use; the previously-loaded Inter family was unused and is dropped.
+const notoThai = Noto_Sans_Thai({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-noto-thai',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'วนเกษตรน่าน | Nan Agroforestry Planner',
@@ -43,7 +54,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th">
+    <html lang="th" className={notoThai.variable}>
       <body>
         {children}
         <SpeedInsights />

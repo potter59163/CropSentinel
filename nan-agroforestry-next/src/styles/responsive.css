@@ -1,5 +1,5 @@
 /* Responsive design */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+/* Fonts are self-hosted via next/font (see app/layout.tsx) — no @import here. */
 
 * {
   margin: 0;

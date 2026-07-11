@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FarmInput, SystemPlan } from './data/types';
 import type { Climate } from './lib/climate';
 import './styles/animations.css';
@@ -151,65 +151,65 @@ export function App() {
   // Guided coach-mark tour. Each step optionally moves the wizard to the right
   // step BEFORE the Tour measures its target, so the whole flow can be shown from
   // a fresh load. Targets are stable ids/classes already in the markup.
-  const gotoStep = (n: number) => { setTab('planner'); setShowResult(false); setStep(n); };
-  const tourSteps: TourStep[] = [
+  const gotoStep = useCallback((n: number) => { setTab('planner'); setShowResult(false); setStep(n); }, []);
+  const tourSteps: TourStep[] = useMemo(() => [
     {
-      emoji: '📐',
+      icon: 'plot',
       title: 'ขั้น 1 · กรอกขนาดแปลง',
       body: 'พิมพ์ขนาดแปลงเป็น “ไร่” (0.5–500 ไร่) ตัวเลขนี้ใช้คำนวณผลผลิต ต้นทุน และรายได้รวมทั้งแปลง',
       target: '#farm-size',
       onEnter: () => gotoStep(0),
     },
     {
-      emoji: '🌾',
+      icon: 'soil',
       title: 'บอกสภาพพื้นที่เดิม',
       body: 'ตอนนี้ปลูกอะไร/สภาพเป็นแบบไหน แบ่งเป็นหลายโซนได้ ระบบจะเอาไปคิด “ต้นทุนเปลี่ยนผ่าน” ปีแรกให้ตรงความจริง',
       target: '.agro-zone-panel',
       onEnter: () => gotoStep(0),
     },
     {
-      emoji: '🛰️',
+      icon: 'satellite',
       title: 'ขั้น 2 · ปักหมุดแปลงบนแผนที่',
       body: 'แตะบนแผนที่ดาวเทียมตรงแปลงของคุณ ระบบจะดึงพิกัด ความสูง และข้อมูลดิน/ภัยพิบัติของจุดนั้นให้อัตโนมัติ',
       target: '.agro-gmap',
       onEnter: () => gotoStep(1),
     },
     {
-      emoji: '📍',
+      icon: 'pin',
       title: 'ไม่สะดวกปักหมุด? เลือกอำเภอได้',
       body: 'กดปุ่ม “ใช้ตำแหน่งปัจจุบัน (GPS)” หรือแตะชื่ออำเภอในน่าน ระบบจะตั้งพิกัดและความสูงให้ทันที',
       target: '.agro-amphoe',
       onEnter: () => gotoStep(1),
     },
     {
-      emoji: '⛰️',
+      icon: 'mountain',
       title: 'ความสูงของพื้นที่',
       body: 'ระบบดึงความสูงให้อัตโนมัติ แต่ปรับเองได้ ความสูงสำคัญมาก เพราะพืชแต่ละชนิดเหมาะกับระดับความสูงต่างกัน (เช่น กาแฟ/มะแขว่นชอบที่สูง)',
       target: '#farm-elev',
       onEnter: () => gotoStep(1),
     },
     {
-      emoji: '🌳',
+      icon: 'leaf',
       title: 'ขั้น 3 · เลือกพืชที่อยากปลูก',
       body: 'แตะเลือกพืชในแต่ละชั้นได้ตามใจ — หรือ “เว้นว่างไว้” แล้วให้ระบบเลือกชนิดที่เหมาะกับพื้นที่ให้เอง ไม่ต้องรู้จักพืชมาก่อนก็ได้',
       target: '.agro-pick',
       onEnter: () => gotoStep(2),
     },
     {
-      emoji: '🎯',
+      icon: 'target',
       title: 'ขั้น 4 · เลือกเป้าหมาย',
       body: 'อยากได้แบบไหน: สมดุล · เห็นผลไว (คืนทุนเร็ว) · หรือกำไรสูงสุดระยะยาว ระบบจะจัดแผนให้ตรงเป้าหมายของคุณ',
       target: '.agro-goals',
       onEnter: () => gotoStep(3),
     },
     {
-      emoji: '✨',
+      icon: 'sprout',
       title: 'กดเพื่อดูแผน',
       body: 'พร้อมแล้วกด “ออกแบบระบบ” ได้ 3 แผนวนเกษตรพร้อมกราฟรายได้ 10 ปี จุดคืนทุน คาร์บอน และความเสี่ยง · อยากดูคำแนะนำนี้อีกครั้ง กดปุ่ม “? คู่มือ” มุมขวาบนได้เสมอ',
       target: '[data-tour="submit"]',
       onEnter: () => gotoStep(3),
     },
-  ];
+  ], [gotoStep]);
 
   const startTour = () => { gotoStep(0); setTourOpen(true); };
   const closeTour = () => {

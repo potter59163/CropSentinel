@@ -45,7 +45,7 @@
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Courier New', monospace;
-  --font-thai: 'Noto Sans Thai', system-ui, sans-serif;
+  --font-thai: var(--font-noto-thai), 'Noto Sans Thai', system-ui, sans-serif;
 }
 
 * {

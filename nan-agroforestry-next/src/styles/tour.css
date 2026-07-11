@@ -74,7 +74,16 @@
   gap: 10px;
   margin-bottom: 8px;
 }
-.tour-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.tour-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--bg-2, #e1ece6);
+  color: var(--color-forest, #0c6654);
+}
 .tour-count {
   font-size: 12px;
   font-weight: 700;

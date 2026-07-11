@@ -6,7 +6,7 @@ export type IconName =
   | 'plot' | 'pin' | 'crosshair' | 'leaf' | 'target' | 'check' | 'tree'
   | 'shieldX' | 'shield' | 'checkCircle' | 'drop' | 'fire' | 'satellite'
   | 'key' | 'soil' | 'sprout' | 'gear' | 'warning' | 'edit' | 'carbon'
-  | 'info' | 'arrowLeft' | 'arrowRight' | 'copy' | 'print';
+  | 'info' | 'arrowLeft' | 'arrowRight' | 'copy' | 'print' | 'mountain';
 
 const P: Record<IconName, ReactNode> = {
   plot: (<>
@@ -107,6 +107,10 @@ const P: Record<IconName, ReactNode> = {
   print: (<>
     <path d="M7 17H5a3 3 0 0 1-3-3v-3a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3h-2" />
     <path d="M7 8V3h10v5M7 14h10v7H7z" />
+  </>),
+  mountain: (<>
+    <path d="M3 20h18L14.5 7l-3.2 5.6-2.1-2.6L3 20z" />
+    <path d="M11.3 12.6 14.5 7" />
   </>),
 };
 

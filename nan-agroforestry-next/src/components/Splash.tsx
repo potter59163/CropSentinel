@@ -10,15 +10,17 @@ export function Splash() {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
+    // Keep the splash brief — it's shown only while the app hydrates. A fast ramp
+    // (~250ms) + a short fade avoids adding dead time to every page load.
     let p = 0;
     const id = window.setInterval(() => {
-      p = Math.min(100, p + Math.random() * 11 + 5);
+      p = Math.min(100, p + Math.random() * 16 + 20);
       setPct(Math.round(p));
       if (p >= 100) {
         window.clearInterval(id);
-        window.setTimeout(() => setHidden(true), 500);
+        window.setTimeout(() => setHidden(true), 240);
       }
-    }, 110);
+    }, 45);
     return () => window.clearInterval(id);
   }, []);
 
