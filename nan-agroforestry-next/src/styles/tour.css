@@ -1,0 +1,218 @@
+/* ── First-run guided tour (coach-marks / spotlight) ───────────────────────── */
+
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  pointer-events: none;               /* children opt back in */
+  animation: tour-fade 0.25s ease;
+}
+@keyframes tour-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* full-screen click catcher — keeps the user on the guided Next/Back path */
+.tour-blocker {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* the spotlight cut-out: transparent element whose huge box-shadow dims the rest */
+.tour-hole {
+  position: fixed;
+  border-radius: 14px;
+  pointer-events: none;
+  transition: top 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              left 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* soft glowing ring hugging the highlighted element */
+.tour-hole::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px var(--color-sun, #dba93a), 0 0 0 6px rgba(219, 169, 58, 0.28);
+  animation: tour-pulse 1.8s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--color-sun, #dba93a), 0 0 0 5px rgba(219, 169, 58, 0.30); }
+  50%      { box-shadow: 0 0 0 2px var(--color-sun, #dba93a), 0 0 0 11px rgba(219, 169, 58, 0.05); }
+}
+
+/* the explanation card */
+.tour-callout {
+  position: fixed;
+  pointer-events: auto;
+  background: #fff;
+  border: 1px solid var(--line, #d5e1db);
+  border-radius: 18px;
+  padding: 18px 18px 15px;
+  box-shadow: 0 18px 48px rgba(10, 22, 16, 0.30), 0 2px 6px rgba(10, 22, 16, 0.12);
+  animation: tour-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+@keyframes tour-pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.tour-place-sheet {
+  border-radius: 20px 20px 16px 16px;
+  animation: tour-sheet 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+@keyframes tour-sheet { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+.tour-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.tour-emoji { font-size: 22px; line-height: 1; }
+.tour-count {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-forest, #0c6654);
+  background: var(--bg-2, #e1ece6);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.tour-x {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--bg-1, #edf5ef);
+  color: var(--fg-2, #5d7068);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tour-x:hover { background: var(--bg-3, #d2dfd8); color: var(--fg-0, #10221b); }
+
+.tour-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--fg-0, #10221b);
+  line-height: 1.3;
+}
+.tour-body {
+  margin: 0 0 14px;
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--fg-1, #243a31);
+}
+
+.tour-dots {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.tour-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg-3, #d2dfd8);
+  transition: background 0.2s, width 0.2s;
+}
+.tour-dot.done { background: var(--color-forest, #0c6654); opacity: 0.5; }
+.tour-dot.on { background: var(--color-forest, #0c6654); width: 20px; border-radius: 4px; }
+
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tour-skip {
+  border: 0;
+  background: none;
+  color: var(--fg-3, #869891);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 2px;
+  transition: color 0.15s;
+}
+.tour-skip:hover { color: var(--fg-1, #243a31); text-decoration: underline; }
+.tour-nav {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.tour-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 11px;
+  padding: 9px 15px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+}
+.tour-btn:active { transform: translateY(1px); }
+.tour-btn.ghost {
+  background: #fff;
+  border-color: var(--line, #d5e1db);
+  color: var(--fg-1, #243a31);
+}
+.tour-btn.ghost:hover { background: var(--bg-1, #edf5ef); }
+.tour-btn.primary {
+  background: var(--color-forest, #0c6654);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(12, 102, 84, 0.32);
+}
+.tour-btn.primary:hover { background: #0a5648; }
+
+/* ── the floating "?" re-open button ──────────────────────────────────────── */
+.tour-help-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #d5e1db);
+  background: #fff;
+  color: var(--color-forest, #0c6654);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.tour-help-fab:hover { background: var(--bg-1, #edf5ef); box-shadow: var(--shadow-soft, 0 8px 16px rgba(16,34,27,0.08)); }
+.tour-help-fab:active { transform: translateY(1px); }
+.tour-help-q {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-forest, #0c6654);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .tour-callout { padding: 16px 15px 13px; }
+  .tour-title { font-size: 16.5px; }
+  .tour-body { font-size: 14px; }
+  .tour-help-fab .tour-help-label { display: none; }
+  .tour-help-fab { padding: 0; width: 34px; }
+  .tour-actions { gap: 6px; }
+  .tour-skip { font-size: 12px; padding: 6px 0; }
+  .tour-btn { padding: 9px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-hole, .tour-callout, .tour-root { transition: none; animation: none; }
+  .tour-hole::after { animation: none; }
+}

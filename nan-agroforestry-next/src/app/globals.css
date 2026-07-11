@@ -3,6 +3,7 @@
 @import "../styles/animations.css";
 @import "../styles/agro.css";
 @import "../styles/field-override.css";
+@import "../styles/tour.css";
 
 @media print {
   body { background: white !important; color: #111 !important; }

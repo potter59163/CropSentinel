@@ -16,6 +16,9 @@ import { ResultPlan } from './components/ResultPlan';
 import { Methodology } from './components/Methodology';
 import { Icon, type IconName } from './components/Icon';
 import { Splash } from './components/Splash';
+import { Tour, type TourStep } from './components/Tour';
+
+const TOUR_KEY = 'nan-agro-tour-v1';
 
 const DEFAULT_INPUT: FarmInput = {
   currentCropId: 'ข้าวโพดเลี้ยงสัตว์', sizeRai: 10, elevationM: 420,
@@ -143,6 +146,106 @@ export function App() {
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
   const copyTimerRef = useRef<number | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+
+  // Guided coach-mark tour. Each step optionally moves the wizard to the right
+  // step BEFORE the Tour measures its target, so the whole flow can be shown from
+  // a fresh load. Targets are stable ids/classes already in the markup.
+  const gotoStep = (n: number) => { setTab('planner'); setShowResult(false); setStep(n); };
+  const tourSteps: TourStep[] = [
+    {
+      emoji: '🌱',
+      title: 'ยินดีต้อนรับสู่ วนเกษตรน่าน',
+      body: 'เครื่องมือช่วยออกแบบแปลง “วนเกษตรหลายชั้น” ให้เหมาะกับพื้นที่ของคุณจริง โดยใช้ดาวเทียม ดิน ภูมิอากาศ และ AI ผมจะพาดูวิธีใช้ทีละขั้น ใช้เวลาไม่ถึง 1 นาที',
+      onEnter: () => gotoStep(0),
+    },
+    {
+      emoji: '🧭',
+      title: 'ทำแค่ 4 ขั้นตอน',
+      body: '1) บอกขนาดแปลง → 2) ปักตำแหน่ง → 3) เลือกพืช (หรือให้ระบบเลือกให้) → 4) เลือกเป้าหมาย แล้วกดออกแบบ ระบบจะให้ 3 แผนพร้อมรายได้ 10 ปี ต้นทุน คาร์บอน และความเสี่ยง',
+      onEnter: () => gotoStep(0),
+    },
+    {
+      emoji: '📐',
+      title: 'ขั้น 1 · กรอกขนาดแปลง',
+      body: 'พิมพ์ขนาดแปลงเป็น “ไร่” (0.5–500 ไร่) ตัวเลขนี้ใช้คำนวณผลผลิต ต้นทุน และรายได้รวมทั้งแปลง',
+      target: '#farm-size',
+      onEnter: () => gotoStep(0),
+    },
+    {
+      emoji: '🌾',
+      title: 'บอกสภาพพื้นที่เดิม',
+      body: 'ตอนนี้ปลูกอะไร/สภาพเป็นแบบไหน แบ่งเป็นโซนได้ ระบบจะเอาไปคิด “ต้นทุนเปลี่ยนผ่าน” ปีแรกให้ตรงความจริง',
+      target: '.agro-zone-panel',
+      onEnter: () => gotoStep(0),
+    },
+    {
+      emoji: '🛰️',
+      title: 'ขั้น 2 · ปักหมุดแปลงบนแผนที่',
+      body: 'แตะบนแผนที่ดาวเทียมตรงแปลงของคุณ ระบบจะดึงพิกัด + ความสูง และข้อมูลดิน/ภัยพิบัติของจุดนั้นให้อัตโนมัติ',
+      target: '.agro-gmap',
+      onEnter: () => gotoStep(1),
+    },
+    {
+      emoji: '📍',
+      title: 'ไม่สะดวกปักหมุด? เลือกอำเภอได้',
+      body: 'กดปุ่ม “ใช้ตำแหน่งปัจจุบัน (GPS)” หรือแตะชื่ออำเภอในน่าน ระบบจะตั้งพิกัดและความสูงให้ทันที',
+      target: '.agro-amphoe',
+      onEnter: () => gotoStep(1),
+    },
+    {
+      emoji: '⛰️',
+      title: 'ความสูงของพื้นที่',
+      body: 'ระบบดึงความสูงให้อัตโนมัติ แต่ปรับเองได้ ความสูงสำคัญมาก เพราะพืชแต่ละชนิดเหมาะกับระดับความสูงต่างกัน (เช่น กาแฟ/มะแขว่นชอบที่สูง)',
+      target: '#farm-elev',
+      onEnter: () => gotoStep(1),
+    },
+    {
+      emoji: '🌳',
+      title: 'ขั้น 3 · เลือกพืชที่อยากปลูก',
+      body: 'แตะเลือกพืชในแต่ละชั้นได้ตามใจ — หรือ “เว้นว่างไว้” แล้วให้ระบบเลือกชนิดที่เหมาะกับพื้นที่ให้เอง ไม่จำเป็นต้องรู้จักพืชมาก่อน',
+      target: '.agro-pick',
+      onEnter: () => gotoStep(2),
+    },
+    {
+      emoji: '🎯',
+      title: 'ขั้น 4 · เลือกเป้าหมาย',
+      body: 'อยากได้แบบไหน: สมดุล · เห็นผลไว (คืนทุนเร็ว) · หรือกำไรสูงสุดระยะยาว ระบบจะจัดแผนให้ตรงเป้าหมายของคุณ',
+      target: '.agro-goals',
+      onEnter: () => gotoStep(3),
+    },
+    {
+      emoji: '✨',
+      title: 'กดเพื่อดูแผน',
+      body: 'พร้อมแล้วกด “ออกแบบระบบ” ระบบจะสร้าง 3 แผนวนเกษตรพร้อมกราฟรายได้ 10 ปี จุดคืนทุน คาร์บอน และคำเตือนความเสี่ยง เทียบกันได้เลย',
+      target: '[data-tour="submit"]',
+      onEnter: () => gotoStep(3),
+    },
+    {
+      emoji: '✅',
+      title: 'พร้อมใช้งานแล้ว!',
+      body: 'ลองกรอกข้อมูลแปลงจริงของคุณได้เลย อยากดูคำแนะนำนี้อีกครั้ง กดปุ่ม “? คู่มือ” มุมขวาบนได้เสมอ',
+      onEnter: () => gotoStep(0),
+    },
+  ];
+
+  const startTour = () => { gotoStep(0); setTourOpen(true); };
+  const closeTour = () => {
+    setTourOpen(false);
+    gotoStep(0);
+    try { window.localStorage.setItem(TOUR_KEY, '1'); } catch { /* ignore */ }
+  };
+
+  // First visit only: auto-start once the splash has cleared. Skipped when arriving
+  // on a shared ?plan= link (that user wants their result, not a tour).
+  useEffect(() => {
+    let seen = true;
+    try { seen = window.localStorage.getItem(TOUR_KEY) === '1'; } catch { /* ignore */ }
+    const shared = new URLSearchParams(window.location.search).has('plan');
+    if (seen || shared) return;
+    const t = window.setTimeout(() => setTourOpen(true), 2000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // Best-effort clipboard copy that NEVER throws (no prompt() — it is unsupported
   // in some webviews and surfaces as an unhandled rejection). The share link is
@@ -287,6 +390,7 @@ export function App() {
   return (
     <div className="agro-app">
       <Splash />
+      <Tour steps={tourSteps} open={tourOpen} onClose={closeTour} />
       <header className="agro-header">
         <div className="agro-brand">
           <span className="agro-brand-mark"><Icon name="tree" size={34} strokeWidth={1.7} /></span>
@@ -301,6 +405,9 @@ export function App() {
         <div className="agro-nav">
           <button className={tab === 'planner' ? 'on' : ''} onClick={() => setTab('planner')}>แพลนเนอร์</button>
           <button className={tab === 'method' ? 'on' : ''} onClick={() => setTab('method')}>วิธีการ &amp; ความน่าเชื่อถือ</button>
+          <button type="button" className="tour-help-fab thai" onClick={startTour} aria-label="เปิดคู่มือการใช้งาน" title="ดูวิธีใช้งานอีกครั้ง">
+            <span className="tour-help-q" aria-hidden>?</span><span className="tour-help-label">คู่มือ</span>
+          </button>
         </div>
         <span className="chip data thai agro-model-chip"><span className="dot" />AI แนะนำพืช จากดาวเทียม ดิน และภูมิอากาศจริง</span>
       </header>
@@ -412,7 +519,7 @@ export function App() {
                   <button type="button" className="agro-wiz-btn next"
                     onClick={goNext}>ถัดไป <Icon name="arrowRight" size={18} /></button>
                 ) : (
-                  <button type="button" className="agro-wiz-btn submit" disabled={busy} onClick={run}>
+                  <button type="button" data-tour="submit" className="agro-wiz-btn submit" disabled={busy} onClick={run}>
                     {busy ? 'กำลังวิเคราะห์…' : <><Icon name="sprout" size={19} /> ออกแบบระบบ</>}
                   </button>
                 )}
