@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TH_LAT_MIN, TH_LAT_MAX, TH_LNG_MIN, TH_LNG_MAX, TH_ELEV_MIN, TH_ELEV_MAX } from './geoBounds';
 
 const layerSelection = z.object({
   canopy: z.array(z.string()).default([]),
@@ -18,11 +19,11 @@ const existingZoneSchema = z.object({
 export const farmInputSchema = z.object({
   currentCropId: z.string().nullable(),
   existingZones: z.array(existingZoneSchema).max(12).optional(),
-  sizeRai: z.number().positive().max(500),
-  elevationM: z.number().min(0).max(2600),
+  sizeRai: z.number().min(0.5).max(500),
+  elevationM: z.number().min(TH_ELEV_MIN).max(TH_ELEV_MAX),
   locationLabel: z.string().min(1).max(120),
-  lat: z.number().min(5).max(22).optional(),
-  lng: z.number().min(97).max(106.5).optional(),
+  lat: z.number().min(TH_LAT_MIN).max(TH_LAT_MAX).optional(),
+  lng: z.number().min(TH_LNG_MIN).max(TH_LNG_MAX).optional(),
   selectedByLayer: layerSelection,
   goal: z.enum(['balanced', 'fast', 'profit']),
   targetAnnualIncome: z.number().positive().max(20_000_000).optional(),

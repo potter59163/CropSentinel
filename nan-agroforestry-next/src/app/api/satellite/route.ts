@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { satContext } from '@/lib/satellite';
+import { parseLatLng } from '@/lib/geoBounds';
+import { rateLimited } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
+  const limited = rateLimited(request, 'satellite', 60, 60_000);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
-  const lat = Number(searchParams.get('lat'));
-  const lng = Number(searchParams.get('lng'));
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return NextResponse.json({ error: 'lat and lng are required numbers' }, { status: 400 });
+  const coords = parseLatLng(searchParams);
+  if (!coords) {
+    return NextResponse.json({ error: 'lat and lng must be numbers within Thailand bounds' }, { status: 400 });
   }
-  return NextResponse.json({ satellite: satContext(lat, lng) }, { headers: { 'Cache-Control': 's-maxage=86400, stale-while-revalidate=604800' } });
+  return NextResponse.json({ satellite: satContext(coords.lat, coords.lng) }, { headers: { 'Cache-Control': 's-maxage=86400, stale-while-revalidate=604800' } });
 }

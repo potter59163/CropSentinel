@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { dbConfigured, sql } from '@/lib/db';
+import { rateLimited } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,10 @@ const feedbackSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Writes to the DB — cap per-IP to prevent feedback-table spam.
+  const limited = rateLimited(request, 'field-feedback', 12, 60_000);
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
   const parsed = feedbackSchema.safeParse(body);
   if (!parsed.success) {

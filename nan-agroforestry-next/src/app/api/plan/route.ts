@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { farmInputSchema } from '@/lib/planSchema';
 import { runPlan } from '@/lib/planRunner';
+import { rateLimited } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  // /api/plan fans out to several external APIs — cap per-IP burst.
+  const limited = rateLimited(request, 'plan', 20, 60_000);
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
   const parsed = farmInputSchema.safeParse(body);
   if (!parsed.success) {
