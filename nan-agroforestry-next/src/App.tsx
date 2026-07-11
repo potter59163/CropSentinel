@@ -17,6 +17,7 @@ import { Methodology } from './components/Methodology';
 import { Icon, type IconName } from './components/Icon';
 import { Splash } from './components/Splash';
 import { Tour, type TourStep } from './components/Tour';
+import { PlanLoading } from './components/PlanLoading';
 
 const TOUR_KEY = 'nan-agro-tour-v1';
 
@@ -359,6 +360,7 @@ export function App() {
     <div className="agro-app">
       <Splash />
       <Tour steps={tourSteps} open={tourOpen} onClose={closeTour} />
+      {busy && <PlanLoading />}
       <header className="agro-header">
         <div className="agro-brand">
           <span className="agro-brand-mark"><Icon name="tree" size={34} strokeWidth={1.7} /></span>

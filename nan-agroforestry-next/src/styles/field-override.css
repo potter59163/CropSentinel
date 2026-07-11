@@ -514,6 +514,90 @@ body::before {
 .agro-loc-advanced-body { display: flex; flex-direction: column; gap: 16px; padding: 14px; }
 .agro-loc-advanced summary { display: flex; align-items: center; gap: 8px; color: var(--fg-1); }
 
+/* ── Plan-computing overlay (the ~5–15s external-data fan-out) ─────────────── */
+.plan-loading-root {
+  position: fixed;
+  inset: 0;
+  z-index: 8500;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 22, 16, 0.55);
+  backdrop-filter: blur(2px);
+  animation: plan-fade 0.2s ease;
+}
+@keyframes plan-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.plan-loading-card {
+  width: min(400px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 22px 60px rgba(10, 22, 16, 0.34);
+  text-align: center;
+  animation: plan-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes plan-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.plan-loading-spinner {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  color: var(--color-forest, #0c6654);
+}
+.plan-loading-spinner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--bg-2, #e1ece6);
+  border-top-color: var(--color-forest, #0c6654);
+  animation: plan-spin 0.9s linear infinite;
+}
+@keyframes plan-spin { to { transform: rotate(360deg); } }
+
+.plan-loading-title { margin: 0 0 4px; font-size: 18px; font-weight: 800; color: var(--fg-0, #10221b); }
+.plan-loading-sub { margin: 0 0 18px; font-size: 12.5px; line-height: 1.5; color: var(--fg-2, #5d7068); }
+
+.plan-loading-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; text-align: left; }
+.plan-loading-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--fg-3, #869891);
+  transition: color 0.25s;
+}
+.plan-loading-step-ic {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-1, #edf5ef);
+  color: var(--fg-3, #869891);
+  transition: background 0.25s, color 0.25s;
+}
+.plan-loading-step.is-on { color: var(--fg-0, #10221b); font-weight: 700; }
+.plan-loading-step.is-on .plan-loading-step-ic { background: var(--color-forest, #0c6654); color: #fff; }
+.plan-loading-step.is-done { color: var(--fg-1, #243a31); }
+.plan-loading-step.is-done .plan-loading-step-ic { background: var(--ok-bg, rgba(107, 140, 90, 0.14)); color: var(--ok, #2f8f5b); }
+
+.plan-loading-dots { display: inline-flex; gap: 3px; margin-left: 2px; }
+.plan-loading-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--color-forest, #0c6654); animation: plan-bounce 1s ease-in-out infinite; }
+.plan-loading-dots i:nth-child(2) { animation-delay: 0.15s; }
+.plan-loading-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes plan-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-loading-spinner::before, .plan-loading-dots i, .plan-loading-root, .plan-loading-card { animation: none; }
+}
+
+
 @media (max-width: 430px) {
   .agro-step-ic { width: 38px; height: 38px; font-size: 17px; }
   .agro-step-t { font-size: 11px; }
