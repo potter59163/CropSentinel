@@ -18,3 +18,5 @@ data-raw/
 
 # generated batch validation output
 data-templates/batch-results.csv
+.vercel
+.env*

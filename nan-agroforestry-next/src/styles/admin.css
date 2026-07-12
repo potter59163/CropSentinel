@@ -1,0 +1,156 @@
+.admin-root {
+  min-height: 100vh;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font-family: var(--font-thai);
+  padding: 32px 16px;
+}
+
+.admin-login-card {
+  max-width: 360px;
+  margin: 10vh auto 0;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.admin-login-card h1 {
+  font-size: 18px;
+  margin: 0;
+  color: var(--color-forest);
+}
+.admin-login-card p {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 14px;
+}
+.admin-login-card input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 15px;
+  background: #fff;
+  color: var(--fg-0);
+}
+.admin-login-card button {
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-forest);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-login-card button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.admin-editor {
+  max-width: 920px;
+  margin: 0 auto;
+}
+.admin-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.admin-editor-head h1 {
+  color: var(--color-forest);
+  font-size: 20px;
+  margin: 0;
+}
+.admin-logout-btn {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--fg-2);
+}
+
+.admin-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.admin-error {
+  background: var(--risk-bg);
+  color: var(--risk);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.admin-layer-group {
+  margin-bottom: 28px;
+}
+.admin-layer-group h2 {
+  font-size: 15px;
+  color: var(--fg-1);
+  margin: 0 0 8px;
+}
+
+.admin-table-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+.admin-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.admin-price-table th,
+.admin-price-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.admin-price-table th {
+  background: var(--bg-1);
+  color: var(--fg-2);
+  font-weight: 600;
+  font-size: 13px;
+}
+.admin-name-en {
+  color: var(--fg-3);
+  font-size: 12px;
+  margin-left: 6px;
+}
+.admin-edit-cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.admin-edit-cell input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--fg-0);
+}
+.admin-edit-cell button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-forest);
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.admin-edit-cell button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
