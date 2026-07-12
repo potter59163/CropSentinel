@@ -1003,3 +1003,23 @@ a:hover { color: var(--sugar-0); }
   .agro-brand-mark, .agro-impact, .agro-gistda { animation: none; }
   * { transition-duration: .01ms !important; }
 }
+
+/* ── 404 page ──────────────────────────────────────────────────────────── */
+.agro-notfound {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+.agro-notfound .agro-gistda { max-width: 480px; text-align: left; }
+.agro-notfound-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 12px 28px;
+  text-decoration: none;
+}
