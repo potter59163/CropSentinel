@@ -20,6 +20,7 @@ export function AdminPriceEditor() {
   const [rows, setRows] = useState<PriceRow[] | null>(null);
   const [dbReady, setDbReady] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [asOfDrafts, setAsOfDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -39,13 +40,14 @@ export function AdminPriceEditor() {
       setMessage('กรอกราคาเป็นตัวเลขมากกว่า 0');
       return;
     }
+    const asOf = asOfDrafts[plantId] || undefined;
     setSavingId(plantId);
     setMessage(null);
     try {
       const res = await fetch('/api/admin/prices', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ plantId, pricePerKg: price }),
+        body: JSON.stringify({ plantId, pricePerKg: price, asOf }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -54,10 +56,15 @@ export function AdminPriceEditor() {
       }
       setRows((prev) =>
         prev
-          ? prev.map((r) => (r.plantId === plantId ? { ...r, currentPricePerKg: price, updatedAt: new Date().toISOString() } : r))
+          ? prev.map((r) => (r.plantId === plantId ? { ...r, currentPricePerKg: price, updatedAt: asOf ?? new Date().toISOString() } : r))
           : prev,
       );
       setDrafts((d) => {
+        const next = { ...d };
+        delete next[plantId];
+        return next;
+      });
+      setAsOfDrafts((d) => {
         const next = { ...d };
         delete next[plantId];
         return next;
@@ -107,8 +114,9 @@ export function AdminPriceEditor() {
                     <th>พืช</th>
                     <th>ราคาตั้งต้น (บาท/กก.)</th>
                     <th>ราคาปัจจุบัน</th>
-                    <th>อัปเดตล่าสุด</th>
+                    <th>ข้อมูล ณ วันที่</th>
                     <th>แก้ไข</th>
+                    <th>วันที่ของราคา</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,18 +128,30 @@ export function AdminPriceEditor() {
                       <td>{r.defaultPricePerKg}</td>
                       <td>{r.currentPricePerKg}</td>
                       <td>{r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('th-TH') : '— (ค่าตั้งต้น)'}</td>
-                      <td className="admin-edit-cell">
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder={String(r.currentPricePerKg)}
-                          value={drafts[r.plantId] ?? ''}
-                          onChange={(e) => setDrafts((d) => ({ ...d, [r.plantId]: e.target.value }))}
-                        />
-                        <button type="button" disabled={savingId === r.plantId} onClick={() => save(r.plantId)}>
-                          {savingId === r.plantId ? '…' : 'บันทึก'}
-                        </button>
+                      <td>
+                        <div className="admin-edit-cell">
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder={String(r.currentPricePerKg)}
+                            value={drafts[r.plantId] ?? ''}
+                            onChange={(e) => setDrafts((d) => ({ ...d, [r.plantId]: e.target.value }))}
+                          />
+                          <button type="button" disabled={savingId === r.plantId} onClick={() => save(r.plantId)}>
+                            {savingId === r.plantId ? '…' : 'บันทึก'}
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="admin-edit-cell">
+                          <input
+                            type="date"
+                            value={asOfDrafts[r.plantId] ?? ''}
+                            onChange={(e) => setAsOfDrafts((d) => ({ ...d, [r.plantId]: e.target.value }))}
+                            title="วันที่ของรายงาน/แหล่งราคา — เว้นว่างถ้าใช้วันนี้"
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

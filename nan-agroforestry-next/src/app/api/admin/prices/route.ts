@@ -35,6 +35,7 @@ export async function GET() {
 const updateSchema = z.object({
   plantId: z.string().min(1),
   pricePerKg: z.number().positive().max(10000),
+  asOf: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'invalid date').optional(),
 });
 
 export async function POST(request: Request) {
@@ -55,6 +56,6 @@ export async function POST(request: Request) {
   if (!dbConfigured()) {
     return NextResponse.json({ error: 'DATABASE_URL ยังไม่ได้ตั้งค่า บันทึกราคาถาวรไม่ได้' }, { status: 503 });
   }
-  await setCropPriceOverride(parsed.data.plantId, parsed.data.pricePerKg);
+  await setCropPriceOverride(parsed.data.plantId, parsed.data.pricePerKg, parsed.data.asOf);
   return NextResponse.json({ status: 'saved' });
 }

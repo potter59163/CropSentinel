@@ -29,10 +29,13 @@ export async function getCropPriceOverrides(): Promise<Record<string, PriceOverr
   }
 }
 
-export async function setCropPriceOverride(plantId: string, pricePerKg: number): Promise<void> {
+// asOf lets the admin date the price to when the source report was published
+// (e.g. an OAE bulletin from last month) instead of the moment it was typed
+// in — "อัปเดตล่าสุด" should mean the data's age, not the edit's age.
+export async function setCropPriceOverride(plantId: string, pricePerKg: number, asOf?: string): Promise<void> {
   const db = sql();
   await db`
-    INSERT INTO crop_assumptions (plant_id, source, price_per_kg, validation_status)
-    VALUES (${plantId}, 'admin_price_update', ${pricePerKg}, 'expert_confirmed')
+    INSERT INTO crop_assumptions (plant_id, source, price_per_kg, validation_status, updated_at)
+    VALUES (${plantId}, 'admin_price_update', ${pricePerKg}, 'expert_confirmed', ${asOf ?? new Date().toISOString()})
   `;
 }
