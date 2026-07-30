@@ -16,12 +16,29 @@ Species Distribution Model (SDM) v4.
 │ nested estimate is ~0.72. Adding soil features did NOT improve AUC.           │
 └───────────────────────────────────────────────────────────────────────────────┘
 
-What changed from v3:
-  - Keeps SoilGrids numeric properties in the trained feature set.
-  - Adds derived soil indices (drainage/acidity/fertility) that can be computed
-    consistently from SoilGrids during training and from LDD/SoilGrids at runtime.
-  - Keeps all-layer GBIF training, pseudo-background cells, GISTDA disaster
-    features, spatial-block validation, and the logistic/GBM ensemble export.
+What changed from v3 (all of it measured, see ml/matrix.py and ml/decide.py):
+  - Background is region-matched to each species' presence extent. v3 drew every
+    background cell from inside the SE-Asia box while most presences for 9 of 21
+    species lie outside it, so AUC was partly rewarding "which continent is this".
+    A predictor using ONLY the in-region flag scored mean AUC 0.740 on v3's data.
+  - Model selection is nested. v3 reported max(logit_spatial, gbm_spatial) over the
+    same folds it scored, which credits the winner with the noise that won.
+  - The 5 GISTDA disaster columns are REMOVED. They are near-constant in the
+    training pool (flood7d_near is 0 everywhere) and drought_layers is really a
+    "cell is in Thailand" flag. Matching the Thailand box as well as the region
+    makes their entire contribution vanish (+0.003), so it was leakage, and at
+    inference they carry real nonzero values the model never trained on.
+  - Soil columns are REMOVED. This was expected to be the big win and it was not:
+    with SoilGrids coverage topped up from 30% -> 64% of in-region cells, adding
+    the 5 raw soil columns changes mean blocked AUC by -0.005 (i.e. slightly
+    worse). Re-measuring the v3 "soil" commit with soil on/off on identical data
+    gives -0.001; that commit's +0.02 came from the GBIF presence top-up bundled
+    into the same change, not from soil. Set SDM_SOIL_RAW=1 to re-run the ablation.
+  - 'tea' (ชาเมี่ยง) is now trained. It was absent from v3's export, so at runtime
+    it fell through to the elevation envelope and scored a flat 1.0 — ranking
+    ABOVE every species that had a real model.
+  - Species with too few occurrences are recorded in `excludedSpecies` with a
+    reason instead of silently missing.
 
 What changed from v2:
   - GBIF occurrence cap is higher and covers every plant layer, not canopy only.
@@ -96,6 +113,13 @@ SOIL_BASE = SOIL_RAW + SOIL_DERIVED
 DISABLE_SOIL = os.getenv('SDM_DISABLE_SOIL', '0') == '1'
 
 # --- v4 feature set ----------------------------------------------------------
+# Soil is OFF by default because the measurement said so, not because it cannot be
+# served: src/lib/planRunner.ts does fetch SoilGrids + LDD on every request, so the
+# old "SoilGrids is CORS-blocked in the browser" reason really is obsolete. It just
+# turns out that at a 0.25-degree (~27 km) grain, topsoil pH/clay/sand/OC/CEC add
+# nothing on top of climate for these 21 crops: mean blocked AUC moves -0.005.
+# Flip SDM_SOIL_RAW=1 to reproduce that ablation.
+INCLUDE_SOIL_RAW = os.getenv('SDM_SOIL_RAW', '0') == '1' and not DISABLE_SOIL
 # The GISTDA disaster columns are dropped. In the training pool they are
 # effectively constants: flood7d_near is 0 in 4245/4245 cells, fire7d_near is
 # nonzero in 13, burn_freq_near in 22, flood_freq_near in 70 — and drought_layers
@@ -105,17 +129,26 @@ DISABLE_SOIL = os.getenv('SDM_DISABLE_SOIL', '0') == '1'
 # at inference these same columns carry REAL nonzero counts for a Nan plot.
 # See ml/diagnose.py (D3) and the F1/F4 rows of ml/matrix.py.
 KEEP_DISASTER: List[str] = []
-INCLUDE_SOIL_DERIVED = os.getenv('SDM_SOIL_DERIVED', '0') == '1'
+INCLUDE_SOIL_DERIVED = os.getenv('SDM_SOIL_DERIVED', '0') == '1' and INCLUDE_SOIL_RAW
 
 BASE = (CLIMATE_BASE + KEEP_DISASTER
-        + ([] if DISABLE_SOIL else SOIL_RAW + (SOIL_DERIVED if INCLUDE_SOIL_DERIVED else [])))
+        + (SOIL_RAW if INCLUDE_SOIL_RAW else [])
+        + (SOIL_DERIVED if INCLUDE_SOIL_DERIVED else []))
 SQ = ['t2m', 'prec', 'elev']
 FEATURES = BASE + [f'{n}_sq' for n in SQ]
 
 # --- v4 training protocol ----------------------------------------------------
 MIN_POS = int(os.getenv('SDM_MIN_POS', '40'))
-NEG_RATIO = int(os.getenv('SDM_NEG_RATIO', '4'))
-NEG_FLOOR = int(os.getenv('SDM_NEG_FLOOR', '400'))
+# Deliberately the SAME 1:2 presence:background ratio v3 used, for two reasons.
+# (1) It measured better: mean nested blocked AUC 0.7185 at 1:2 vs 0.7144 at 1:4.
+# (2) More importantly, the exported score is P(presence | presence-or-background),
+#     so its ABSOLUTE level is a function of this ratio -- at 1:4 every species'
+#     score shifts down by roughly a third. src/lib/engine.ts feeds suitability
+#     straight into the revenue term of the 10-year cashflow, so changing this
+#     number silently rescales every baht figure the farmer is shown. Do not treat
+#     it as a free hyperparameter.
+NEG_RATIO = int(os.getenv('SDM_NEG_RATIO', '2'))
+NEG_FLOOR = int(os.getenv('SDM_NEG_FLOOR', '180'))
 BLOCK_DEG = float(os.getenv('SDM_BLOCK_DEG', '2'))
 
 SOILGRIDS = 'https://rest.isric.org/soilgrids/v2.0/properties/query'
@@ -536,8 +569,8 @@ def main():
     print('2) features: DEM + NASA POWER (+ GISTDA disaster, cached but NOT used in v4)...')
     feat = fetch_features(cells)
 
-    if DISABLE_SOIL:
-        print('2b) soil: skipped (SDM_DISABLE_SOIL=1, ablation run — no soil columns in BASE)')
+    if not INCLUDE_SOIL_RAW:
+        print('2b) soil: skipped — no soil columns in the v4 feature set (SDM_SOIL_RAW=1 to re-run the ablation)')
     else:
         print('2b) soil: SoilGrids (ISRIC) for climate-present cells...')
         climate_cells = [c for c in cells if feat.get(cell_key(c), {}).get('t2m') is not None]

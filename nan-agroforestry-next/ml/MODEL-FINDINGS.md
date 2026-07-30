@@ -29,6 +29,39 @@ alone.
 
 Raw per-species output: `ml/cache/matrix_results.json`.
 
+A full v4 export was produced and measured: **21 species (ชาเมี่ยง now trained),
+climate-only features, mean AUC 0.7185**. It is deliberately **not shipped** — it sits at
+`ml/candidates/sdm_model_v4_candidate.json`. See "Deciding whether to ship v4" below.
+
+### The single strongest piece of evidence
+
+Train a classifier whose **only** input is a boolean "is this point inside the SE-Asia
+box" — no climate, no soil, no elevation — and score it against v3's own presence/background
+pool. Reproduced directly (21 species, 900 background cells):
+
+| species | v3 reported AUC | geography-flag-only AUC |
+|---|---|---|
+| ginger | 0.616 | **0.972** |
+| lemongrass | 0.652 | **0.954** |
+| pumpkin | 0.637 | **0.928** |
+| pineapple | 0.663 | **0.932** |
+| avocado | 0.699 | **0.959** |
+| turmeric | 0.685 | **0.937** |
+| coffee | 0.738 | **0.921** |
+| macadamia | 0.838 | **0.991** |
+| มะแขว่น maikhwaen | 0.901 | **0.950** |
+| the other 12 species | 0.602–0.833 | 0.500 (no information) |
+
+For **9 of 21 species, knowing nothing but the continent scores higher than the full
+trained model does.** Their presences sit entirely outside the background box (or entirely
+inside), so presence/background is perfectly separable on geography and the model never has
+to learn anything agronomic. The two worst affected — macadamia and มะแขว่น — are among the
+highest AUCs quoted anywhere, and มะแขว่น is the project's signature Nan crop.
+
+The remaining 12 species get 0.500 from geography, so their AUCs are earned. That is the
+honest split: about half the model is doing real climate-envelope work, and about half of
+the reported score is a sampling artifact.
+
 ## What the numbers mean
 
 **1. Two things inflate the shipped 0.84.**
@@ -75,6 +108,34 @@ inference these same columns carry real nonzero values for a live Nan plot. That
 train/serve skew: the model has weights for inputs it never meaningfully saw during
 training. Dropping them costs nothing measurable (`G1` 0.7217 → `F1` 0.7126, within noise)
 and removes the skew, so v4 drops them.
+
+## Deciding whether to ship v4
+
+v4 is the more defensible science, but swapping it is a **product** change, not a metadata
+change, so it was left for a human to decide rather than slipped in.
+
+What changes if you ship `ml/candidates/sdm_model_v4_candidate.json`:
+
+- The headline figure becomes **0.7185** across 21 species, honestly measured, instead of
+  0.8415 across 20.
+- ชาเมี่ยง gains a real model instead of falling through to the envelope.
+- The five GISTDA disaster columns and the five soil columns are gone, so the train/serve
+  skew disappears.
+- **Four species fall below `AUC_MIN = 0.65` in `suitability.ts`** — peanut 0.602,
+  ginger 0.616, taro 0.636, pumpkin 0.637 — and would switch to the elevation-envelope
+  path (now capped at 0.72). Six more sit marginally at 0.65–0.70. That materially changes
+  which species get recommended and every 10-year cashflow that follows.
+
+So shipping it requires re-running the full app verification, and it contradicts the 0.84
+already quoted in the competition abstract. Two coherent options:
+
+1. **Keep v3 live, fix the claim.** Cheapest and safest before a stakeholder meeting.
+   Describe the metric honestly (say it is a spatially-blocked estimate, and that background
+   sampling means the per-species figures for the 9 species above are optimistic).
+2. **Ship v4 and requote 0.71.** Better science, and the number survives scrutiny — but do
+   it deliberately, with the app re-verified and the abstract updated in the same pass.
+
+Do not do the third thing: ship v4 and keep quoting 0.84.
 
 ## Recommended next steps, in order
 

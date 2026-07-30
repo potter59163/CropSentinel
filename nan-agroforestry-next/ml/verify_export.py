@@ -59,7 +59,15 @@ print('\n3) replicate the deployed JS inference')
 PLANTS = {}
 for m in re.finditer(r"P\('([\w]+)',\s*'[^']*',\s*'[^']*',\s*'(\w+)',\s*'[^']*',\s*(\d+),\s*(\d+),", open(os.path.join(SRC, 'data', 'plants.ts')).read()):
     PLANTS[m.group(1)] = {'layer': m.group(2), 'elevMin': int(m.group(3)), 'elevMax': int(m.group(4))}
-AUC_MIN = 0.65
+
+# Read the gates straight out of suitability.ts — that file is owned by someone else
+# and is being edited concurrently, so hardcoding these would silently go stale.
+AUC_MIN = float(re.search(r'const AUC_MIN\s*=\s*([\d.]+)', sut).group(1))
+_ceil = re.search(r'const ENVELOPE_CEILING\s*=\s*([\d.]+)', sut)
+ENVELOPE_CEILING = float(_ceil.group(1)) if _ceil else 1.0
+_conf = re.findall(r'auc >= ([\d.]+)\) return \'(\w+)\'', sut)
+print(f'   (read from suitability.ts: AUC_MIN={AUC_MIN}, ENVELOPE_CEILING={ENVELOPE_CEILING}, '
+      f'confidence cutoffs={_conf})')
 
 
 def clamp(v, lo, hi):
@@ -117,7 +125,7 @@ def suitability(tid, clim_vals):
         x = vector(clim_vals, {}, {})
         s = gbm_predict(sp, x) if sp.get('preferred') == 'gbm' and sp.get('gbm') else logit_predict(sp, x)
         return guardrail(s, p, clim_vals['elev']), 'model'
-    return envelope(p, clim_vals.get('elev', p['elevMin'])), 'envelope'
+    return min(envelope(p, clim_vals.get('elev', p['elevMin'])), ENVELOPE_CEILING), 'envelope'
 
 
 # the exact fixture from src/lib/suitability.test.ts
