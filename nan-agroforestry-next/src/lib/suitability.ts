@@ -29,6 +29,14 @@ const M = model as unknown as {
   species: Record<string, SpeciesModel>;
 };
 const AUC_MIN = 0.65; // below this the SDM is too weak for production ranking
+// Ceiling on the elevation-envelope fallback. Knowing only that a plot's elevation sits
+// inside a species' published range is far weaker evidence than a fitted model over
+// bioclim + soil features, yet envelope() returns exactly 1.0 for any in-range plot.
+// Uncapped, a climate outage made every species score a perfect 1.0 and produced plans
+// that looked 50-95% MORE profitable than the same plot computed with live data
+// (suitability feeds revenue directly in engine.plantFlow). A farmer must never be shown
+// a more attractive plan because the network failed.
+const ENVELOPE_CEILING = 0.72;
 const READY = Array.isArray(M.base) && Array.isArray(M.median) && !!M.species; // guards schema transitions
 type SuitConfidence = 'high' | 'medium' | 'low' | 'expert';
 
@@ -143,7 +151,17 @@ export function plantSuitability(plant: Plant, c: Climate | null, risk: Protecte
     const score = sp.preferred === 'gbm' && sp.gbm ? gbmPredict(sp, x) : logitPredict(sp, x);
     return { score: applyAgronomicGuardrail(score, plant, c.elev), source: 'model', auc: sp.auc, confidence: confidence(sp.auc) };
   }
-  return { score: envelope(plant, c?.elev ?? plant.elevMin), source: 'envelope', auc: sp?.auc, confidence: sp ? 'low' : 'expert' };
+  // NOTE `c?.elev ?? plant.elevMin`: falling back to the species' OWN elevMin scores every
+  // plant at its personal optimum, which is why a caller passing climate=null got an
+  // identical perfect plan for every plot. Callers without live weather must still pass a
+  // climate object carrying the plot's real elevation (see planRunner) — this default is a
+  // last resort only, and the ceiling below keeps it from masquerading as a strong result.
+  return {
+    score: Math.min(envelope(plant, c?.elev ?? plant.elevMin), ENVELOPE_CEILING),
+    source: 'envelope',
+    auc: sp?.auc,
+    confidence: sp ? 'low' : 'expert',
+  };
 }
 
 export const modelMeta = () => {

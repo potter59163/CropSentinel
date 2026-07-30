@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FarmInput, SystemPlan } from './data/types';
 import type { Climate } from './lib/climate';
 import './styles/animations.css';
-import type { ProtectedArea } from './lib/gistda';
+import { UNCHECKED_LEGAL_CLASSES, type ProtectedArea } from './lib/gistda';
 import type { SatContext } from './lib/satellite';
 import type { SoilContext } from './lib/soil';
 import { bahtK } from './lib/format';
@@ -18,16 +18,32 @@ import { Icon, type IconName } from './components/Icon';
 import { Splash } from './components/Splash';
 import { Tour, type TourStep } from './components/Tour';
 import { PlanLoading } from './components/PlanLoading';
+import { farmInputSchema, sanitizeAssumptions } from './lib/planSchema';
 
 const TOUR_KEY = 'nan-agro-tour-v1';
 
-const DEFAULT_INPUT: FarmInput = {
-  currentCropId: 'ข้าวโพดเลี้ยงสัตว์', sizeRai: 10, elevationM: 420,
-  existingZones: [{ id: 'zone-1', cropId: 'ข้าวโพดเลี้ยงสัตว์', areaRai: 10 }],
-  locationLabel: 'ปัว', lat: 19.179, lng: 100.907,
-  selectedByLayer: { canopy: [], shrub: [], groundcover: [], root: [] },
-  goal: 'balanced',
-};
+const EMPTY_LAYERS: Record<Layer, string[]> = { canopy: [], shrub: [], groundcover: [], root: [] };
+
+// Every plot-specific measurement starts EMPTY. It previously shipped a complete,
+// already-valid session (10 ไร่ / ปัว / 19.179,100.907 / 420 ม.), and since validateInput
+// checks exactly these fields, the wizard reported "ready" and ออกแบบระบบ was clickable
+// from a cold start — so an officer who skipped the GPS tap got a plan computed for Pua.
+// `goal` is deliberately kept: it is a preference, not a measurement, so carrying it
+// between farmers cannot produce a wrong-plot result. NaN renders as an empty box via
+// InputForm's numberValue and fails validateInput's isFiniteNumber check, as intended.
+function freshInput(): FarmInput {
+  return {
+    currentCropId: null,
+    sizeRai: NaN,
+    elevationM: NaN,
+    existingZones: [],
+    locationLabel: '',
+    lat: undefined,
+    lng: undefined,
+    selectedByLayer: { ...EMPTY_LAYERS },
+    goal: 'balanced',
+  };
+}
 
 function fireNear(prot: ProtectedArea | null) {
   return Math.max(prot?.fireNearby ?? 0, prot?.disasterFire7dNear ?? 0);
@@ -37,8 +53,16 @@ function floodNear(prot: ProtectedArea | null) {
   return Math.max(prot?.disasterFlood7dNear ?? 0, prot?.disasterFloodFreqNear ?? 0);
 }
 
+// A missing prot (whole GISTDA call failed) and prot.protectedStatus === 'unavailable'
+// (only the park/sanctuary lookup failed) both mean the legal signal is UNKNOWN. Neither
+// may be presented as a clear result.
+function legalUnknown(prot: ProtectedArea | null) {
+  return !prot || prot.protectedStatus !== 'ok';
+}
+
 function missionLabel(sat: SatContext | null, prot: ProtectedArea | null, climate: Climate | null) {
   if (prot?.inside || sat?.verdict === 'forest') return 'Protect first';
+  if (legalUnknown(prot)) return 'Legal status unknown';
   if (fireNear(prot) > 0) return 'Fire buffer';
   if (floodNear(prot) > 0) return 'Flood buffer';
   if (prot?.near) return 'Forest buffer';
@@ -51,13 +75,18 @@ function missionLabel(sat: SatContext | null, prot: ProtectedArea | null, climat
 function missionText(sat: SatContext | null, prot: ProtectedArea | null, climate: Climate | null) {
   if (prot?.inside) return 'อยู่ในเขตอนุรักษ์: ระบบแนะนำให้หยุดการแผ้วถางและประสานหน่วยงาน';
   if (sat?.verdict === 'forest') return 'ภาพดาวเทียมชี้ว่าเป็นป่า: เป้าหมายคือคุ้มครองพื้นที่เดิม';
+  // Ranked above the hazard cases on purpose: an unknown legal status is the finding the
+  // officer must act on first, and it must never be silently replaced by a softer message.
+  if (legalUnknown(prot)) return 'ยังตรวจสถานะพื้นที่อนุรักษ์ไม่สำเร็จรอบนี้: ยังไม่ทราบว่าแปลงนี้อยู่ในเขตคุ้มครองหรือไม่ · ต้องตรวจกับเกษตรอำเภอ/ป่าไม้ก่อนลงมือ';
   if (fireNear(prot) > 0) return `พบ hotspot ไฟป่าจาก GISTDA รอบแปลง ${fireNear(prot)} จุด: วนเกษตรหลายชั้นช่วยลดเชื้อเพลิงโล่งและทำแนวกันไฟสีเขียว`;
   if (floodNear(prot) > 0) return `พบสัญญาณน้ำท่วม/น้ำท่วมซ้ำซากจาก GISTDA รอบแปลง ${floodNear(prot)} พื้นที่: ควรออกแบบแนวริมน้ำ พืชคลุมดิน และโซนรับน้ำ`;
   if (prot?.near) return 'ใกล้แนวป่า: วนเกษตรทำหน้าที่เป็น buffer ลดแรงกดดันต่อพื้นที่อนุรักษ์';
   if (prot?.riverNear) return `ใกล้ลำน้ำในระยะ ${prot.riverDistanceM?.toLocaleString('en-US')} ม.: ควรทำแนวไม้ยืนต้นกันชน ลดดินไหลลงน้ำ`;
   if ((climate?.drym ?? 0) >= 5 && (prot?.disasterDroughtLayers?.length ?? 0) > 0) return `ฤดูแล้ง ${climate?.drym} เดือน และเชื่อมชั้นภัยแล้ง GISTDA (${prot?.disasterDroughtLayers?.join(', ')}): แผนควรเน้นร่มเงา คลุมดิน และชนิดทนแล้ง`;
   if (sat?.verdict === 'restore') return 'พื้นที่เกษตร/เสื่อมโทรม: เหมาะกับการฟื้นฟูด้วยไม้ยืนต้นหลายชั้น';
-  return 'พื้นที่ปลูกได้: เพิ่มความหลากหลาย รายได้ และคาร์บอนด้วยระบบหลายชั้น';
+  // Deliberately NOT "ปลูกได้" — this branch only knows the plot missed two layers
+  // (park, sanctuary). ป่าสงวน/ป่าไม้ถาวร/ลุ่มน้ำ 1A were never queried.
+  return `ไม่พบในชั้นอุทยาน/เขตรักษาพันธุ์สัตว์ป่า · ยังไม่ได้ตรวจ ${UNCHECKED_LEGAL_CLASSES.join(' / ')} ซึ่งเป็นตัวตัดสินทางกฎหมายบนพื้นที่สูง — ต้องยืนยันสิทธิ์ที่ดินกับเจ้าหน้าที่ก่อนลงมือ`;
 }
 
 const STEPS: Array<{ t: string; d: string; icon: IconName }> = [
@@ -105,7 +134,7 @@ function validateInput(input: FarmInput): FieldIssue[] {
 
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 function selectedRows(input: FarmInput) {
-  const selectedByLayer = input.selectedByLayer ?? DEFAULT_INPUT.selectedByLayer;
+  const selectedByLayer = input.selectedByLayer ?? EMPTY_LAYERS;
   return LAYERS.map((layer) => ({
     layer,
     meta: LAYER_META[layer],
@@ -116,7 +145,7 @@ function selectedRows(input: FarmInput) {
 }
 
 function selectedPlantCount(input: FarmInput) {
-  const selectedByLayer = input.selectedByLayer ?? DEFAULT_INPUT.selectedByLayer;
+  const selectedByLayer = input.selectedByLayer ?? EMPTY_LAYERS;
   return LAYERS.reduce((sum, layer) => sum + (selectedByLayer[layer]?.length ?? 0), 0);
 }
 
@@ -135,7 +164,7 @@ function existingZoneRows(input: FarmInput) {
 }
 
 export function App() {
-  const [input, setInput] = useState<FarmInput>(DEFAULT_INPUT);
+  const [input, setInput] = useState<FarmInput>(freshInput);
   const [systems, setSystems] = useState<SystemPlan[] | null>(null);
   const [activePlan, setActivePlan] = useState(0);
   const [climate, setClimate] = useState<Climate | null>(null);
@@ -250,6 +279,9 @@ export function App() {
   const showCurrentIssues = attemptedStepSet.has(step) && currentIssues.length > 0;
   const invalidFields = showCurrentIssues ? currentIssues.map((issue) => issue.field) : [];
   const stepRequirements = REQUIRED_BY_STEP[step] ?? [];
+  const hasPlotData = isFiniteNumber(input.sizeRai) || isFiniteNumber(input.lat)
+    || isFiniteNumber(input.elevationM) || Boolean(input.locationLabel)
+    || selectedPlantCount(input) > 0 || (input.existingZones?.length ?? 0) > 0;
 
   const markStepsAttempted = (steps: number[]) => {
     setAttemptedSteps((prev) => Array.from(new Set([...prev, ...steps])));
@@ -267,11 +299,47 @@ export function App() {
     const encoded = new URLSearchParams(window.location.search).get('plan');
     if (!encoded) return;
     try {
-      setInput(JSON.parse(decodeURIComponent(atob(encoded))) as FarmInput);
+      // A share link is untrusted input — the app itself tells users to circulate these
+      // (คัดลอกลิงก์แผน), so LINE/Facebook is the realistic delivery channel. A bare cast
+      // let a crafted blob carry cropAssumptions for plants the victim never selected;
+      // because the override editor only renders rows for selectedByLayer, the injected
+      // numbers were invisible, and engine.applyAssumption still stamps the pick
+      // `pickedBy: 'system'` — so attacker prices were presented as the model's own
+      // recommendation. Measured on production: profit10 5.7M -> 34.1M, payback year 1.
+      const raw = JSON.parse(decodeURIComponent(atob(encoded)));
+      const parsed = farmInputSchema.safeParse(raw);
+      if (!parsed.success) {
+        setApiWarnings(['ลิงก์แผนนี้มีข้อมูลไม่ถูกต้อง · เริ่มกรอกใหม่เพื่อความปลอดภัย']);
+        return;
+      }
+      setInput(sanitizeAssumptions(parsed.data as FarmInput));
     } catch {
       setApiWarnings(['อ่าน share URL ไม่สำเร็จ']);
     }
   }, []);
+
+  // Officers see several farmers per visit. Without this every plot-specific value —
+  // coordinates, elevation, zones, plant picks and any cropAssumptions price override
+  // (which engine.applyAssumption silently applies to system-picked plants too) — carried
+  // into the next farmer, and ?plan= re-seeded the previous one on any reload.
+  const startNewFarmer = () => {
+    setInput(freshInput());
+    setSystems(null);
+    setActivePlan(0);
+    setClimate(null);
+    setProt(null);
+    setSat(null);
+    setSoil(null);
+    setApiWarnings([]);
+    setRunFailed(false);
+    setAttemptedSteps([]);
+    setShowResult(false);
+    setStep(0);
+    setTab('planner');
+    // Drop ?plan= so a reload cannot resurrect the farmer we just cleared.
+    window.history.replaceState(null, '', window.location.pathname);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const persistPlan = (nextSystems: SystemPlan[]) => {
     const encoded = btoa(encodeURIComponent(JSON.stringify(input)));
@@ -426,6 +494,14 @@ export function App() {
                   <div className="agro-step-title thai">{STEPS[step].t}</div>
                 </div>
                 <span className="agro-step-sub thai">{STEPS[step].d}</span>
+                {/* Only once something plot-specific has been entered — on a genuinely
+                    fresh form there is nothing to clear and the button is just noise. */}
+                {hasPlotData && (
+                  <button type="button" className="agro-step-reset thai" onClick={startNewFarmer}
+                    title="ล้างข้อมูลแปลงทั้งหมดเพื่อเริ่มกับเกษตรกรรายใหม่">
+                    <Icon name="plot" size={15} /> เกษตรกรรายใหม่
+                  </button>
+                )}
               </div>
 
               <div className="agro-required-line" aria-live="polite">
@@ -502,7 +578,16 @@ export function App() {
       {tab === 'planner' && showResult && (<>
       <div className="agro-result-top">
         <button type="button" className="agro-result-back thai" onClick={() => setShowResult(false)}><Icon name="edit" size={16} /> แก้ไขข้อมูล</button>
-        <span className="agro-result-loc thai">{input.locationLabel} · {input.sizeRai} ไร่ · {input.elevationM} ม.</span>
+        <button type="button" className="agro-result-new thai" onClick={startNewFarmer}><Icon name="plot" size={16} /> เกษตรกรรายใหม่</button>
+        {/* Plot provenance, promoted out of the 12px muted line: on a phone the side
+            summary is display:none, so this was the only place a stale plot could be
+            spotted and it was the least legible text on the page. */}
+        <span className="agro-result-loc thai">
+          <b>{input.locationLabel || 'ไม่ระบุตำแหน่ง'}</b>
+          {' · '}{isFiniteNumber(input.sizeRai) ? `${input.sizeRai} ไร่` : 'ไม่ระบุขนาด'}
+          {' · '}{isFiniteNumber(input.elevationM) ? `${input.elevationM} ม.` : 'ไม่ระบุความสูง'}
+          {isFiniteNumber(input.lat) && isFiniteNumber(input.lng) ? ` · ${input.lat!.toFixed(4)}, ${input.lng!.toFixed(4)}` : ''}
+        </span>
       </div>
 
       {apiWarnings.length > 0 && (
@@ -516,8 +601,37 @@ export function App() {
         </div>
       )}
 
+      {/* Legality goes ABOVE the plans. Previously the three plans with ฿ figures and
+          payback years rendered first and the stop notice sat in a collapsed panel below
+          them, so an officer scanning for profit could present a plan for land where
+          clearing is a criminal matter. */}
+      {prot?.inside && (
+        <div className="agro-legal-stop" role="alert">
+          <span className="agro-legal-stop-ic"><Icon name="shieldX" size={30} /></span>
+          <div>
+            <b className="thai">หยุด · แปลงนี้อยู่ในเขต{prot.type}{prot.name ? ` ${prot.name}` : ''}</b>
+            <div className="thai">
+              การแผ้วถางหรือปลูกในเขตนี้<b>ผิดกฎหมาย</b> แผนด้านล่างแสดงไว้เพื่อการศึกษาเท่านั้น
+              · ทำวนเกษตรได้เฉพาะนอกเขต หรือเข้าร่วมโครงการฟื้นฟูกับหน่วยงานที่รับผิดชอบ
+            </div>
+          </div>
+        </div>
+      )}
+      {!prot?.inside && legalUnknown(prot) && (
+        <div className="agro-legal-warn" role="alert">
+          <span className="agro-legal-stop-ic"><Icon name="warning" size={26} /></span>
+          <div>
+            <b className="thai">ยังไม่ทราบสถานะเขตอนุรักษ์ของแปลงนี้</b>
+            <div className="thai">
+              ตรวจข้อมูลอุทยาน/เขตรักษาพันธุ์สัตว์ป่าไม่สำเร็จรอบนี้ · <b>ไม่ได้แปลว่าปลูกได้</b>
+              ต้องยืนยันสิทธิ์ที่ดินกับเกษตรอำเภอหรือหน่วยป่าไม้ก่อนลงมือ
+            </div>
+          </div>
+        </div>
+      )}
+
       {systems && activeSystem && (
-        <section className="agro-results">
+        <section className={`agro-results ${prot?.inside ? 'is-illegal' : ''}`}>
           <div className="agro-results-head">
             <h2 className="thai">ระบบวนเกษตรที่แนะนำ</h2>
             <div className="thai agro-results-sub">
@@ -584,6 +698,21 @@ export function App() {
               <p className="thai">{missionText(sat, prot, climate)}</p>
             </div>
             <div className="agro-impact-grid">
+              {/* First cell on purpose: legality outranks every economic figure on this
+                  page, and it previously had no cell at all — only a collapsed panel
+                  below the plans. */}
+              <div>
+                <span>สถานะเขตอนุรักษ์</span>
+                <b>{legalUnknown(prot) ? 'ตรวจไม่สำเร็จ · ไม่ทราบ'
+                  : prot!.inside ? `อยู่ในเขต${prot!.type}`
+                  : prot!.near ? `ใกล้เขต${prot!.type}`
+                  : 'ไม่พบในชั้นที่ตรวจได้'}</b>
+              </div>
+              <div>
+                <span>ป่าปกคลุมเดิม (ปี 2556-57)</span>
+                <b>{prot?.forestCoverStatus !== 'ok' ? 'ไม่มีข้อมูล'
+                  : prot.forestCover ? 'มีป่าปกคลุม' : 'ไม่พบป่าปกคลุม'}</b>
+              </div>
               <div>
                 <span>ไฟป่ารอบแปลง</span>
                 {/* Only show a count when the read is trustworthy — a failed/partial
@@ -660,20 +789,44 @@ export function App() {
           <div className="agro-context-body">
 
             {prot && (
-              <div className={`agro-gistda ${prot.inside ? 'danger' : prot.near ? 'warn' : 'ok'}`}>
-                <span className="agro-gistda-icon"><Icon name={prot.inside ? 'shieldX' : prot.near ? 'shield' : 'checkCircle'} size={24} /></span>
+              <div className={`agro-gistda ${prot.inside ? 'danger' : prot.protectedStatus !== 'ok' ? 'warn' : prot.near ? 'warn' : 'ok'}`}>
+                <span className="agro-gistda-icon"><Icon name={prot.inside ? 'shieldX' : prot.protectedStatus !== 'ok' ? 'warning' : prot.near ? 'shield' : 'info'} size={24} /></span>
                 <div className="agro-gistda-body">
-                  {prot.inside ? (
+                  {prot.protectedStatus !== 'ok' ? (
+                    <><b className="thai">ตรวจสถานะเขตอนุรักษ์ไม่สำเร็จรอบนี้</b>
+                      <div className="thai">ดึงข้อมูลอุทยาน/เขตรักษาพันธุ์สัตว์ป่าจาก GISTDA ไม่ได้ · <b>ไม่ได้แปลว่าแปลงนี้อยู่นอกเขตคุ้มครอง</b> ต้องตรวจสิทธิ์ที่ดินกับเกษตรอำเภอหรือหน่วยป่าไม้ก่อนลงมือปลูก</div></>
+                  ) : prot.inside ? (
                     <><b className="thai">แปลงอยู่ในเขต{prot.type} {prot.name ?? ''}</b>
                       <div className="thai">ห้ามปลูก/แผ้วถางตามกฎหมาย · ทำวนเกษตรได้เฉพาะนอกเขต หรือร่วมโครงการฟื้นฟูกับหน่วยงาน</div></>
                   ) : prot.near ? (
                     <><b className="thai">ใกล้เขต{prot.type} {prot.name ?? ''} (~3 กม.)</b>
                       <div className="thai">วนเกษตรหลายชั้นช่วยเป็นแนวกันชนปกป้องป่าและลดการรุกป่า</div></>
                   ) : (
-                    <><b className="thai">ไม่อยู่ในเขตอนุรักษ์ · ปลูกได้</b>
-                      <div className="thai">เหมาะกับการฟื้นฟูพื้นที่เกษตรเชิงเดี่ยวให้เป็นวนเกษตร</div></>
+                    <><b className="thai">ไม่พบในชั้นอุทยานแห่งชาติและเขตรักษาพันธุ์สัตว์ป่า</b>
+                      <div className="thai">
+                        <b>ยังไม่ใช่การยืนยันว่าปลูกได้ตามกฎหมาย</b> — ชุดข้อมูลนี้มีเพียง 2 ชั้นดังกล่าว
+                        ยังไม่ได้ตรวจ {UNCHECKED_LEGAL_CLASSES.join(' · ')} ซึ่งเป็นชั้นที่ตัดสินว่าการแผ้วถางบนพื้นที่สูงในน่านผิดกฎหมายหรือไม่
+                        · ต้องยืนยันสิทธิ์ที่ดินกับเกษตรอำเภอหรือหน่วยป่าไม้ก่อนลงมือ
+                      </div></>
                   )}
-                  <div className="agro-gistda-src">ที่มา: {prot.source}</div>
+                  <div className="agro-gistda-src">ที่มา: {prot.source} · ตรวจ 2 ชั้น: อุทยานแห่งชาติ, เขตรักษาพันธุ์สัตว์ป่า</div>
+                </div>
+              </div>
+            )}
+
+            {prot?.forestCover && (
+              <div className="agro-gistda warn">
+                <span className="agro-gistda-icon"><Icon name="tree" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">ภาพดาวเทียมปี 2556-2557 ระบุว่าแปลงนี้มีป่าไม้ปกคลุม</b>
+                  <div className="thai">
+                    เป็น<b>ข้อมูลสภาพพื้นที่ ไม่ใช่สถานะทางกฎหมาย</b> · ถ้ายังมีต้นไม้เดิมอยู่จริง
+                    ควรเก็บไว้เป็นชั้นเรือนยอดแล้วเสริมพืชชั้นล่าง (ฟื้นฟู) ดีกว่าถางใหม่
+                    · การถางพื้นที่ที่มีไม้ปกคลุมอาจเข้าข่ายผิดกฎหมายแม้อยู่นอกเขตอนุรักษ์ ควรตรวจกับหน่วยป่าไม้
+                  </div>
+                  <div className="agro-gistda-src">
+                    ที่มา: {prot.source} · ชั้นข้อมูลการแปลตีความพื้นที่ป่าไม้ LANDSAT-8/ไทยโชติ ปี พ.ศ. 2556-2557
+                  </div>
                 </div>
               </div>
             )}

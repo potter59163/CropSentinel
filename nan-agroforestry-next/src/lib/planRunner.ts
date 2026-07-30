@@ -6,6 +6,7 @@ import { satContext } from './satellite';
 import { lookupLddSoilGroup } from './ldd';
 import { fetchSoil, mergeLddSoil } from './soil';
 import { getCropPriceOverrides } from './cropPrices';
+import { sanitizeAssumptions } from './planSchema';
 
 // Layers admin-set prices under the farmer's own advanced overrides (if any),
 // which still win field-by-field — an explicit per-plan number a farmer typed
@@ -24,7 +25,11 @@ export function withPriceOverrides(input: FarmInput, overrides: Record<string, {
   return { ...input, cropAssumptions: Array.from(byId.values()) };
 }
 
-export async function runPlan(input: FarmInput) {
+export async function runPlan(rawInput: FarmInput) {
+  // Authoritative copy of the share-link guard: an override may only apply to a plant the
+  // user actually selected, so a hand-rolled POST cannot inject economics for plants the
+  // UI never shows. See sanitizeAssumptions for the full rationale.
+  const input = sanitizeAssumptions(rawInput);
   const lat = input.lat ?? 18.78;
   const lng = input.lng ?? 100.78;
   const warnings: string[] = [];

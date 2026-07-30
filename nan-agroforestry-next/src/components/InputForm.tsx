@@ -23,7 +23,8 @@ const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 export function InputForm({ value, onChange, step, invalidFields = [] }: {
   value: FarmInput; onChange: (v: FarmInput) => void; step: number; invalidFields?: string[];
 }) {
-  const [gps, setGps] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [gps, setGps] = useState<'idle' | 'loading' | 'error' | 'elev-error'>('idle');
+  const [gpsAccuracyM, setGpsAccuracyM] = useState<number | undefined>(undefined);
   const [osm, setOsm] = useState<'idle' | 'loading' | 'error'>('idle');
   const set = (patch: Partial<FarmInput>) => onChange({ ...value, ...patch });
   const invalid = (field: string) => invalidFields.includes(field);
@@ -76,12 +77,29 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
 
   const useGps = async () => {
     setGps('loading');
+    // Two separate try blocks on purpose. Previously both awaits shared one try and the
+    // catch never called set(), so a 9s elevation timeout or a 502 from the proxy threw
+    // away a perfectly good GPS fix AND reported it as "อาจไม่ได้อนุญาต GPS" — diagnosing
+    // a network fault as a permissions problem, on the button we tell officers to use first.
+    let fix: { lat: number; lng: number; accuracyM?: number };
     try {
-      const { lat, lng } = await getGeolocation();
+      fix = await getGeolocation();
+    } catch {
+      setGps('error');
+      return;
+    }
+    const { lat, lng, accuracyM } = fix;
+    setGpsAccuracyM(accuracyM);
+    // Keep the coordinates the moment we have them, whatever elevation does next.
+    set({ lat, lng, locationLabel: `GPS (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
+    try {
       const elev = await fetchElevation(lat, lng);
       set({ lat, lng, elevationM: elev, locationLabel: `GPS (${lat.toFixed(3)}, ${lng.toFixed(3)})` });
       setGps('idle');
-    } catch { setGps('error'); }
+    } catch {
+      // Coordinates are already saved; only elevation is missing, and the user can type it.
+      setGps('elev-error');
+    }
   };
 
   const useMapPoint = async (lat: number, lng: number) => {
@@ -105,6 +123,7 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
               <input
                 id="farm-size"
                 type="number"
+                inputMode="decimal"
                 min={0.5}
                 max={500}
                 step={0.5}
@@ -169,10 +188,24 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
               <span className="agro-gps-hero-d thai">ยืนอยู่ในแปลง? กดปุ่มนี้ปุ่มเดียว ระบบดึงพิกัดและความสูงให้อัตโนมัติ</span>
             </button>
             {gps === 'error' && <div className="agro-gps-err thai">ขอตำแหน่งไม่สำเร็จ (อาจไม่ได้อนุญาต GPS) · เลือกอำเภอ หรือปักหมุดบนแผนที่ด้านล่างแทนได้</div>}
+            {gps === 'elev-error' && (
+              <div className="agro-gps-err thai">
+                ได้พิกัด GPS แล้ว แต่ดึง<b>ความสูง</b>ไม่สำเร็จ (เน็ตอาจช้า) · พิกัดถูกบันทึกไว้แล้ว
+                กรอกความสูงเองใน “ตัวเลือกเพิ่มเติม” ด้านล่าง หรือกด GPS อีกครั้ง
+              </div>
+            )}
             {Number.isFinite(value.lat) && Number.isFinite(value.lng) && (
               <div className="agro-gps-current thai">
                 <Icon name="pin" size={15} /> ตำแหน่งที่เลือก: <b>{value.locationLabel || `${value.lat!.toFixed(3)}, ${value.lng!.toFixed(3)}`}</b>
                 {Number.isFinite(value.elevationM) ? <> · ความสูง <b>{value.elevationM.toLocaleString('en-US')} ม.</b></> : null}
+              </div>
+            )}
+            {/* A coarse fix changes the elevation band, and elevation gates the whole
+                species ranking — so say so rather than rendering it as an exact pin. */}
+            {gpsAccuracyM !== undefined && gpsAccuracyM > 150 && (
+              <div className="agro-gps-warn thai">
+                <Icon name="warning" size={14} /> สัญญาณ GPS หยาบ (คลาดเคลื่อน ~{gpsAccuracyM.toLocaleString('en-US')} ม.)
+                · ความสูงที่ได้อาจไม่ตรงกับแปลงจริง ควรปักหมุดบนแผนที่ดาวเทียมเพื่อความแม่นยำ
               </div>
             )}
           </div>
@@ -211,6 +244,7 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
                 <input
                   id="farm-elev"
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   max={2600}
                   step={10}

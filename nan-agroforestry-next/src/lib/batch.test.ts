@@ -46,9 +46,18 @@ describe('batch — RECOFTC 30-plot sample', () => {
 
     const out = ['external_ref,farmer_label,size_rai,elevation_m,best_badge,profit10_baht,payback_year,agroforestry_pct,carbon10_tco2e,canopy_species'];
 
+    const distinctCanopy = new Set<string>();
     for (const r of rows) {
       const input = toInput(r);
-      const systems = buildSystems(input, null, null, null);
+      // Pass the plot's REAL elevation with NaN weather, exactly as planRunner does when
+      // NASA POWER fails. Passing climate=null instead made suitability fall back to each
+      // species' own elevMin and elevationFit return 1 unconditionally, so elevation was
+      // never consulted and all 30 plots — 180 m to 1,350 m — produced the identical plan.
+      const offlineClimate = {
+        t2m: NaN, prec: NaN, drym: NaN, pseas: NaN, trange: NaN,
+        solar: NaN, rh: NaN, gwet: NaN, elev: input.elevationM,
+      };
+      const systems = buildSystems(input, offlineClimate, null, null);
       expect(systems.length, `plot ${r.external_ref} produced no system`).toBeGreaterThan(0);
 
       const best = systems[0];
@@ -56,6 +65,7 @@ describe('batch — RECOFTC 30-plot sample', () => {
       expect(best.canopy.length).toBeGreaterThanOrEqual(2);
 
       const canopy = best.canopy.map((p) => p.plant.nameTh).join(' + ');
+      distinctCanopy.add(canopy);
       out.push([
         r.external_ref, r.farmer_label, String(input.sizeRai), String(input.elevationM),
         best.badge, String(best.profit10), best.paybackYear === null ? '' : String(best.paybackYear),
@@ -65,5 +75,11 @@ describe('batch — RECOFTC 30-plot sample', () => {
 
     writeFileSync(OUTPUT, out.join('\n') + '\n', 'utf8');
     expect(out.length - 1).toBe(rows.length);
+
+    // Regression guard: the sample spans ~180-1,350 m across lowland, midland and highland
+    // amphoe, so elevation MUST change the recommendation. A single distinct canopy pair
+    // across all 30 plots is the signature of elevation being ignored — the exact defect
+    // that previously shipped a CSV recommending cashew at 1,350 m with payback in year 1.
+    expect(distinctCanopy.size, `all ${rows.length} plots produced the same canopy — elevation is being ignored`).toBeGreaterThan(1);
   });
 });

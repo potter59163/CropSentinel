@@ -12,12 +12,24 @@ type CompareTone = 'ok' | 'data' | 'warn';
 
 function suitBadge(p: { suitability: number; source: 'model' | 'envelope'; auc?: number; modelConfidence: 'high' | 'medium' | 'low' | 'expert' }) {
   const cls = p.suitability >= 0.6 ? 'ok' : p.suitability >= 0.4 ? 'warn' : 'risk';
+  // A Thai word carries the verdict, so it survives a phone screen in sunlight where
+  // the pale tints are indistinguishable and the percentage alone reads as noise.
+  const word = p.suitability >= 0.6 ? 'เหมาะ' : p.suitability >= 0.4 ? 'พอได้' : 'เสี่ยง';
   const tag = p.source === 'model'
-    ? `SDM ${p.modelConfidence} · AUC ${p.auc?.toFixed(2)}`
+    ? `SDM · AUC ${p.auc?.toFixed(2)}`
     : p.modelConfidence === 'low'
-      ? `AUC ${p.auc?.toFixed(2)} ต่ำ · ใช้เกณฑ์`
-      : 'เกณฑ์ผู้เชี่ยวชาญ';
-  return <span className={`agro-suit ${cls}`}>{pct(p.suitability)} <i>{tag}</i></span>;
+      // Reachable only when climate is missing, so it is the WEATHER that is absent —
+      // blaming the model's AUC here mis-attributed an outage to a bad model.
+      ? 'ไม่มีข้อมูลอากาศ · ใช้เกณฑ์ความสูง'
+      : 'เกณฑ์ผู้เชี่ยวชาญ (ไม่มีโมเดล)';
+  return (
+    <span className={`agro-suit ${cls}`}>
+      <Icon name={cls === 'ok' ? 'check' : 'warning'} size={12} strokeWidth={2.6} />
+      <span className="agro-suit-word thai">{word}</span>
+      <span className="agro-suit-pct">{pct(p.suitability)}</span>
+      <i className="thai">{tag}</i>
+    </span>
+  );
 }
 
 function ScorePart({ label, value }: { label: string; value: number }) {
@@ -167,7 +179,16 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
                     <span className="agro-plant-icon"><PlantGlyph plantId={p.plant.id} layer={p.layer} size={30} /></span>
                     <div className="agro-plant-main">
                       <div className="agro-plant-name thai">{p.plant.nameTh}</div>
+                      {/* shareRai is computed for every pick by the engine but was never
+                          rendered, so a farmer was told to plant 4 layers on 10 rai with no
+                          idea how much land each one gets. */}
+                      <div className="agro-plant-area thai">
+                        <Icon name="plot" size={13} /> ปลูกประมาณ <b>{p.shareRai.toFixed(1)} ไร่</b>
+                        {p.totalPlants ? ` · ~${nf0(p.totalPlants)} ต้น` : p.plantsPerRai ? ` · ~${nf0(p.plantsPerRai)} ต้น/ไร่` : ''}
+                      </div>
                       <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
+                      {/* plants.ts carries real Thai agronomy notes that rendered nowhere. */}
+                      {p.plant.note && <div className="agro-plant-note thai">{p.plant.note}</div>}
                     </div>
                     {p.pickedBy === 'farmer' && <span className="agro-picked thai">คุณเลือก</span>}
                     {suitBadge(p)}
@@ -179,27 +200,49 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
         })}
       </div>
 
+      {/* The engine computes these in Thai (engine.warningsFor) and nothing rendered them,
+          so the drainage mismatch, the shade-out caution and the zone-area integrity check
+          had no surface anywhere in the app. Placed before the money figures on purpose. */}
+      {sys.warnings.length > 0 && (
+        <div className="agro-plan-warnings">
+          <div className="agro-compare-head">
+            <span className="agro-impact-k">ข้อควรระวังก่อนลงมือ</span>
+            <b className="thai">เรื่องที่ต้องรู้เกี่ยวกับแผนนี้ ({sys.warnings.length})</b>
+          </div>
+          <ul className="agro-warn-list">
+            {sys.warnings.map((w, i) => (
+              <li key={i} className="thai">
+                <span className="agro-reason-icon warn"><Icon name="warning" size={13} strokeWidth={2.4} /></span>
+                {w}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="agro-kpis">
         <div className="agro-kpi"><div className="agro-kpi-k thai">คืนทุน</div><div className="agro-kpi-v">{sys.paybackYear ? `ปีที่ ${sys.paybackYear}` : '> 10 ปี'}</div></div>
         <div className="agro-kpi"><div className="agro-kpi-k thai">กำไรสะสม 10 ปี</div><div className="agro-kpi-v" style={{ color: sys.profit10 >= 0 ? 'var(--ok)' : 'var(--risk)' }}>{bahtK(sys.profit10)}</div></div>
         <div className="agro-kpi"><div className="agro-kpi-k thai">เฉลี่ย/ปี</div><div className="agro-kpi-v">{bahtK(sys.annualAvg)}</div></div>
       </div>
 
+      {/* Thai labels: an older farmer reading this on a phone cannot be expected to parse
+          "Water fit" or "GISTDA risk". */}
       <div className="agro-score-parts">
-        <ScorePart label="Agroforest" value={sys.scoreParts.agroforestry} />
-        <ScorePart label="Suitability" value={sys.scoreParts.suitability} />
-        <ScorePart label="Economics" value={sys.scoreParts.economics} />
-        <ScorePart label="Water fit" value={sys.scoreParts.waterFit} />
-        <ScorePart label="GISTDA risk" value={sys.scoreParts.riskFit} />
-        <ScorePart label="Carbon" value={sys.scoreParts.carbon} />
+        <ScorePart label="ความเป็นวนเกษตร" value={sys.scoreParts.agroforestry} />
+        <ScorePart label="ความเหมาะกับพื้นที่" value={sys.scoreParts.suitability} />
+        <ScorePart label="ความคุ้มค่าทางเศรษฐกิจ" value={sys.scoreParts.economics} />
+        <ScorePart label="ความเหมาะกับปริมาณน้ำ" value={sys.scoreParts.waterFit} />
+        <ScorePart label="รับมือความเสี่ยงภัยพิบัติ" value={sys.scoreParts.riskFit} />
+        <ScorePart label="การกักเก็บคาร์บอน" value={sys.scoreParts.carbon} />
       </div>
 
       <div className="agro-system-fit">
-        <span>4-layer {pct(sys.agroforestryParts.strata)}</span>
-        <span>Diversity {pct(sys.agroforestryParts.diversity)}</span>
-        <span>Shade {pct(sys.agroforestryParts.shade)}</span>
-        <span>Soil cover {pct(sys.agroforestryParts.soilCover)}</span>
-        <span>Buffer {pct(sys.agroforestryParts.riskBuffer)}</span>
+        <span>ครบ 4 ชั้น {pct(sys.agroforestryParts.strata)}</span>
+        <span>ความหลากหลาย {pct(sys.agroforestryParts.diversity)}</span>
+        <span>ร่มเงาเข้ากัน {pct(sys.agroforestryParts.shade)}</span>
+        <span>คลุมหน้าดิน {pct(sys.agroforestryParts.soilCover)}</span>
+        <span>เป็นแนวกันชน {pct(sys.agroforestryParts.riskBuffer)}</span>
       </div>
 
       <div className="agro-carbon">

@@ -8,16 +8,30 @@ const layerSelection = z.object({
   root: z.array(z.string()).default([]),
 });
 
+// Constrained to the list the UI actually offers. Left open, an arbitrary string reached
+// engine.transitionContext's `TRANSITION_COST_PER_RAI[z.cropId]` lookup, and a plain object
+// literal resolves inherited keys — so cropId "constructor" returned the Object function,
+// `areaRai * Object` produced NaN, and the NaN propagated through every cashflow. Verified
+// on production: transitionCost, profit10, paybackYear and all 10 cumulative values came
+// back null while the agronomic sections still looked authoritative. `catch` maps anything
+// unrecognised to 'อื่นๆ', which is the row TRANSITION_COST_PER_RAI already has a cost for.
+export const KNOWN_CROP_IDS = [
+  'ข้าวโพดเลี้ยงสัตว์', 'ข้าวไร่', 'มันสำปะหลัง', 'ยางพารา',
+  'ไม้ผลผสม', 'สวนผสม', 'ป่า/ไม้ยืนต้นเดิม', 'พื้นที่ว่าง/เพิ่งถาง', 'พื้นที่เสื่อมโทรม', 'อื่นๆ',
+] as const;
+
+const cropIdSchema = z.enum(KNOWN_CROP_IDS).catch('อื่นๆ');
+
 const existingZoneSchema = z.object({
   id: z.string().min(1).max(80),
-  cropId: z.string().min(1).max(80),
+  cropId: cropIdSchema,
   areaRai: z.number().positive().max(500),
   keepRatio: z.number().min(0).max(1).optional(),
   note: z.string().max(160).optional(),
 });
 
 export const farmInputSchema = z.object({
-  currentCropId: z.string().nullable(),
+  currentCropId: cropIdSchema.nullable(),
   existingZones: z.array(existingZoneSchema).max(12).optional(),
   sizeRai: z.number().min(0.5).max(500),
   elevationM: z.number().min(TH_ELEV_MIN).max(TH_ELEV_MAX),
@@ -42,3 +56,26 @@ export const farmInputSchema = z.object({
     expertNote: z.string().max(300).optional(),
   })).max(80).optional(),
 });
+
+/**
+ * Drop crop overrides for plants the user has not actually selected.
+ *
+ * The advanced override editor only renders rows for `selectedByLayer`, so an override
+ * attached to any other plant is invisible in the UI — yet engine.applyAssumption applies
+ * assumptions to every candidate plant and still labels the pick `pickedBy: 'system'`.
+ * That combination let a crafted ?plan= share link rewrite the economics of plants the
+ * farmer never chose and have the result presented as the model's own recommendation.
+ *
+ * Applied on both sides of the wire: on share-link ingest in the client, and server-side
+ * in runPlan so a direct POST cannot bypass it either.
+ */
+export function sanitizeAssumptions<T extends {
+  selectedByLayer?: Record<string, string[]>;
+  cropAssumptions?: Array<{ plantId: string }>;
+}>(input: T): T {
+  if (!input.cropAssumptions?.length) return input;
+  const selected = new Set(Object.values(input.selectedByLayer ?? {}).flat());
+  const kept = input.cropAssumptions.filter((a) => selected.has(a.plantId));
+  if (kept.length === input.cropAssumptions.length) return input;
+  return { ...input, cropAssumptions: kept };
+}

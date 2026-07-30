@@ -18,7 +18,9 @@
   --fg-0: #10221b;
   --fg-1: #243a31;
   --fg-2: #5d7068;
-  --fg-3: #869891;
+  /* darkened from #869891 (3.04:1 on white — failed AA) to 5.17:1. Used 87 times,
+     including the per-species yield/price numbers a farmer actually reads. */
+  --fg-3: #5f716b;
 
   /* — borders — */
   --line: #d5e1db;
@@ -51,6 +53,17 @@
   --warn-bg: #fff2d8;
   --risk-bg: #fde8e2;
   --data-bg: #e6f3f8;
+
+  /* Text-on-tint inks. The base --ok/--warn/--risk/--data hues are tuned for fills,
+     borders and chart strokes, and several badges rely on DARK text over a solid --ok,
+     so those hues cannot simply be darkened. But used as small text on their own pale
+     tint they measured 2.74:1 (warn), 3.56:1 (ok), 3.84:1 (risk) and 4.01:1 (data) —
+     all below the 4.5:1 AA floor, and unreadable on a phone in midday Nan sun. These
+     inks are the same hues darkened to clear 4.5:1 on the matching -bg. */
+  --ok-ink: #1f6b41;
+  --warn-ink: #8a5a06;
+  --risk-ink: #9c3327;
+  --data-ink: #155f7d;
 
   /* — restrained shadows — */
   --shadow-soft: 0 4px 12px rgba(16, 34, 27, 0.08);
@@ -810,9 +823,9 @@ body::before {
 .agro-plant-row:hover .agro-plant-icon,
 .agro-combo:hover .agro-combo-icon { transform: scale(1.06); }
 .agro-picked { background: var(--matcha); color: #fff; }
-.agro-suit.ok { color: var(--ok); background: var(--ok-bg); }
-.agro-suit.warn { color: var(--warn); background: var(--warn-bg); }
-.agro-suit.risk { color: var(--risk); background: var(--risk-bg); }
+.agro-suit.ok { color: var(--ok-ink); background: var(--ok-bg); border: 1.5px solid #b8ddc6; }
+.agro-suit.warn { color: var(--warn-ink); background: var(--warn-bg); border: 1.5px solid #edd49a; }
+.agro-suit.risk { color: var(--risk-ink); background: var(--risk-bg); border: 1.5px solid #f2c3b7; }
 
 /* ── KPIs / scores ─────────────────────────────────────────────────────── */
 .agro-kpi { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
@@ -827,9 +840,9 @@ body::before {
 
 /* ── reasons ───────────────────────────────────────────────────────────── */
 .agro-reason { color: var(--fg-1); }
-.agro-reason-icon.ok { background: var(--ok-bg); color: var(--ok); }
-.agro-reason-icon.data { background: var(--data-bg); color: var(--taro-deep); }
-.agro-reason-icon.warn { background: var(--warn-bg); color: var(--warn); }
+.agro-reason-icon.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.agro-reason-icon.data { background: var(--data-bg); color: var(--data-ink); }
+.agro-reason-icon.warn { background: var(--warn-bg); color: var(--warn-ink); }
 
 /* ── GISTDA + soil context cards ───────────────────────────────────────── */
 .agro-gistda {
@@ -1002,6 +1015,127 @@ a:hover { color: var(--sugar-0); }
 @media (prefers-reduced-motion: reduce) {
   .agro-brand-mark, .agro-impact, .agro-gistda { animation: none; }
   * { transition-duration: .01ms !important; }
+}
+
+/* ── legal stop / unknown banners (above the plans, never collapsible) ──── */
+.agro-legal-stop,
+.agro-legal-warn {
+  display: flex; gap: 13px; align-items: flex-start;
+  margin: 14px 0 4px; padding: 15px 17px;
+  border-radius: var(--radius-lg);
+  break-inside: avoid;
+}
+.agro-legal-stop {
+  background: var(--risk-bg);
+  border: 2.5px solid var(--risk);
+  box-shadow: var(--shadow-soft);
+}
+.agro-legal-warn {
+  background: var(--warn-bg);
+  border: 2px solid #e0bb63;
+}
+.agro-legal-stop-ic { flex-shrink: 0; line-height: 1; }
+.agro-legal-stop .agro-legal-stop-ic { color: var(--risk-ink); }
+.agro-legal-warn .agro-legal-stop-ic { color: var(--warn-ink); }
+.agro-legal-stop b, .agro-legal-warn b { display: block; font-size: 16px; font-family: var(--font-display); }
+.agro-legal-stop > div > div, .agro-legal-warn > div > div {
+  margin-top: 5px; font-size: 13.5px; line-height: 1.55;
+}
+.agro-legal-stop { color: var(--risk-ink); }
+.agro-legal-warn { color: var(--warn-ink); }
+.agro-legal-stop b b, .agro-legal-warn b b { display: inline; }
+
+/* Plans for land that may not legally be cleared stay readable but visibly demoted,
+   so a profit figure cannot be mistaken for a recommendation to act. */
+.agro-results.is-illegal { opacity: 0.9; }
+.agro-results.is-illegal .agro-plan-tabs button em { text-decoration: line-through; }
+
+/* iOS Safari zooms the whole page when a focused input's font-size is under 16px, and
+   with maximumScale=5/userScalable=true it never zooms back — leaving a field officer
+   stranded at 1.6x mid-form. 16px on touch devices is the only reliable prevention.
+   Scoped to coarse pointers so the denser desktop layout is untouched. */
+@media (pointer: coarse) {
+  .agro-input,
+  .agro-zone-row .agro-input,
+  .agro-calc-row .agro-input,
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+/* GPS feedback. The denied/failed message is the single most likely field error, and it
+   was rendering in --warn on white (3.4:1) at 12px — the worst possible combination. */
+.agro-gps-err,
+.agro-gps-warn {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin-top: 8px; padding: 9px 12px;
+  font-size: 13px; line-height: 1.5;
+  color: var(--warn-ink); background: var(--warn-bg);
+  border: 1.5px solid #edd49a; border-radius: var(--radius);
+}
+.agro-gps-err b, .agro-gps-warn b { font-weight: 800; }
+
+/* ── next-farmer reset ─────────────────────────────────────────────────── */
+.agro-step-reset,
+.agro-result-new {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 8px 14px;
+  background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: 999px; color: var(--sugar-1);
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  cursor: pointer; box-shadow: var(--shadow-soft);
+  transition: all .18s var(--ease-bounce);
+}
+.agro-step-reset:hover,
+.agro-result-new:hover { border-color: var(--sugar-0); transform: translateY(-2px); }
+.agro-step-reset { margin-left: auto; }
+
+/* Plot provenance: promoted from a 12px --fg-3 whisper, because on a phone the side
+   summary is hidden and this is the officer's only chance to catch a stale plot. */
+.agro-result-loc {
+  color: var(--fg-2); font-size: 13px; line-height: 1.5;
+}
+.agro-result-loc b { color: var(--fg-0); font-weight: 700; }
+
+/* ── agronomic warnings (engine.warningsFor) ───────────────────────────── */
+.agro-plan-warnings {
+  margin-top: 14px; padding: 14px 16px;
+  background: var(--warn-bg);
+  border: 1.5px solid #edd49a;
+  border-radius: var(--radius-lg);
+}
+.agro-warn-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 9px; }
+.agro-warn-list li {
+  display: flex; gap: 9px; align-items: flex-start;
+  font-size: 13.5px; line-height: 1.55; color: var(--fg-0);
+}
+.agro-warn-list .agro-reason-icon {
+  background: #fff; color: var(--warn-ink);
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; margin-top: 1px;
+}
+
+/* ── per-plant area + agronomy note ────────────────────────────────────── */
+.agro-plant-area {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12.5px; color: var(--sugar-1); font-weight: 600; margin-top: 2px;
+}
+.agro-plant-area b { color: var(--sugar-2); font-weight: 800; }
+.agro-plant-note {
+  margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--fg-2);
+  padding-left: 8px; border-left: 2px solid var(--line);
+}
+
+/* Suitability verdict — a Thai word and an icon carry it, not colour alone. */
+.agro-suit {
+  display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  padding: 5px 9px; border-radius: 999px;
+}
+.agro-suit-word { font-family: var(--font-display); font-weight: 800; font-size: 12.5px; }
+.agro-suit-pct { font-family: var(--font-mono); font-weight: 700; font-size: 12px; opacity: 0.92; }
+.agro-suit i {
+  display: block; width: 100%; font-style: normal;
+  font-size: 10.5px; font-weight: 500; opacity: 1;
 }
 
 /* ── 404 page ──────────────────────────────────────────────────────────── */

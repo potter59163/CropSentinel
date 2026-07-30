@@ -3,6 +3,13 @@
 // We ask: is the farmer's plot inside / near a protected forest? This drives both
 // legality (you may not clear/plant inside a park) and restoration value (agroforestry
 // in the buffer zone protects the forest edge).
+//
+// SCOPE LIMIT — read this before writing any UI copy against these results.
+// This service publishes only the two classes in LAYERS below. It does NOT publish
+// ป่าสงวนแห่งชาติ (national reserved forest), ป่าไม้ถาวร, or ลุ่มน้ำชั้น 1A — and those
+// are precisely the classifications that decide whether clearing Nan highland farmland
+// is prosecutable. A negative result here therefore means "not found in two layers",
+// NEVER "legally plantable". Callers must not upgrade it into a clearance claim.
 import { fetchGistdaDisaster } from './gistdaDisaster';
 
 const BASE =
@@ -10,9 +17,35 @@ const BASE =
   encodeURIComponent('ข้อมูลทรัพยากรธรรมชาติ') +
   '/MapServer';
 
-const LAYERS = [
-  { id: 1, type: 'อุทยานแห่งชาติ' },
+// LAYER 1 IS NOT A NATIONAL PARK BOUNDARY. Its ArcGIS layer *name* is
+// "เขตอุทยานแห่งชาติ", which is why it was originally wired up as one, but its own
+// service metadata reads:
+//   "การแปลตีความข้อมูลพื้นที่ป่าไม้ จากข้อมูลภาพถ่ายจากดาวเทียม LANDSAT-8 ปี พ.ศ. 2556-2557 …"
+// and the only non-null DESC_TH across the whole layer is
+//   "พื้นที่ที่มีป่าไม้ปกคลุม ซึ่งรวมทั้งป่าธรรมชาติ และพื้นที่ปลูกสร้างสวนป่า"
+// i.e. it is a 2013–2014 satellite forest-COVER product (FCA__TYPE, Data_sour1 =
+// Landsat scene ids), split by tambon, containing no park names at all.
+//
+// Treating it as a legal boundary made the app tell a farmer "your land is inside a
+// national park, clearing is illegal" purely because their plot had tree cover in 2014 —
+// verified firing on บ่อเกลือ and แม่จริม, ordinary Nan farmland. For an agroforestry
+// tool that is exactly backwards: the more trees a farmer has already kept, the more
+// likely they were falsely accused. So it is now an informational context signal only
+// and can never set `inside`/`near`.
+const FOREST_COVER_LAYER_ID = 1;
+
+// Only layer 2 is a real protected-area boundary (verified: FR_NAME returns genuine Nan
+// sanctuaries such as ดอยผาช้าง). Read FR_NAME/FOR_NAME_T — DESC_TH on this layer is
+// truncated to 16 characters ('พื้นที่เขตรักษาพ') and is useless as a name.
+const LEGAL_LAYERS = [
   { id: 2, type: 'เขตรักษาพันธุ์สัตว์ป่า' },
+];
+
+// The legal classes this check cannot see, surfaced to the UI so the gap is stated
+// to the farmer rather than hidden behind a reassuring absence. อุทยานแห่งชาติ is on
+// this list because, per the note above, this service has no genuine park layer.
+export const UNCHECKED_LEGAL_CLASSES = [
+  'อุทยานแห่งชาติ', 'ป่าสงวนแห่งชาติ', 'ป่าไม้ถาวร', 'ลุ่มน้ำชั้น 1A',
 ];
 
 const RIVER_LAYER_ID = 0;
@@ -38,6 +71,13 @@ export interface ProtectedArea {
   // the query failed, so absence must not be shown to the farmer as zero-risk.
   fireStatus?: 'ok' | 'partial' | 'unavailable';
   riverStatus?: 'ok' | 'unavailable';
+  // 'unavailable' means the park/sanctuary lookup itself failed, so inside/near are
+  // BOTH meaningless defaults rather than a real "not protected" reading. Without this
+  // an outage is indistinguishable from a clear result — see checkProtectedLayers.
+  protectedStatus?: 'ok' | 'unavailable';
+  // 2013–2014 satellite forest-cover read (GISTDA layer 1). Context, never legality.
+  forestCover?: boolean;
+  forestCoverStatus?: 'ok' | 'unavailable';
   disasterStatus?: 'live' | 'missing-key' | 'unavailable' | 'bad-request';
   disasterSource?: string;
   disasterUpdatedAt?: string;
@@ -177,9 +217,60 @@ function normalizeDisaster(body: any) {
   };
 }
 
+// Park/sanctuary lookup, isolated so one HTTP error degrades ONLY this signal.
+// Previously these two loops sat un-wrapped in checkProtected, so a single failure
+// rejected the whole call, planRunner turned it into `protectedArea: null`, and the
+// UI's optional-chained branches fell through to the same "plantable" headline that
+// a genuine clear result produces.
+async function checkProtectedLayers(lat: number, lng: number) {
+  const OUT = 'FR_NAME,FOR_NAME_T,DESC_TH,CHANGWAT_T,Area_rai';
+  const nameOf = (a: Record<string, any>) =>
+    attr(a, 'FR_NAME') || attr(a, 'FOR_NAME_T') || undefined;
+
+  // inside a protected area?
+  for (const L of LEGAL_LAYERS) {
+    const f = await queryLayer(L.id, lat, lng, 0, OUT);
+    if (f.length) {
+      const a = f[0].attributes ?? {};
+      return {
+        inside: true, near: true, type: L.type,
+        name: nameOf(a), changwat: attr(a, 'CHANGWAT_T'),
+        protectedStatus: 'ok' as const,
+      };
+    }
+  }
+  // within ~3 km of one?
+  for (const L of LEGAL_LAYERS) {
+    const f = await queryLayer(L.id, lat, lng, 3000, OUT);
+    if (f.length) {
+      const a = f[0].attributes ?? {};
+      return {
+        inside: false, near: true, type: L.type,
+        name: nameOf(a), changwat: attr(a, 'CHANGWAT_T'),
+        protectedStatus: 'ok' as const,
+      };
+    }
+  }
+  return { inside: false, near: false, protectedStatus: 'ok' as const };
+}
+
+// Existing tree cover, from the 2013–2014 satellite product described above. Genuinely
+// useful for an agroforestry tool — a plot that already carries canopy is a restoration
+// candidate rather than a conversion — but it is NOT a legal determination.
+async function checkForestCover(lat: number, lng: number) {
+  const f = await queryLayer(FOREST_COVER_LAYER_ID, lat, lng, 0, 'DESC_TH,Area_rai,CHANGWAT_T');
+  return { forestCover: f.length > 0, forestCoverStatus: 'ok' as const };
+}
+
 export async function checkProtected(lat: number, lng: number): Promise<ProtectedArea> {
   const src = 'GISTDA · ข้อมูลทรัพยากรธรรมชาติ';
-  const [river, fire, disaster] = await Promise.all([
+  const [protectedLayers, forest, river, fire, disaster] = await Promise.all([
+    checkProtectedLayers(lat, lng).catch(() => ({
+      inside: false, near: false, protectedStatus: 'unavailable' as const,
+    })),
+    checkForestCover(lat, lng).catch(() => ({
+      forestCover: false, forestCoverStatus: 'unavailable' as const,
+    })),
     checkRiver(lat, lng).catch(() => ({ riverNear: false, riverStatus: 'unavailable' as const })),
     checkFire(lat, lng).catch(() => ({ fireHotspots: 0, fireNearby: 0, fireProtected: 0, fireStatus: 'unavailable' as const })),
     checkDisaster(lat, lng).catch(() => ({
@@ -196,27 +287,5 @@ export async function checkProtected(lat: number, lng: number): Promise<Protecte
     })),
   ]);
 
-  // inside a protected area?
-  for (const L of LAYERS) {
-    const f = await queryLayer(L.id, lat, lng);
-    if (f.length) {
-      const a = f[0].attributes ?? {};
-      return {
-        inside: true, near: true, type: L.type, name: attr(a, 'DESC_TH'), changwat: attr(a, 'CHANGWAT_T'),
-        ...river, ...fire, ...disaster, source: src,
-      };
-    }
-  }
-  // within ~3 km of one?
-  for (const L of LAYERS) {
-    const f = await queryLayer(L.id, lat, lng, 3000);
-    if (f.length) {
-      const a = f[0].attributes ?? {};
-      return {
-        inside: false, near: true, type: L.type, name: attr(a, 'DESC_TH'), changwat: attr(a, 'CHANGWAT_T'),
-        ...river, ...fire, ...disaster, source: src,
-      };
-    }
-  }
-  return { inside: false, near: false, ...river, ...fire, ...disaster, source: src };
+  return { ...protectedLayers, ...forest, ...river, ...fire, ...disaster, source: src };
 }

@@ -15,11 +15,19 @@ export async function fetchElevation(lat: number, lng: number): Promise<number> 
   return Math.round(Number(e) || 0);
 }
 
-export function getGeolocation(): Promise<{ lat: number; lng: number }> {
+// accuracyM is carried through because elevation — derived from these coordinates — is
+// the hard gate on the whole species ranking. A cell-tower fix can be a kilometre or more
+// off, which on Nan's terrain is a different elevation band and therefore a different
+// recommendation, so the caller must be able to warn instead of rendering it as a precise pin.
+export function getGeolocation(): Promise<{ lat: number; lng: number; accuracyM?: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error('อุปกรณ์ไม่รองรับ GPS'));
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      (p) => resolve({
+        lat: p.coords.latitude,
+        lng: p.coords.longitude,
+        accuracyM: Number.isFinite(p.coords.accuracy) ? Math.round(p.coords.accuracy) : undefined,
+      }),
       (e) => reject(new Error(e.message || 'ขอตำแหน่งไม่สำเร็จ')),
       { enableHighAccuracy: true, timeout: 10000 },
     );

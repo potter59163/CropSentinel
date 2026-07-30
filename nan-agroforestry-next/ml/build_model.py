@@ -2,6 +2,20 @@
 """
 Species Distribution Model (SDM) v4.
 
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ WARNING — THIS TRAINER IS AHEAD OF THE SHIPPED MODEL.                        │
+│                                                                               │
+│ src/data/sdm_model.json is still the **v3** export (mean AUC 0.8415).         │
+│ Running this file will produce a DIFFERENT feature set and different AUCs.    │
+│ Do not ship its output without re-reading ml/MODEL-FINDINGS.md and re-running  │
+│ the full app verification — changing suitability changes every species         │
+│ ranking and every 10-year cashflow in the product.                            │
+│                                                                               │
+│ Headline reason to read that file first: the shipped 0.8415 is inflated by     │
+│ optimistic background sampling and model-selection peeking; the region-matched │
+│ nested estimate is ~0.72. Adding soil features did NOT improve AUC.           │
+└───────────────────────────────────────────────────────────────────────────────┘
+
 What changed from v3:
   - Keeps SoilGrids numeric properties in the trained feature set.
   - Adds derived soil indices (drainage/acidity/fertility) that can be computed
@@ -80,9 +94,29 @@ SOIL_BASE = SOIL_RAW + SOIL_DERIVED
 # exact same cached presence/background/climate pool, to isolate whether an AUC
 # change comes from soil features or from a change in the occurrence data itself.
 DISABLE_SOIL = os.getenv('SDM_DISABLE_SOIL', '0') == '1'
-BASE = CLIMATE_BASE + DISASTER_BASE + ([] if DISABLE_SOIL else SOIL_BASE)
-SQ = ['t2m', 'prec', 'elev', 'fire7d_near', 'flood_freq_near'] + ([] if DISABLE_SOIL else ['soil_acidity_idx'])
+
+# --- v4 feature set ----------------------------------------------------------
+# The GISTDA disaster columns are dropped. In the training pool they are
+# effectively constants: flood7d_near is 0 in 4245/4245 cells, fire7d_near is
+# nonzero in 13, burn_freq_near in 22, flood_freq_near in 70 — and drought_layers
+# is a 0/3 flag that is 3 exactly when the GISTDA scan reached that cell, i.e. a
+# "this cell is in Thailand" indicator rather than a drought measurement. Keeping
+# them let the model buy AUC with geography and created a train/serve skew, since
+# at inference these same columns carry REAL nonzero counts for a Nan plot.
+# See ml/diagnose.py (D3) and the F1/F4 rows of ml/matrix.py.
+KEEP_DISASTER: List[str] = []
+INCLUDE_SOIL_DERIVED = os.getenv('SDM_SOIL_DERIVED', '0') == '1'
+
+BASE = (CLIMATE_BASE + KEEP_DISASTER
+        + ([] if DISABLE_SOIL else SOIL_RAW + (SOIL_DERIVED if INCLUDE_SOIL_DERIVED else [])))
+SQ = ['t2m', 'prec', 'elev']
 FEATURES = BASE + [f'{n}_sq' for n in SQ]
+
+# --- v4 training protocol ----------------------------------------------------
+MIN_POS = int(os.getenv('SDM_MIN_POS', '40'))
+NEG_RATIO = int(os.getenv('SDM_NEG_RATIO', '4'))
+NEG_FLOOR = int(os.getenv('SDM_NEG_FLOOR', '400'))
+BLOCK_DEG = float(os.getenv('SDM_BLOCK_DEG', '2'))
 
 SOILGRIDS = 'https://rest.isric.org/soilgrids/v2.0/properties/query'
 SOIL_PROPS = ['phh2o', 'soc', 'clay', 'sand', 'cec']
@@ -311,6 +345,17 @@ def fetch_features(cells: List[Tuple[float, float]]) -> Dict[str, dict]:
 
 
 def soil_one(c: Tuple[float, float]):
+    """
+    Returns (cell_key, values_or_None, status) where status is:
+      'ok'     -> real SoilGrids values
+      'nodata' -> SoilGrids answered but has no soil here (ocean etc.) — cache it
+      'error'  -> transport/timeout failure — must NOT be cached, retry next run
+
+    Distinguishing 'nodata' from 'error' matters: the earlier version collapsed both
+    into a cached None, so a single ISRIC timeout became a permanent hole in the
+    training data. A spot-check retry of 40 such holes recovered 37, i.e. ~92% of
+    them were transient failures, not ocean.
+    """
     k = cell_key(c)
     q = [('lon', c[1]), ('lat', c[0]), ('value', 'mean')]
     for p in SOIL_PROPS:
@@ -320,7 +365,7 @@ def soil_one(c: Tuple[float, float]):
     try:
         d = http_json(SOILGRIDS + '?' + urllib.parse.urlencode(q), tries=SOIL_TRIES, timeout=SOIL_TIMEOUT)
     except Exception:
-        return k, None
+        return k, None, 'error'
     out = {}
     for layer in (d.get('properties', {}) or {}).get('layers', []) or []:
         name = layer.get('name')
@@ -331,7 +376,7 @@ def soil_one(c: Tuple[float, float]):
         if means:
             out[name] = conv(sum(means) / len(means))
     if 'phh2o' not in out:
-        return k, None
+        return k, None, 'nodata'
     return k, {
         'soil_ph': out.get('phh2o'),
         'soil_clay': out.get('clay'),
@@ -339,7 +384,7 @@ def soil_one(c: Tuple[float, float]):
         'soil_oc': out.get('soc'),
         'soil_cec': out.get('cec'),
         **soil_indices(out.get('phh2o'), out.get('clay'), out.get('sand'), out.get('soc'), out.get('cec')),
-    }
+    }, 'ok'
 
 
 def clamp01(v: float) -> float:
@@ -347,15 +392,34 @@ def clamp01(v: float) -> float:
 
 
 def soil_indices(ph, clay, sand, oc, cec) -> dict:
+    """
+    Derived soil indices, computed the way INFERENCE computes them rather than with
+    a tidier continuous formula.
+
+    src/lib/soil.ts buckets sand/clay into a 3-level drainage class and pH into a
+    4-level acidity class, and src/lib/suitability.ts then maps those classes onto
+    fixed constants (0.82/0.55/0.25 and 0.88/0.74/0.48/0.22). An earlier continuous
+    version of this function ((sand-clay+50)/100 etc.) produced values on a
+    different scale from the ones the deployed model would actually be fed, i.e. a
+    train/serve skew. Mirroring the buckets removes it.
+
+    Caveat that still applies: for a plot in Nan, mergeLddSoil() OVERRIDES drainage
+    and acidity with the LDD soil-group classes and blends fertility 0.55/0.45 with
+    LDD's, so these three columns remain only partly reproducible at inference. That
+    is one reason they are not in the v4 feature set by default.
+    """
     if ph is None or clay is None or sand is None:
         return {name: None for name in SOIL_DERIVED}
-    drainage = clamp01((float(sand) - float(clay) + 50.0) / 100.0)
-    acidity = clamp01(1.0 - abs(float(ph) - 6.3) / 2.2)
-    fertility = clamp01((float(oc or 0) / 3.0) * 0.45 + (float(cec or 0) / 250.0) * 0.3 + acidity * 0.25)
+    ph, clay, sand = float(ph), float(clay), float(sand)
+    drain = 'poor' if clay >= 35 else 'good' if sand >= 65 else 'moderate' if clay >= 27 else 'good'
+    acid = 'strong' if ph < 5.0 else 'moderate' if ph < 5.5 else 'slight' if ph < 6.6 else 'neutral'
     return {
-        'soil_drainage_idx': drainage,
-        'soil_acidity_idx': acidity,
-        'soil_fertility_idx': fertility,
+        'soil_drainage_idx': {'good': 0.82, 'moderate': 0.55, 'poor': 0.25}[drain],
+        'soil_acidity_idx': {'neutral': 0.88, 'slight': 0.74, 'moderate': 0.48, 'strong': 0.22}[acid],
+        # src/lib/soil.ts fertilityScore()
+        'soil_fertility_idx': clamp01(clamp01(float(oc or 0) / 3.0) * 0.45
+                                      + clamp01(float(cec or 0) / 250.0) * 0.3
+                                      + clamp01(1.0 - abs(ph - 6.3) / 2.0) * 0.25),
     }
 
 
@@ -365,7 +429,19 @@ def fetch_soil(cells: List[Tuple[float, float]]) -> Dict[str, dict]:
     for vals in data.values():
         if vals and vals.get('soil_drainage_idx') is None:
             vals.update(soil_indices(vals.get('soil_ph'), vals.get('soil_clay'), vals.get('soil_sand'), vals.get('soil_oc'), vals.get('soil_cec')))
-    todo = [c for c in cells if cell_key(c) not in data]
+    def needs_fetch(c) -> bool:
+        k = cell_key(c)
+        if k not in data:
+            return True
+        v = data[k] or {}
+        if v.get('soil_ph') is not None:
+            return False
+        # An all-None entry is either a real "SoilGrids has nothing here" (ocean) or
+        # a transient failure that the pre-fix code froze in permanently. Only the
+        # ones this code confirmed are trusted; legacy holes get one more chance.
+        return not v.get('nodataConfirmed')
+
+    todo = [c for c in cells if needs_fetch(c)]
     if todo:
         print(f'    SoilGrids soil todo={len(todo)} (cached={len(data)}) budget={SOIL_TIME_BUDGET_SEC:.0f}s workers={SOIL_WORKERS}')
     done = 0
@@ -381,8 +457,13 @@ def fetch_soil(cells: List[Tuple[float, float]]) -> Dict[str, dict]:
                 break
             done_now, pending = concurrent.futures.wait(pending, timeout=remaining_budget, return_when=concurrent.futures.FIRST_COMPLETED)
             for fut in done_now:
-                k, vals = fut.result()
-                data[k] = vals or {name: None for name in SOIL_BASE}
+                k, vals, status = fut.result()
+                if status == 'ok':
+                    data[k] = vals
+                elif status == 'nodata':
+                    data[k] = {name: None for name in SOIL_BASE} | {'nodataConfirmed': True}
+                # status == 'error': leave the key absent so the next run retries it
+                # instead of freezing a transient ISRIC timeout into a permanent hole.
                 done += 1
                 if done % 25 == 0 or done == len(todo):
                     json.dump(data, open(path, 'w'))
@@ -409,20 +490,50 @@ def export_tree(tree) -> dict:
     }
 
 
+def in_region(c: Tuple[float, float]) -> bool:
+    return REGION[0] <= c[0] <= REGION[1] and REGION[2] <= c[1] <= REGION[3]
+
+
+def match_region_negatives(rng, posset, pool, n_want):
+    """
+    Draw background cells whose in-region / out-of-region mix MATCHES the
+    positives'.
+
+    Why: GBIF presences for 9 of the 21 species are mostly outside the SE-Asia
+    box (macadamia 98% outside, ginger 94%, avocado 92%), while every one of the
+    900 random background cells is inside it. Sampling negatives uniformly
+    therefore let a model score well by answering "is this cell outside the box?"
+    instead of "does this crop like this environment?". ml/diagnose.py measures
+    that shortcut directly: a predictor whose ONLY input is the in-region flag
+    reaches mean AUC 0.740 on the old positives/negatives.
+
+    Matching the mix makes the flag uninformative by construction, so the AUC that
+    survives has to come from climate and soil. It is the standard fix for
+    presence/background sampling-extent mismatch.
+    """
+    inp = [c for c in pool if c not in posset and in_region(c)]
+    outp = [c for c in pool if c not in posset and not in_region(c)]
+    p_in = sum(1 for c in posset if in_region(c)) / max(1, len(posset))
+    n_in = min(len(inp), int(round(n_want * p_in)))
+    n_out = min(len(outp), n_want - n_in)
+    n_in = min(len(inp), max(n_in, n_want - n_out))
+    return rng.sample(inp, n_in) + rng.sample(outp, n_out)
+
+
 def main():
     import numpy as np
     from sklearn.ensemble import GradientBoostingClassifier
     from sklearn.impute import SimpleImputer
     from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import roc_auc_score
-    from sklearn.model_selection import GroupKFold, StratifiedKFold, cross_val_score
+    from sklearn.metrics import brier_score_loss, roc_auc_score
+    from sklearn.model_selection import GroupKFold
 
     print('1) GBIF presence (all layers)...')
     pres = fetch_presence()
     cells = sorted({tuple(c) for cs in pres.values() for c in cs} | set(background_cells()))
     print(f'   {len(cells)} total unique cells with background')
 
-    print('2) features: DEM + NASA POWER + GISTDA Disaster...')
+    print('2) features: DEM + NASA POWER (+ GISTDA disaster, cached but NOT used in v4)...')
     feat = fetch_features(cells)
 
     if DISABLE_SOIL:
@@ -432,7 +543,8 @@ def main():
         climate_cells = [c for c in cells if feat.get(cell_key(c), {}).get('t2m') is not None]
         soil = fetch_soil(climate_cells)
         for c in cells:
-            feat.setdefault(cell_key(c), {}).update(soil.get(cell_key(c), {}))
+            vals = soil.get(cell_key(c)) or {}
+            feat.setdefault(cell_key(c), {}).update({k: v for k, v in vals.items() if k in SOIL_BASE})
         json.dump(feat, open(os.path.join(CACHE, 'features_v3.json'), 'w'))
 
     def base_vec(cell):
@@ -447,7 +559,15 @@ def main():
     Xb = imp.fit_transform(Xb)
     medians = imp.statistics_
 
+    soil_have = sum(1 for c in pool if feat.get(cell_key(c), {}).get('soil_ph') is not None)
+    soil_have_reg = sum(1 for c in pool if in_region(c) and feat.get(cell_key(c), {}).get('soil_ph') is not None)
+    n_reg = sum(1 for c in pool if in_region(c))
+    print(f'   soil coverage: {soil_have}/{len(pool)} cells overall, '
+          f'{soil_have_reg}/{n_reg} in-region ({100 * soil_have_reg / max(1, n_reg):.0f}%)')
+
     def expand(X):
+        if not SQ:
+            return X
         sq = np.column_stack([X[:, BASE.index(n)] ** 2 for n in SQ])
         return np.column_stack([X, sq])
 
@@ -456,22 +576,114 @@ def main():
     std[std == 0] = 1
     idx = {tuple(c): i for i, c in enumerate(pool)}
 
-    def spatial_groups(rows):
-        out = []
-        for r in rows:
-            la, lo = pool[r]
-            out.append(int(math.floor(la / 2) * 1000 + math.floor(lo / 2)))
-        return np.array(out)
+    def make_logit():
+        return LogisticRegression(max_iter=4000)
 
-    print(f'3) train v4 ({len(pool)} cells, {len(FEATURES)} features)...')
+    def make_gbm():
+        return GradientBoostingClassifier(n_estimators=90, max_depth=2, learning_rate=0.055,
+                                          subsample=0.85, random_state=3)
+
+    def blocks(cs):
+        return np.array([int(math.floor(c[0] / BLOCK_DEG) * 1000 + math.floor(c[1] / BLOCK_DEG)) for c in cs])
+
+    def nested_eval(X_raw, Xz, y, groups):
+        """
+        Spatial-block GroupKFold with the logit-vs-GBM choice made on an INNER
+        blocked split of the training folds only.
+
+        v3 reported max(logit_auc, gbm_auc) over the very folds it scored, which is
+        an optimistically biased estimate of the deployed model: it credits the
+        winner with the noise that made it win. Choosing inside the training fold
+        keeps the outer fold untouched, so the number we ship is an estimate of the
+        whole select-then-fit procedure rather than of its luckiest branch.
+        """
+        uniq = sorted(set(groups.tolist()))
+        splits = min(5, len(uniq))
+        if splits < 3:
+            return None
+        aucs, briers, picks = [], [], {'logit': 0, 'gbm': 0}
+        for train, test in GroupKFold(n_splits=splits).split(X_raw, y, groups):
+            if len(set(y[test].tolist())) < 2:
+                continue
+            g_tr = groups[train]
+            inner = min(4, len(set(g_tr.tolist())))
+            pick = 'logit'
+            if inner >= 3:
+                s_l, s_g = [], []
+                for itr, ite in GroupKFold(n_splits=inner).split(X_raw[train], y[train], g_tr):
+                    if len(set(y[train][ite].tolist())) < 2:
+                        continue
+                    try:
+                        m = make_logit(); m.fit(Xz[train][itr], y[train][itr])
+                        s_l.append(roc_auc_score(y[train][ite], m.predict_proba(Xz[train][ite])[:, 1]))
+                    except Exception:
+                        pass
+                    try:
+                        m = make_gbm(); m.fit(X_raw[train][itr], y[train][itr])
+                        s_g.append(roc_auc_score(y[train][ite], m.predict_proba(X_raw[train][ite])[:, 1]))
+                    except Exception:
+                        pass
+                if s_g and s_l and float(np.mean(s_g)) > float(np.mean(s_l)):
+                    pick = 'gbm'
+            picks[pick] += 1
+            if pick == 'gbm':
+                m = make_gbm(); m.fit(X_raw[train], y[train]); p = m.predict_proba(X_raw[test])[:, 1]
+            else:
+                m = make_logit(); m.fit(Xz[train], y[train]); p = m.predict_proba(Xz[test])[:, 1]
+            aucs.append(roc_auc_score(y[test], p))
+            briers.append(brier_score_loss(y[test], p))
+        if not aucs:
+            return None
+        return {
+            'auc': float(np.mean(aucs)),
+            'aucSd': float(np.std(aucs)),
+            'brier': float(np.mean(briers)),
+            'folds': len(aucs),
+            'picks': picks,
+        }
+
+    def plain_eval(estimator_factory, X, y, groups):
+        splits = min(5, len(set(groups.tolist())))
+        if splits < 3:
+            return float('nan')
+        out = []
+        for train, test in GroupKFold(n_splits=splits).split(X, y, groups):
+            if len(set(y[test].tolist())) < 2:
+                continue
+            m = estimator_factory(); m.fit(X[train], y[train])
+            out.append(roc_auc_score(y[test], m.predict_proba(X[test])[:, 1]))
+        return float(np.mean(out)) if out else float('nan')
+
+    print(f'3) train v4 ({len(pool)} cells, {len(FEATURES)} features: {", ".join(FEATURES)})...')
     model = {
         'version': 4,
+        # NOTE: kept comparable to v3 on purpose — same 2-degree spatial blocks and
+        # the same GroupKFold estimator — so before/after AUCs measure the same
+        # thing. What changed is that model selection is now nested and the
+        # background is region-matched; both make the number lower and honest.
         'validation': 'spatial-block-2deg-group-kfold',
+        'validationDetail': {
+            'scheme': 'GroupKFold over 2-degree lat/lon blocks (<=5 folds)',
+            'modelSelection': 'nested — logit vs GBM chosen on an inner blocked split of each training fold; the reported AUC never sees the choice',
+            'background': 'target-group + random background, region-matched to each species presence extent',
+            'negRatio': NEG_RATIO,
+            'minPresences': MIN_POS,
+            'aucIsBiasedOptimistic': False,
+            'v3Caveats': [
+                'v3 reported max(logit, gbm) over the same folds it scored (selection-biased upward)',
+                'v3 background was 100% inside the SE-Asia box while most presences for 9 species were outside it, so AUC partly measured geography (region-only control AUC 0.740)',
+                'v3 included 5 GISTDA disaster columns that are near-constant in training but carry real nonzero values at inference (train/serve skew)',
+            ],
+        },
+        'scoreMeaning': (
+            'Relative habitat suitability = P(presence | presence-or-background) at a 1:%d '
+            'presence:background ratio. It is NOT a probability of a successful harvest and '
+            'not calibrated to yield.' % NEG_RATIO
+        ),
         'featureSources': {
             'climate': 'NASA POWER climatology + Open-Meteo elevation',
-            'disaster': 'GISTDA Disaster Open API / cached zero-impute outside Thailand',
-            'soilRaw': 'SoilGrids topsoil 0-15 cm numeric properties',
-            'soilDerived': 'drainage/acidity/fertility indices derived from SoilGrids for training; runtime can derive the same indices from LDD/SoilGrids',
+            'soilRaw': 'SoilGrids (ISRIC) topsoil 0-15 cm, same physical units as src/lib/soil.ts',
+            'disaster': 'GISTDA disaster columns intentionally EXCLUDED in v4 (near-constant in training, train/serve skew at inference)',
         },
         'base': BASE,
         'sq': SQ,
@@ -480,84 +692,107 @@ def main():
         'std': std.round(5).tolist(),
         'median': [round(float(m), 4) for m in medians],
         'species': {},
+        # Species deliberately NOT modelled. src/lib/suitability.ts already falls
+        # back to the elevation envelope with confidence 'expert' when a plant's
+        # sdmId is absent from `species`; this block records WHY, so the absence is
+        # auditable instead of looking like an oversight.
+        'excludedSpecies': {},
     }
 
+    rng = random.Random(9)
     for tid, cs in pres.items():
         pos = [tuple(c) for c in cs if tuple(c) in idx]
-        if len(pos) < 18:
-            print(f'  {tid:12s} {len(pos)} pts -> skip')
+        pos_reg = sum(1 for c in pos if in_region(c))
+        if len(pos) < MIN_POS:
+            model['excludedSpecies'][tid] = {
+                'reason': 'too-few-occurrences',
+                'n': len(pos),
+                'minRequired': MIN_POS,
+                'detail': 'Not enough independent 0.25-degree GBIF cells to fit and spatially validate a model. Use expert judgement / the elevation envelope instead.',
+            }
+            print(f'  {tid:12s} {len(pos):3d} pts -> EXCLUDED (< {MIN_POS})')
             continue
         posset = set(pos)
-        neg_pool = [c for c in pool if c not in posset]
-        neg = random.sample(neg_pool, min(len(neg_pool), max(len(pos) * 2, 180)))
+        n_want = max(len(pos) * NEG_RATIO, NEG_FLOOR)
+        neg = match_region_negatives(rng, posset, pool, n_want)
         rows = [idx[c] for c in pos] + [idx[c] for c in neg]
+        cells_rows = [pool[r] for r in rows]
         X = X_all[rows]
         Xz = (X - mean) / std
         y = np.array([1] * len(pos) + [0] * len(neg))
-        groups = spatial_groups(rows)
+        groups = blocks(cells_rows)
 
-        logit = LogisticRegression(max_iter=4000)
-        gbm = GradientBoostingClassifier(n_estimators=90, max_depth=2, learning_rate=0.055, subsample=0.85, random_state=3)
-        cv = StratifiedKFold(5, shuffle=True, random_state=2)
+        ev = nested_eval(X, Xz, y, groups)
+        if ev is None:
+            model['excludedSpecies'][tid] = {
+                'reason': 'not-spatially-validatable',
+                'n': len(pos),
+                'detail': 'Occurrences fall in fewer than 3 distinct 2-degree spatial blocks, so a blocked CV AUC cannot be estimated.',
+            }
+            print(f'  {tid:12s} {len(pos):3d} pts -> EXCLUDED (< 3 spatial blocks)')
+            continue
 
+        # Control: AUC obtainable from the in-region flag ALONE on this species'
+        # own train set. Region-matched sampling should pin this near 0.5; if it
+        # drifts up, the geographic shortcut has crept back in.
+        flag = np.array([1.0 if in_region(c) else 0.0 for c in cells_rows])
         try:
-            auc_random = float(cross_val_score(logit, Xz, y, cv=cv, scoring='roc_auc').mean())
+            a_flag = roc_auc_score(y, flag)
+            region_only = round(float(max(a_flag, 1 - a_flag)), 3)
         except Exception:
-            auc_random = float('nan')
+            region_only = None
 
-        def group_auc(estimator, Xmat):
-            scores = []
-            splits = min(5, len(set(groups)))
-            if splits < 3:
-                return float('nan')
-            for train, test in GroupKFold(n_splits=splits).split(Xmat, y, groups):
-                if len(set(y[test])) < 2:
-                    continue
-                est = estimator.__class__(**estimator.get_params())
-                est.fit(Xmat[train], y[train])
-                scores.append(roc_auc_score(y[test], est.predict_proba(Xmat[test])[:, 1]))
-            return float(np.mean(scores)) if scores else float('nan')
+        auc_logit = plain_eval(lambda: make_logit(), Xz, y, groups)
+        auc_gbm = plain_eval(lambda: make_gbm(), X, y, groups)
 
-        try:
-            auc_spatial = group_auc(logit, Xz)
-        except Exception:
-            auc_spatial = float('nan')
-        try:
-            auc_gbm_spatial = group_auc(gbm, X)
-        except Exception:
-            auc_gbm_spatial = float('nan')
-        try:
-            auc_gbm_random = float(cross_val_score(gbm, X, y, cv=cv, scoring='roc_auc').mean())
-        except Exception:
-            auc_gbm_random = float('nan')
-
-        logit.fit(Xz, y)
-        gbm.fit(X, y)
+        logit = make_logit(); logit.fit(Xz, y)
+        gbm = make_gbm(); gbm.fit(X, y)
         init = float(gbm.init_.class_prior_[1])
         init_logit = math.log(init / max(1e-9, 1 - init))
+        # Apply the SAME selection rule the nested estimate accounted for: the
+        # branch the inner splits preferred most often.
+        preferred = 'gbm' if ev['picks']['gbm'] > ev['picks']['logit'] else 'logit'
 
-        use_auc = auc_gbm_spatial if auc_gbm_spatial == auc_gbm_spatial and auc_gbm_spatial >= auc_spatial else auc_spatial
-        preferred = 'gbm' if auc_gbm_spatial == auc_gbm_spatial and auc_gbm_spatial >= auc_spatial else 'logit'
         model['species'][tid] = {
             'w': logit.coef_[0].round(4).tolist(),
             'b': round(float(logit.intercept_[0]), 4),
-            'auc': round(float(use_auc), 3) if use_auc == use_auc else round(float(auc_random), 3),
-            'aucLogitSpatial': round(float(auc_spatial), 3) if auc_spatial == auc_spatial else None,
-            'aucLogitRandom': round(float(auc_random), 3) if auc_random == auc_random else None,
-            'aucGBM': round(float(auc_gbm_spatial), 3) if auc_gbm_spatial == auc_gbm_spatial else None,
-            'aucGBMRandom': round(float(auc_gbm_random), 3) if auc_gbm_random == auc_gbm_random else None,
+            # `auc` is the nested (unbiased) blocked-CV AUC of the deployed
+            # select-then-fit procedure. src/lib/suitability.ts gates on it.
+            'auc': round(float(ev['auc']), 3),
+            'aucSd': round(float(ev['aucSd']), 3),
+            'brier': round(float(ev['brier']), 4),
+            'folds': ev['folds'],
+            'aucLogitSpatial': round(float(auc_logit), 3) if auc_logit == auc_logit else None,
+            'aucGBM': round(float(auc_gbm), 3) if auc_gbm == auc_gbm else None,
+            'regionOnlyControlAuc': region_only,
             'preferred': preferred,
             'n': len(pos),
+            'nInRegion': pos_reg,
+            'nBackground': len(neg),
             'gbm': {
                 'learningRate': round(float(gbm.learning_rate), 6),
                 'init': round(init_logit, 6),
                 'trees': [export_tree(est[0]) for est in gbm.estimators_],
             },
         }
-        print(f'  {tid:12s} n={len(pos):3d} AUC spatial logit={auc_spatial:.3f} gbm={auc_gbm_spatial:.3f} preferred={preferred}')
+        print(f'  {tid:12s} n={len(pos):3d} (in-region {pos_reg:3d}) nested AUC={ev["auc"]:.3f}'
+              f' +-{ev["aucSd"]:.3f} brier={ev["brier"]:.3f} picks={ev["picks"]}'
+              f' region-only-ctrl={region_only} pref={preferred}')
 
+    aucs = [v['auc'] for v in model['species'].values()]
+    model['summary'] = {
+        'speciesModelled': len(model['species']),
+        'speciesExcluded': len(model['excludedSpecies']),
+        'meanAuc': round(float(sum(aucs) / len(aucs)), 4) if aucs else None,
+        'minAuc': round(float(min(aucs)), 3) if aucs else None,
+        'meanRegionOnlyControlAuc': round(float(sum(
+            v['regionOnlyControlAuc'] for v in model['species'].values()
+            if v['regionOnlyControlAuc'] is not None) / max(1, len(aucs))), 4) if aucs else None,
+    }
     json.dump(model, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'))
-    print(f'\nExported {len(model["species"])} species -> {OUT}')
+    print(f'\nExported {len(model["species"])} species (excluded {len(model["excludedSpecies"])}) -> {OUT}')
+    print(f'  mean nested blocked AUC {model["summary"]["meanAuc"]}  min {model["summary"]["minAuc"]}'
+          f'  mean region-only control {model["summary"]["meanRegionOnlyControlAuc"]}')
 
 
 if __name__ == '__main__':

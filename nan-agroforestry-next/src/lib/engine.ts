@@ -225,7 +225,18 @@ function normalizedExistingZones(input: FarmInput): ExistingZone[] {
 function transitionContext(input: FarmInput) {
   const zones = normalizedExistingZones(input);
   const zoneArea = zones.reduce((sum, z) => sum + z.areaRai, 0);
-  const cost = zones.reduce((sum, z) => sum + z.areaRai * (TRANSITION_COST_PER_RAI[z.cropId] ?? TRANSITION_COST_PER_RAI['อื่นๆ']), 0);
+  // Object.hasOwn, not `??`: TRANSITION_COST_PER_RAI is a plain object literal, so a key
+  // like "constructor" or "toString" resolves up the prototype chain to a Function, the
+  // `??` fallback never fires, and `areaRai * Function` NaN-poisons the entire 10-year
+  // cashflow while every other section still renders confidently. planSchema now also
+  // constrains cropId to a known enum; this is the second line of defence.
+  const costOf = (cropId: string) => {
+    const v = Object.hasOwn(TRANSITION_COST_PER_RAI, cropId)
+      ? TRANSITION_COST_PER_RAI[cropId]
+      : TRANSITION_COST_PER_RAI['อื่นๆ'];
+    return typeof v === 'number' && Number.isFinite(v) ? v : TRANSITION_COST_PER_RAI['อื่นๆ'];
+  };
+  const cost = zones.reduce((sum, z) => sum + z.areaRai * costOf(z.cropId), 0);
   const notes = zones.length
     ? [
       `ใช้โซนเดิม ${zones.map((z) => `${z.cropId} ${z.areaRai.toLocaleString('en-US')} ไร่`).join(' · ')} เพื่อคิดต้นทุนเตรียมพื้นที่/เปลี่ยนผ่านปีแรกประมาณ ${cost.toLocaleString('en-US')} บาท`,

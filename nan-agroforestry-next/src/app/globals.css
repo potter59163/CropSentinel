@@ -11,4 +11,36 @@
   .agro-app { width: 100% !important; padding: 0 !important; }
   .agro-plan-tabs { display: none !important; }
   .agro-plan-panel, .agro-plan, .agro-impact, .agro-gistda { break-inside: avoid; box-shadow: none !important; }
+
+  /* The printout is what the farmer actually takes home and acts on, so it must carry
+     the constraints — not just the money. <details> collapses by default, which silently
+     dropped the legal status, the soil report and every agronomic warning from the page
+     the farmer keeps. Force them open and strip the on-screen affordances. */
+  details, .agro-context { display: block !important; }
+  details > summary { list-style: none; font-weight: 700; }
+  details > summary::marker,
+  details > summary::-webkit-details-marker { display: none; }
+  .agro-context-body { display: block !important; }
+  /* Chromium hides a closed <details>' contents with content-visibility on the slot,
+     not display, so both must be overridden or the evidence stays off the paper. */
+  details:not([open]) > *:not(summary) {
+    display: revert !important;
+    content-visibility: visible !important;
+  }
+  details::details-content { content-visibility: visible !important; display: block !important; }
+
+  /* Interactive-only chrome that means nothing on paper. */
+  .agro-results-actions, .agro-result-back, .agro-result-new,
+  .tour-help-fab, .agro-step-reset { display: none !important; }
+
+  /* Warnings must survive the colour-dropping some printers do, so give them a border. */
+  .agro-plan-warnings {
+    border: 2px solid #111 !important;
+    background: #fff !important;
+    break-inside: avoid;
+  }
+  .agro-plan-warnings, .agro-warn-list li { color: #111 !important; }
+
+  /* Provenance on paper: which plot this sheet is actually for. */
+  .agro-result-loc { font-size: 12pt !important; color: #111 !important; }
 }
