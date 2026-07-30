@@ -327,6 +327,85 @@ and fixes both of this arm's weaknesses at once — the saturated contrast for c
 (banana: 451 positives against only 118 available background cells) and the small-n crops.
 **That is the highest-value next step in the whole model workstream.**
 
+### Lever 1 follow-up — the tambon gazetteer arrived, so the amphoe compromise was redone
+
+`ml/reference/tambon_centroids_th.json` (7,425 sub-districts, CC BY-IGO) removed the
+geocoding blocker. Two things came out of redoing the work at tambon resolution, and the
+second one matters much more than the first.
+
+**The "8x more presence cells" premise was wrong.** Rebuilding presence at tambon resolution
+grew the 0.25° cell universe only **569 → 767 (1.35x)**, and saturation barely moved —
+banana went from 79% to 78% of the universe. A tambon averages ~8 km across while the SDM
+grid cell is ~27 km, so roughly ten tambons collapse into one cell. Refining administrative
+resolution *below the grid size* cannot create new distinct cells. Some crops even lost cells
+(lemongrass 156 → 121, galangal 97 → 77) because the 20-rai threshold bites harder on smaller
+units.
+
+**So the untested combination was tested: fine labels against a fine grid.** Lever 2 failed
+with 1 km climate because the labels were amphoe-coarse; the tambon rebuild failed because
+the grid was coarse. Holding the point set and labels identical (7,425 tambon points, no
+snapping) and varying *only* whether each point gets its own 1 km CHELSA reading or the mean
+of its 0.25° cell:
+
+| seed | coarse 27 km | fine 1 km | delta |
+|---|---|---|---|
+| 9 | 0.7283 | 0.7372 | +0.0089 |
+| 17 | 0.7384 | 0.7293 | −0.0091 |
+| 42 | 0.7368 | 0.7323 | −0.0046 |
+| **mean** | | | **−0.0016** (positive in 1 of 3) |
+
+Control: 100% of points lie inside the SE-Asia box, so the geography shortcut is impossible
+by construction and the comparison is valid. And there genuinely *was* something for the fine
+grid to see — within a single 0.25° cell the 1 km temperature spread is median 0.50 °C, p90
+2.60 °C, max **6.00 °C**.
+
+**Resolution is settled: it is not the constraint, at either end.** Real sub-cell climate
+variation exists and does not predict where these crops are grown. What decides cultivation
+below ~27 km is land tenure, roads, markets, irrigation and local practice — things climate
+cannot express.
+
+#### What the gazetteer DID buy: the head-to-head widened decisively
+
+Redone at tambon resolution — rank every tambon in a held-out 2° block by whether DOAE
+reports ≥20 rai, identical labels and folds both sides, CHELSA features sampled at each
+side's own points so neither is advantaged by feature provenance:
+
+| | amphoe resolution | **tambon resolution** |
+|---|---|---|
+| GBIF-trained (shipped recipe) | 0.605 | **0.614** |
+| DOAE-trained | 0.680 | **0.748** |
+| DOAE wins | 14 of 19 | **20 of 20** |
+
+The finer target lifted the DOAE model by +0.068 while leaving the GBIF model flat, widening
+the gap from 0.075 to **0.134**. The design remains conservative *against* DOAE: the GBIF
+model is allowed to train on occurrence points inside the held-out block, a spatial-leakage
+advantage the DOAE model is denied.
+
+**The shipped training data is below chance at predicting real Thai cultivation for five of
+twenty crops** — bamboo 0.496, cashew 0.469, chili 0.406, galangal 0.428, sweetpotato 0.449.
+That is an absolute statement about the deployed model, not an artifact of the comparison.
+
+Per-crop, the gap is largest exactly where it matters commercially: longan +0.247,
+pineapple +0.223, bamboo +0.213, chili +0.209, cashew +0.197, teak +0.186.
+
+#### Two caveats that must travel with those numbers
+
+**1. Part of the gap is distribution match, not data quality.** The DOAE model is trained on
+the same kind of label it is tested against (DOAE ≥20 rai), so some of its advantage is that
+its training and test distributions agree. Read the result as *"if the goal is predicting
+actual cultivation, training on cultivation records beats training on occurrence records"* —
+not as a general 0.13 superiority. The genuinely unarguable part is the below-chance finding
+above.
+
+**2. Cultivation records encode economics, not suitability — and that is a real conceptual
+problem for this product.** DOAE tells you where crops *are* grown, which reflects tradition,
+market access, contract farming, subsidies and road networks as much as agro-climatic fit. A
+model trained on it would tend to recommend "grow what your neighbours already grow". For an
+app whose entire purpose is to help farmers move *away* from monoculture maize, that is a
+substantive risk, not a technicality. Switching training data is therefore a **product
+decision about what the tool should mean**, not a modelling tweak — and it should not be made
+on an AUC comparison alone.
+
 ### Lever 2 — 1 km CHELSA climate instead of 27 km: refuted
 
 −0.0006 (p=0.97), and every like-for-like variant within ±0.002 — inside a background-seed
