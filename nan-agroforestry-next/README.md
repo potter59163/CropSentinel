@@ -58,4 +58,6 @@ Recommended Vercel settings:
 - Install Command: `npm install`
 - Build Command: `npm run build`
 
-The original Vite app remains in `nan-agroforestry/` until the Next.js app is fully accepted for production.
+The Vite prototype this replaced no longer exists in the repo; this directory is the
+only Nan app. The sibling `cropsentinel/` is a separate project (Pathum Thani rice)
+and shares no code with it.
