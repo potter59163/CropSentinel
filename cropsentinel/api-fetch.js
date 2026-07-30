@@ -48,7 +48,7 @@
     'nongsuea':     0.88,   // น้ำท่วมซ้ำซาก
     'lat-lum-kaeo': 0.33,   // terrain slightly higher
     'samkhok':      0.48,
-    'rangsit':      0.95,   // คลองรังสิต — lowest elevation
+    'lamlukka':      0.95,   // ลำลูกกา — ปลายคลองรังสิต
   };
 
   // District sensitivity to water stress (0-1), higher = dries out faster.
@@ -59,7 +59,7 @@
     'nongsuea':     0.82,
     'lat-lum-kaeo': 0.46,
     'samkhok':      0.54,
-    'rangsit':      0.86,
+    'lamlukka':      0.86,
   };
 
   const SOIL_OFFSET = {
@@ -69,7 +69,7 @@
     'nongsuea':     -0.08,
     'lat-lum-kaeo': +0.07,
     'samkhok':      +0.02,
-    'rangsit':      -0.10,
+    'lamlukka':      -0.10,
   };
 
   // ── per-district PM2.5 offset from province centroid ──────────────────────
@@ -80,7 +80,7 @@
     'nongsuea':     +2,
     'lat-lum-kaeo': -8,
     'samkhok':      -2,
-    'rangsit':      +14,  // ใกล้นิคมอุตสาหกรรม + มอเตอร์เวย์
+    'lamlukka':      +14,  // ใกล้นิคมอุตสาหกรรม + มอเตอร์เวย์
   };
 
   // ── per-district NDVI offset from province average ───────────────────────
@@ -91,7 +91,7 @@
     'nongsuea':     -0.11,
     'lat-lum-kaeo': +0.09,
     'samkhok':      +0.03,
-    'rangsit':      -0.16,
+    'lamlukka':      -0.16,
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -144,35 +144,39 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FETCH 2 — WAQI: real-time PM2.5 near Pathum Thani
-  // https://waqi.info  (demo token, free, CORS-OK)
+  // FETCH 2 — Open-Meteo Air Quality: PM2.5 ที่พิกัดปทุมธานีจริง
+  //
+  // เดิมใช้ WAQI ด้วย token=demo ซึ่งเป็นโทเคนสาธารณะที่ใช้ร่วมกันทั้งโลก
+  // มันคืนค่าจาก "สถานีที่ใกล้ที่สุดเท่าที่โทเคนสาธิตเข้าถึงได้" ซึ่งอาจอยู่คนละ
+  // ประเทศ แล้วเราเอามาแสดงเป็นค่าของปทุมธานี — ตัวเลขจึงไม่ตรงกับพื้นที่ที่อ้าง
+  // Open-Meteo คืนค่าที่พิกัดที่ขอจริง ไม่ต้องใช้คีย์ และเปิด CORS เหมือนกัน
   // ═══════════════════════════════════════════════════════════════════════════
-  let pm25Base = D.province.pm25;   // fallback = mock value
+  let pm25Base = null;   // null = ยังไม่มีค่าที่วัดได้ ห้ามเดา
 
   try {
-    const waqiURL = `https://api.waqi.info/feed/geo:${LAT};${LON}/?token=demo`;
-    const waqi    = await fetch(waqiURL).then(r => r.json());
+    const aqURL = `https://air-quality-api.open-meteo.com/v1/air-quality`
+      + `?latitude=${LAT}&longitude=${LON}&current=pm2_5&timezone=Asia%2FBangkok`;
+    const aq = await fetch(aqURL).then(r => r.json());
+    const v = aq?.current?.pm2_5;
 
-    if (waqi.status === 'ok') {
-      const rawPM25 = waqi.data?.iaqi?.pm25?.v;
-      // WAQI returns AQI not μg/m³ for some stations; if > 500 it's likely AQI
-      if (rawPM25 != null && rawPM25 < 500) {
-        pm25Base = Math.round(rawPM25);
-        D.province.pm25 = pm25Base;
-      }
+    if (typeof v === 'number' && isFinite(v)) {
+      pm25Base = Math.round(v);
+      D.province.pm25 = pm25Base;
+      D.province.pm25Source = 'Open-Meteo Air Quality';
+      D.districts.forEach(d => {
+        d.pm25 = Math.max(1, Math.round(pm25Base + (PM25_OFFSET[d.id] ?? 0)));
+        d.pm25Estimated = true;   // ค่าจังหวัดวัดได้ ส่วนการกระจายรายอำเภอเป็นค่าประมาณ
+      });
+      console.info('[CS] Open-Meteo AQ ✓', { pm25: pm25Base });
+    } else {
+      throw new Error('ไม่มีค่า pm2_5 ในผลลัพธ์');
     }
-
-    // Per-district PM2.5 with geographic offsets
-    D.districts.forEach(d => {
-      d.pm25 = Math.max(10, Math.round(pm25Base + (PM25_OFFSET[d.id] ?? 0)));
-    });
-
-    console.info('[CS] WAQI ✓', { pm25: pm25Base, station: waqi.data?.city?.name });
   } catch (e) {
-    console.warn('[CS] WAQI fetch failed, distributing mock PM2.5:', e.message);
-    D.districts.forEach(d => {
-      d.pm25 = Math.max(10, Math.round(pm25Base + (PM25_OFFSET[d.id] ?? 0)));
-    });
+    // ล้มเหลวแล้วต้องแสดงว่าไม่มีข้อมูล ไม่ใช่แสดงตัวเลขปลอมว่าวัดได้
+    console.warn('[CS] Open-Meteo AQ ล้มเหลว:', e.message);
+    D.province.pm25 = null;
+    D.province.pm25Source = null;
+    D.districts.forEach(d => { d.pm25 = null; d.pm25Estimated = true; });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

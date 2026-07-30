@@ -1,7 +1,32 @@
-// CropSentinel — baseline data for Pathum Thani rice supply (overwritten by api-fetch.js)
+// CropSentinel — ข้อมูลฐานอุปทานข้าว จ.ปทุมธานี
+//
+// อำเภอ พื้นที่ข้าว ขอบเขตแผนที่ และความถี่น้ำท่วม มาจาก window.CS_GISTDA
+// ซึ่ง build-gistda-baseline.py ดึงมาจากบริการข้อมูลเปิดของ GISTDA โดยตรง
+// ค่าที่ยังเป็นการประมาณ (NDVI, PM2.5, ความชื้นดิน) ถูกทำเครื่องหมาย estimated:true
+// และ api-fetch.js จะเขียนทับด้วยค่าที่วัดได้จริงเมื่อเรียก API สำเร็จ
+const G = window.CS_GISTDA;
+if (!G) throw new Error("ต้องโหลด gistda-baseline.js ก่อน data.js");
+
+// รหัสภาษาอังกฤษของอำเภอ ใช้เป็น id ภายในและป้ายกำกับสองภาษา
+const AMPHOE_EN = {
+  "เมืองปทุมธานี": ["mueang", "Mueang Pathum Thani"],
+  "คลองหลวง": ["khlongluang", "Khlong Luang"],
+  "ธัญบุรี": ["thanyaburi", "Thanyaburi"],
+  "หนองเสือ": ["nongsuea", "Nong Suea"],
+  "ลาดหลุมแก้ว": ["lat-lum-kaeo", "Lat Lum Kaeo"],
+  "ลำลูกกา": ["lamlukka", "Lam Luk Ka"],
+  "สามโคก": ["samkhok", "Sam Khok"],
+};
+
+// ความถี่น้ำท่วมซ้ำซาก 2548-2559 (สูงสุด 7 ครั้ง) ปรับเป็นสัดส่วน 0-1
+// นี่คือความเสี่ยงเชิงประวัติศาสตร์ ไม่ใช่สถานะน้ำท่วมวันนี้ — คนละเรื่องกัน
+const MAX_FLOOD_FREQ = 7;
+
 window.CS_DATA = {
   overview: {
-    cropLabelTh: "ข้าว · KDML105",
+    // ปทุมธานีเป็นพื้นที่ชลประทานเกือบทั้งจังหวัด ทำนาปรัง ใช้พันธุ์ไม่ไวแสง
+    // (กข31/กข41/กข47) ไม่ใช่ข้าวหอมมะลิซึ่งเป็นข้าวนาปีอาศัยน้ำฝนของอีสาน/เหนือ
+    cropLabelTh: "ข้าวนาปรัง · พันธุ์ไม่ไวแสง",
     shortageWarningWeeks: 6,
     primaryAudienceTh: "เกษตรกรรายย่อย",
     secondaryAudienceTh: "อปท./รัฐบาล · ผู้ค้าปลีก/โลจิสติกส์",
@@ -10,65 +35,55 @@ window.CS_DATA = {
 
   province: {
     name: "Pathum Thani",
-    nameTh: "ปทุมธานี",
-    totalFarmland: 1_186_400, // rai
-    activeZones: 42,
-    avgNDVI: 0.65,
-    lastUpdate: "2026-04-22 08:14 ICT",
-    pm25: 45,
-    floodRisk: "HIGH",
-    droughtRisk: "MEDIUM",
-    dryDays: 9,
-    soilMoisture: 0.42,
-    waterStress: 58,
+    nameTh: G.province.nameTh,
+    areaRai: G.province.areaRai,          // 953,660 ไร่ — พื้นที่จังหวัดทั้งหมด
+    riceRai: G.province.riceRai,          // พื้นที่ข้าวจริงจากภาพดาวเทียม
+    riceShare: G.province.riceShareOfProvince,
+    riceParcels: G.province.riceParcels,
+    totalFarmland: G.province.riceRai,    // ชื่อเดิม ชี้ไปที่พื้นที่ข้าวจริง
+    riceAsOfTh: G.source.riceLabelTh,
+    ricePixelM: G.source.ricePixelM,      // 40 ม. = 1,600 ตร.ม. = 1 ไร่ ต่อ 1 จุดภาพ
+    productKgPerRai: G.province.productKgPerRai,
+    mills: G.mills,
+    // ค่าประมาณ รอ api-fetch.js เขียนทับ
+    avgNDVI: 0.65, pm25: 45, soilMoisture: 0.42, waterStress: 58, dryDays: 9,
+    floodRisk: "HIGH", droughtRisk: "MEDIUM",
+    estimated: ["avgNDVI", "pm25", "soilMoisture", "waterStress", "dryDays"],
   },
 
-  // Districts — simplified polygons on a 600x440 canvas,
-  // shaped roughly to Pathum Thani's 7 amphoe (districts).
-  districts: [
-    {
-      id: "mueang", name: "Mueang Pathum Thani", nameTh: "เมืองปทุมธานี",
-      ndvi: 0.71, flood: 0.35, drought: 0.38, droughtRisk: "MEDIUM", waterStress: 42, soilMoisture: 0.46, pm25: 42,
-      farmland: 168_000, risk: "MEDIUM",
-      poly: "310,180 360,168 410,182 430,220 408,260 366,268 330,258 305,226",
-    },
-    {
-      id: "khlongluang", name: "Khlong Luang", nameTh: "คลองหลวง",
-      ndvi: 0.62, flood: 0.55, drought: 0.52, droughtRisk: "HIGH", waterStress: 55, soilMoisture: 0.39, pm25: 48,
-      farmland: 204_000, risk: "HIGH",
-      poly: "410,182 484,170 520,190 522,244 476,262 430,260 408,260 430,220",
-    },
-    {
-      id: "thanyaburi", name: "Thanyaburi", nameTh: "ธัญบุรี",
-      ndvi: 0.58, flood: 0.48, drought: 0.57, droughtRisk: "HIGH", waterStress: 61, soilMoisture: 0.36, pm25: 51,
-      farmland: 132_000, risk: "HIGH",
-      poly: "430,260 476,262 522,244 540,282 516,318 470,328 436,310",
-    },
-    {
-      id: "nongsuea", name: "Nong Suea", nameTh: "หนองเสือ",
-      ndvi: 0.54, flood: 0.72, drought: 0.62, droughtRisk: "HIGH", waterStress: 66, soilMoisture: 0.34, pm25: 44,
-      farmland: 216_000, risk: "CRITICAL",
-      poly: "484,170 556,156 596,186 590,236 552,254 522,244 520,190",
-    },
-    {
-      id: "lat-lum-kaeo", name: "Lat Lum Kaeo", nameTh: "ลาดหลุมแก้ว",
-      ndvi: 0.74, flood: 0.22, drought: 0.28, droughtRisk: "LOW", waterStress: 33, soilMoisture: 0.50, pm25: 39,
-      farmland: 178_000, risk: "LOW",
-      poly: "210,178 310,180 305,226 330,258 298,288 244,280 212,244",
-    },
-    {
-      id: "samkhok", name: "Sam Khok", nameTh: "สามโคก",
-      ndvi: 0.68, flood: 0.31, drought: 0.41, droughtRisk: "MEDIUM", waterStress: 45, soilMoisture: 0.44, pm25: 41,
-      farmland: 148_000, risk: "MEDIUM",
-      poly: "298,288 330,258 366,268 386,300 370,340 322,352 290,328",
-    },
-    {
-      id: "rangsit", name: "Rangsit (Khlong Rangsit)", nameTh: "รังสิต",
-      ndvi: 0.49, flood: 0.82, drought: 0.69, droughtRisk: "HIGH", waterStress: 72, soilMoisture: 0.31, pm25: 57,
-      farmland: 140_400, risk: "CRITICAL",
-      poly: "366,268 408,260 436,310 470,328 458,376 410,388 378,362 370,340 386,300",
-    },
-  ],
+  // ช่วงเก็บเกี่ยวและโครงการชลประทาน — ใช้เป็นฐานของภารกิจ
+  harvestWindows: G.harvestWindows,
+  irrigationProjects: G.irrigationProjects,
+
+  // อำเภอทั้ง 7 ของปทุมธานี ตามชั้นขอบเขตการปกครองของ GISTDA
+  // รูปร่างบนแผนที่คือขอบเขตจริงที่ฉายลงผืนผ้าใบ 600x440 ไม่ใช่รูปวาดมือ
+  //
+  // หมายเหตุ: เวอร์ชันก่อนหน้าใส่ "รังสิต" เป็นอำเภอ ซึ่งไม่ถูกต้อง — รังสิตเป็น
+  // เขตเทศบาลในอำเภอธัญบุรี ส่วนอำเภอที่หายไปคือลำลูกกา ซึ่งเป็นหนึ่งในอำเภอ
+  // ที่มีพื้นที่ข้าวมากที่สุด ตรวจสอบได้จากชั้น L05_Amphoe_GISTDA_50k
+  districts: G.districts.map((d) => {
+    const [id, nameEn] = AMPHOE_EN[d.nameTh];
+    const floodFreq = (d.floodMaxFreq || 0) / MAX_FLOOD_FREQ;
+    return {
+      id,
+      name: nameEn,
+      nameTh: d.nameTh,
+      poly: d.poly,
+      // ---- วัดได้จริง ----
+      riceRai: d.riceRai,                    // ไร่ จากภาพดาวเทียมรายแปลง
+      floodFreq,                             // 0-1 จากความถี่น้ำท่วมซ้ำซาก 2548-2559
+      floodFreqCount: d.floodMaxFreq,        // จำนวนครั้งที่ท่วมสูงสุดในอำเภอ
+      floodExposureRai: d.floodExposureRai,  // ไร่-ครั้ง สะสมทุกเหตุการณ์
+      // ชื่อเดิมที่โมดูลอื่นยังเรียกใช้ ชี้ไปที่ค่าจริงชุดเดียวกัน
+      farmland: d.riceRai,
+      flood: floodFreq,
+      risk: floodFreq >= 0.85 ? "CRITICAL" : floodFreq >= 0.7 ? "HIGH" : floodFreq >= 0.5 ? "MEDIUM" : "LOW",
+      // ---- ค่าประมาณ api-fetch.js เขียนทับเมื่อเรียก API สำเร็จ ----
+      ndvi: 0.62, drought: 0.45, droughtRisk: "MEDIUM",
+      waterStress: 50, soilMoisture: 0.42, pm25: 45,
+      estimated: ["ndvi", "drought", "droughtRisk", "waterStress", "soilMoisture", "pm25"],
+    };
+  }),
 
   // 8-week forecast
   weeks: Array.from({ length: 8 }, (_, i) => `W${i + 1}`),

@@ -264,7 +264,7 @@ function Module2() {
         <div className="card">
           <div className="card-h">
             <h3>พยากรณ์ผลผลิตข้าว — 8 สัปดาห์ข้างหน้า <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Supply forecast</span></h3>
-            <span className="chip data"><span className="dot"/>LSTM + XGB · v3.2</span>
+            <span className="chip warn thai"><span className="dot"/>แบบจำลอง ไม่ใช่ค่าที่วัดได้</span>
           </div>
           <SupplyChart data={D.supply} weeks={D.weeks} />
         </div>
@@ -279,24 +279,35 @@ function Module2() {
 
         <div className="card">
           <div className="card-h">
-            <h3>ความเชื่อมั่นของโมเดล <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Model confidence</span></h3>
-            <span className="sub">Ensemble · 4 models</span>
+            <h3>วิธีคำนวณ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>How this is computed</span></h3>
+            <span className="sub thai">เปิดสูตรทั้งหมด</span>
           </div>
-          <div className="grid grid-4">
+          {/*
+            การ์ดนี้เคยแสดง "Ensemble · 4 models" พร้อมค่าความเชื่อมั่น LSTM/XGBoost
+            ซึ่งไม่มีโมเดลเหล่านั้นอยู่ในโค้ดเลย จึงเปลี่ยนเป็นการเปิดสูตรจริง
+            หลักการ: ถ้าไม่มีของจริงรองรับ ห้ามแสดงตัวเลขความเชื่อมั่น
+          */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              ['Supply LSTM', 0.89, 'var(--ok)'],
-              ['Price XGBoost', 0.82, 'var(--data)'],
-              ['Flood/Drought Risk', 0.86, 'var(--ok)'],
-              ['Yield Prophet', 0.74, 'var(--warn)'],
-            ].map(([name, v, c]) => (
-              <div key={name} style={{ padding: 10, background: 'var(--bg-2)', borderRadius: 6 }}>
-                <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{name}</div>
-                <div style={{ fontSize: 18, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', fontWeight: 600, marginTop: 2 }}>{(v * 100).toFixed(0)}%</div>
-                <div style={{ height: 3, background: 'var(--bg-3)', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${v * 100}%`, background: c }} />
+              ['อุปทานรายสัปดาห์', 'ลดลงแบบทบต้นจากดัชนีความเครียดของพืช (ฝน ความชื้นดิน ดัชนีพืชพรรณ)', 'สูตรกฎ ไม่ได้เรียนรู้จากข้อมูลย้อนหลัง'],
+              ['ราคา', 'ราคาอ้างอิงคูณส่วนต่างอุปสงค์-อุปทาน', 'ค่าความยืดหยุ่นเป็นค่าสมมติ ยังไม่ได้สอบเทียบ'],
+              ['พื้นที่ปลูกและช่วงเกี่ยว', 'อ่านตรงจากชั้นข้อมูลข้าวรายแปลงของ GISTDA', 'ค่าที่วัดได้จริง'],
+              ['ความถี่น้ำท่วม', 'นับจำนวนปีที่ท่วมซ้ำ 2548-2559 จากชั้นข้อมูล GISTDA', 'ค่าที่วัดได้จริง'],
+            ].map(([name, how, caveat]) => {
+              const real = caveat === 'ค่าที่วัดได้จริง';
+              return (
+                <div key={name} className="row" style={{ alignItems: 'flex-start', fontSize: 12 }}>
+                  <span className={`chip ${real ? 'ok' : 'warn'} thai`} style={{ flexShrink: 0 }}>
+                    <span className="dot"/>{real ? 'วัดได้' : 'แบบจำลอง'}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div className="thai" style={{ color: 'var(--fg-0)' }}>{name}</div>
+                    <div className="thai" style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 2 }}>{how}</div>
+                    <div className="thai" style={{ color: real ? 'var(--ok)' : 'var(--warn)', fontSize: 11, marginTop: 2 }}>{caveat}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -344,8 +355,9 @@ function Module2() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line-soft)', fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-            Monte Carlo · 10,000 รอบ · อัปเดต 08:14 น.
+          {/* เดิมเขียนว่า "Monte Carlo · 10,000 รอบ" ทั้งที่ไม่มีการสุ่มใด ๆ ในโค้ด */}
+          <div className="thai" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line-soft)', fontSize: 11, color: 'var(--warn)' }}>
+            น้ำหนักฉากทัศน์เป็นค่าที่กำหนดไว้เพื่อประกอบการอภิปราย ไม่ได้มาจากการจำลองเชิงสถิติ
           </div>
         </div>
       </div>

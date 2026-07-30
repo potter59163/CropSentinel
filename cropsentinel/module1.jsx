@@ -258,7 +258,9 @@ function Module1() {
           <div className="card-h" style={{ padding: '14px 16px 0' }}>
             <div>
               <h3>แผนที่สุขภาพพืชจังหวัดปทุมธานี <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Crop Health Map</span></h3>
-              <div className="sub" style={{ marginTop: 4 }}>Sentinel-2 · GISTDA · ความละเอียด 10 เมตร</div>
+              <div className="sub" style={{ marginTop: 4 }}>
+                ขอบเขตอำเภอ: GISTDA L05_Amphoe 1:50,000 · พื้นที่ข้าว: GISTDA รายแปลง {D.riceAsOfTh} ({D.ricePixelM} ม./จุดภาพ)
+              </div>
             </div>
             <span className="chip data"><span className="dot"/> LIVE</span>
           </div>
@@ -286,7 +288,7 @@ function Module1() {
                   <td className="mono" style={{ color: ndviColor(d.ndvi) }}>{d.ndvi.toFixed(2)}</td>
                   <td className="mono">{(d.flood * 100).toFixed(0)}%</td>
                   <td className="mono" style={{ color: droughtColor(d.drought) }}>{(d.drought * 100).toFixed(0)}%</td>
-                  <td className="mono">{d.pm25}</td>
+                  <td className="mono">{d.pm25 ?? "—"}</td>
                   <td className="mono">{(d.farmland/1000).toFixed(0)}k ไร่</td>
                   <td>
                     <span className={`chip ${riskChip(d.risk)}`}><span className="dot"/>F {d.risk}</span>
@@ -302,14 +304,17 @@ function Module1() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="grid grid-2">
           <div className="stat">
-            <div className="stat-label thai">พื้นที่เพาะปลูกรวม</div>
-            <div className="stat-value">{(D.totalFarmland / 1_000_000).toFixed(2)}<span className="unit">ล้านไร่</span></div>
-            <div className="stat-delta neutral">≈ 190,000 เฮกตาร์</div>
+            <div className="stat-label thai">พื้นที่ปลูกข้าว</div>
+            <div className="stat-value">{(D.riceRai / 1000).toFixed(0)}<span className="unit">พันไร่</span></div>
+            <div className="stat-delta neutral thai">
+              {/* 1 ไร่ = 1,600 ตร.ม. = 0.16 เฮกตาร์ */}
+              {(D.riceRai * 0.16).toLocaleString('th-TH', { maximumFractionDigits: 0 })} เฮกตาร์ · {(D.riceShare * 100).toFixed(1)}% ของพื้นที่จังหวัด
+            </div>
           </div>
           <div className="stat">
-            <div className="stat-label thai">พื้นที่เพาะปลูกที่ติดตาม</div>
-            <div className="stat-value">{D.activeZones}<span className="unit">เขต</span></div>
-            <div className="stat-delta positive thai">▲ เพิ่มใหม่ 3 เขตสัปดาห์นี้</div>
+            <div className="stat-label thai">แปลงข้าวที่ตรวจพบ</div>
+            <div className="stat-value">{D.riceParcels}<span className="unit">แปลง</span></div>
+            <div className="stat-delta neutral thai">จากภาพดาวเทียม {D.riceAsOfTh}</div>
           </div>
           <div className="stat">
             <div className="stat-label thai">ค่า NDVI เฉลี่ย</div>
@@ -319,7 +324,7 @@ function Module1() {
           </div>
           <div className="stat">
             <div className="stat-label">PM2.5</div>
-            <div className="stat-value">{D.pm25}<span className="unit">μg/m³</span></div>
+            <div className="stat-value">{D.pm25 ?? "—"}<span className="unit">μg/m³</span></div>
             <Sparkline data={[32, 36, 38, 41, 43, 42, 45, 45]} color="oklch(0.6 0.18 330)" />
             <div className="stat-delta negative thai">▲ ระดับส่งผลต่อสุขภาพ</div>
           </div>
@@ -328,16 +333,21 @@ function Module1() {
         <div className="card">
           <div className="card-h">
             <h3>แหล่งข้อมูล <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Data sources</span></h3>
-            <span className="sub">เชื่อมต่อ 6 แหล่ง</span>
+            <span className="sub thai">เรียกจริงทุกแหล่ง</span>
           </div>
+          {/*
+            รายการนี้ต้องตรงกับ endpoint ที่โค้ดเรียกจริงเท่านั้น
+            สถานะ 'archive' = ข้อมูลย้อนหลังที่ GISTDA เผยแพร่ ไม่ใช่ค่าเรียลไทม์
+            อย่าใส่แหล่งข้อมูลที่ยังไม่ได้ต่อจริงลงในรายการนี้
+          */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              ['Sentinel-2 L2A', 'ดัชนีพืชพรรณ NDVI · EVI · LAI', 'ok', '12 นาทีที่แล้ว'],
-              ['GISTDA', 'ภาพพื้นที่น้ำท่วม', 'ok', '1 ชม.ที่แล้ว'],
-              ['Air4Thai (คพ.)', 'สถานีตรวจวัด PM2.5', 'ok', '8 นาทีที่แล้ว'],
-              ['กรมอุตุนิยมวิทยา', 'พยากรณ์ฝน 72 ชม.', 'ok', '34 นาทีที่แล้ว'],
-              ['กษ. ปฏิทินการเพาะปลูก', 'พื้นที่เพาะปลูก', 'warn', '3 วันที่แล้ว'],
-              ['ธ.ก.ส. ราคาตลาด', 'บาท/ตัน รายวัน', 'ok', '42 นาทีที่แล้ว'],
+              ['GISTDA L09 ข้าวรายแปลง', `พื้นที่ปลูก ช่วงเกี่ยว โครงการชลประทาน · ${D.riceParcels} แปลง`, 'ok', D.riceAsOfTh],
+              ['GISTDA L05 ขอบเขตอำเภอ', 'ขอบเขตการปกครอง 1:50,000 · 7 อำเภอ', 'ok', 'ชั้นข้อมูลฐาน'],
+              ['GISTDA FL น้ำท่วมซ้ำซาก', 'ความถี่น้ำท่วม 2548-2559', 'ok', 'ย้อนหลัง 12 ปี'],
+              ['GISTDA โรงสีข้าว', `ตำแหน่งโรงสี · ในจังหวัด ${D.mills.inProvince.length} แห่ง`, 'ok', 'ชั้นข้อมูลฐาน'],
+              ['Open-Meteo', 'ฝนสะสม อุณหภูมิ ความชื้น', 'ok', 'เรียลไทม์'],
+              ['NASA POWER', 'ดัชนีพืชพรรณโดยประมาณ ความชื้นดิน', 'ok', 'ล่าช้า 5 วัน'],
             ].map(([name, desc, s, ago]) => (
               <div key={name} className="row" style={{ fontSize: 12 }}>
                 <span className={`chip ${s}`}><span className="dot"/>{s.toUpperCase()}</span>
