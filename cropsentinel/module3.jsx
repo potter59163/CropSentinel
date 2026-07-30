@@ -81,7 +81,7 @@ function RiskIndicator({ level }) {
 
   return (
     <div style={{ padding: 14, background: 'var(--bg-2)', borderRadius: 8, border: '1px solid var(--line-soft)' }}>
-      <div className="thai" style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 8 }}>
+      <div className="thai" style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 8 }}>
         ระดับความเสี่ยง
       </div>
       <div className="row" style={{ gap: 4 }}>
@@ -287,7 +287,7 @@ function Module3() {
       <div className="decision-overview card">
         <div className="card-h">
           <h3>
-            Real-time Dashboard <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Feature 6</span>
+            Real-time Dashboard <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Feature 6</span>
           </h3>
           <span className="sub thai">Actionable Insight</span>
         </div>
@@ -348,7 +348,7 @@ function Module3() {
               <h3 className="thai" style={{ margin: 0, fontSize: 17, color: 'var(--fg-0)', fontWeight: 600 }}>
                 {ctx.title}
               </h3>
-              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, fontFamily: 'var(--font-mono)' }}>{ctx.titleEn}</div>
+              <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 2, fontFamily: 'var(--font-mono)' }}>{ctx.titleEn}</div>
             </div>
             <span className="chip data thai">
               <span className="dot" />
@@ -373,7 +373,7 @@ function Module3() {
           <div className="card">
             <div className="card-h">
               <h3>
-                ลำดับการดำเนินงาน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Decision timeline</span>
+                ลำดับการดำเนินงาน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Decision timeline</span>
               </h3>
               <span className="sub">8 สัปดาห์ข้างหน้า</span>
             </div>
@@ -385,7 +385,7 @@ function Module3() {
           <div className="card">
             <div className="card-h">
               <h3>
-                ระดับอุปทาน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Supply level</span>
+                ระดับอุปทาน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Supply level</span>
               </h3>
               <span className="sub">เทียบเป้า 6 สัปดาห์</span>
             </div>
@@ -408,7 +408,7 @@ function Module3() {
           <div className="card">
             <div className="card-h">
               <h3>
-                ปัจจัยที่ส่งผล <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Contributing factors</span>
+                ปัจจัยที่ส่งผล <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Contributing factors</span>
               </h3>
               <span className="sub">ถ่วงน้ำหนัก</span>
             </div>
@@ -424,7 +424,7 @@ function Module3() {
                 <div key={n}>
                   <div className="row space-between" style={{ marginBottom: 4 }}>
                     <span className="thai" style={{ fontSize: 12 }}>{n}</span>
-                    <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{(v * 100).toFixed(0)}%</span>
+                    <span className="mono" style={{ fontSize: 12, color: 'var(--fg-2)' }}>{(v * 100).toFixed(0)}%</span>
                   </div>
                   <div style={{ height: 4, background: 'var(--bg-2)', borderRadius: 2, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${v * 100}%`, background: c }} />
@@ -437,7 +437,7 @@ function Module3() {
           <div className="card">
             <div className="card-h">
               <h3>
-                การประสานงาน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Coordination</span>
+                การประสานงาน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Coordination</span>
               </h3>
               <span className="sub">สด</span>
             </div>
@@ -521,7 +521,7 @@ function DecisionTimeline({ tab }) {
               zIndex: 1,
             }}
           />
-          <div style={{ width: 42, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', flexShrink: 0, paddingTop: 2 }}>
+          <div style={{ width: 42, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)', flexShrink: 0, paddingTop: 2 }}>
             สปด.{e.w}
           </div>
           <div className="thai" style={{ fontSize: 12, color: 'var(--fg-1)', paddingTop: 1 }}>{e.t}</div>

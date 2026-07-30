@@ -1,30 +1,49 @@
 // Module 1 — Data Intelligence Layer
 const { useState, useMemo, useRef, useEffect } = React;
 
+// สีบนแผนที่ปรับมาสำหรับพื้นหลังสว่าง
+// ชุดเดิมออกแบบไว้สำหรับธีมมืด พอเปลี่ยนเป็นพื้นสว่างแล้วซีดจนแยกระดับไม่ออก
+// จึงลดความสว่าง (L) และเพิ่มความอิ่มสี (C) ให้ต่างกันชัดบนพื้นขาว
 function ndviColor(v) {
-  // 0.3 red → 0.55 amber → 0.8 green
-  if (v >= 0.7) return 'oklch(0.7 0.18 145)';
-  if (v >= 0.6) return 'oklch(0.78 0.16 115)';
-  if (v >= 0.5) return 'oklch(0.78 0.16 75)';
-  if (v >= 0.4) return 'oklch(0.72 0.18 45)';
-  return 'oklch(0.6 0.19 25)';
+  if (v >= 0.7) return 'oklch(0.62 0.16 150)';   // สมบูรณ์ เขียว
+  if (v >= 0.6) return 'oklch(0.72 0.15 118)';
+  if (v >= 0.5) return 'oklch(0.78 0.15 85)';    // เริ่มเครียด เหลือง
+  if (v >= 0.4) return 'oklch(0.7 0.16 55)';
+  return 'oklch(0.62 0.18 32)';                  // วิกฤติ แดงส้ม
 }
 function floodColor(v) {
-  // 0 transparent → 1 deep blue
-  const a = 0.15 + v * 0.55;
-  return `oklch(0.62 0.14 235 / ${a.toFixed(2)})`;
+  // ยิ่งท่วมซ้ำบ่อย ยิ่งน้ำเงินเข้ม
+  const a = 0.18 + v * 0.62;
+  return `oklch(0.55 0.15 245 / ${a.toFixed(2)})`;
 }
 function pmColor(v) {
-  if (v >= 55) return 'oklch(0.5 0.2 330 / 0.55)';
-  if (v >= 45) return 'oklch(0.58 0.16 330 / 0.42)';
-  if (v >= 35) return 'oklch(0.65 0.12 330 / 0.3)';
-  return 'oklch(0.7 0.08 330 / 0.18)';
+  if (v >= 55) return 'oklch(0.5 0.2 330 / 0.6)';
+  if (v >= 45) return 'oklch(0.58 0.17 330 / 0.46)';
+  if (v >= 35) return 'oklch(0.66 0.14 330 / 0.34)';
+  return 'oklch(0.74 0.09 330 / 0.22)';
 }
 function droughtColor(v) {
-  if (v >= 0.75) return 'oklch(0.58 0.19 55 / 0.76)';
-  if (v >= 0.55) return 'oklch(0.66 0.17 65 / 0.62)';
-  if (v >= 0.35) return 'oklch(0.76 0.14 82 / 0.48)';
-  return 'oklch(0.72 0.1 120 / 0.30)';
+  if (v >= 0.75) return 'oklch(0.58 0.19 55 / 0.8)';
+  if (v >= 0.55) return 'oklch(0.68 0.17 68 / 0.66)';
+  if (v >= 0.35) return 'oklch(0.78 0.14 88 / 0.52)';
+  return 'oklch(0.75 0.11 130 / 0.34)';
+}
+
+// สีข้างบนมี alpha และสว่าง เพราะออกแบบไว้ "เติมพื้นที่บนแผนที่"
+// ถ้าเอาไปใช้เป็นสีตัวอักษรบนพื้นขาวจะจางจนวัดได้ 1.27:1 (ต้องการ 4.5:1)
+// จึงต้องมีชุดสีสำหรับข้อความแยกต่างหาก ทึบและเข้มพอทุกระดับ
+function ndviTextColor(v) {
+  if (v >= 0.7) return 'oklch(0.45 0.14 150)';
+  if (v >= 0.6) return 'oklch(0.47 0.12 118)';
+  if (v >= 0.5) return 'oklch(0.47 0.12 75)';
+  if (v >= 0.4) return 'oklch(0.48 0.15 45)';
+  return 'oklch(0.48 0.19 28)';
+}
+function droughtTextColor(v) {
+  if (v >= 0.75) return 'oklch(0.46 0.18 40)';
+  if (v >= 0.55) return 'oklch(0.47 0.14 62)';
+  if (v >= 0.35) return 'oklch(0.48 0.12 82)';
+  return 'oklch(0.46 0.12 150)';
 }
 function riskChip(r) {
   const map = { LOW: 'ok', MEDIUM: 'warn', HIGH: 'risk', CRITICAL: 'risk' };
@@ -214,7 +233,7 @@ function DistrictPopup({ d, layer, onClose }) {
         <Metric k="PM2.5" v={`${d.pm25}`} sub="μg/m³" />
         <Metric k="พื้นที่เพาะปลูก" v={`${(d.farmland/1000).toFixed(0)}k`} sub="ไร่" />
       </div>
-      <div className="thai" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line-soft)', fontSize: 11, color: 'var(--fg-3)' }}>
+      <div className="thai" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line-soft)', fontSize: 12, color: 'var(--fg-3)' }}>
         ดาวเทียม Sentinel-2 L2A · ถ่ายทุก 5 วัน
       </div>
     </div>
@@ -224,9 +243,9 @@ function DistrictPopup({ d, layer, onClose }) {
 function Metric({ k, v, sub }) {
   return (
     <div style={{ padding: 8, background: 'var(--bg-1)', borderRadius: 6 }}>
-      <div style={{ fontSize: 9, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{k}</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{k}</div>
       <div style={{ fontSize: 16, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{v}</div>
-      <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>{sub}</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{sub}</div>
     </div>
   );
 }
@@ -257,7 +276,7 @@ function Module1() {
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="card-h" style={{ padding: '14px 16px 0' }}>
             <div>
-              <h3>แผนที่สุขภาพพืชจังหวัดปทุมธานี <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Crop Health Map</span></h3>
+              <h3>แผนที่สุขภาพพืชจังหวัดปทุมธานี <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Crop Health Map</span></h3>
               <div className="sub" style={{ marginTop: 4 }}>
                 ขอบเขตอำเภอ: GISTDA L05_Amphoe 1:50,000 · พื้นที่ข้าว: GISTDA รายแปลง {D.riceAsOfTh} ({D.ricePixelM} ม./จุดภาพ)
               </div>
@@ -271,7 +290,7 @@ function Module1() {
 
         <div className="card">
           <div className="card-h">
-            <h3>ข้อมูลรายอำเภอ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>District breakdown</span></h3>
+            <h3>ข้อมูลรายอำเภอ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>District breakdown</span></h3>
             <span className="sub">7 อำเภอ</span>
           </div>
           <table className="tbl">
@@ -283,11 +302,11 @@ function Module1() {
                 <tr key={d.id}>
                   <td>
                     <div>{d.name}</div>
-                    <div className="thai" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{d.nameTh}</div>
+                    <div className="thai" style={{ fontSize: 12, color: 'var(--fg-3)' }}>{d.nameTh}</div>
                   </td>
-                  <td className="mono" style={{ color: ndviColor(d.ndvi) }}>{d.ndvi.toFixed(2)}</td>
+                  <td className="mono" style={{ color: ndviTextColor(d.ndvi), fontWeight: 600 }}>{d.ndvi.toFixed(2)}</td>
                   <td className="mono">{(d.flood * 100).toFixed(0)}%</td>
-                  <td className="mono" style={{ color: droughtColor(d.drought) }}>{(d.drought * 100).toFixed(0)}%</td>
+                  <td className="mono" style={{ color: droughtTextColor(d.drought), fontWeight: 600 }}>{(d.drought * 100).toFixed(0)}%</td>
                   <td className="mono">{d.pm25 ?? "—"}</td>
                   <td className="mono">{(d.farmland/1000).toFixed(0)}k ไร่</td>
                   <td>
@@ -332,7 +351,7 @@ function Module1() {
 
         <div className="card">
           <div className="card-h">
-            <h3>แหล่งข้อมูล <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Data sources</span></h3>
+            <h3>แหล่งข้อมูล <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Data sources</span></h3>
             <span className="sub thai">เรียกจริงทุกแหล่ง</span>
           </div>
           {/*
@@ -353,9 +372,9 @@ function Module1() {
                 <span className={`chip ${s}`}><span className="dot"/>{s.toUpperCase()}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: 'var(--fg-0)', fontSize: 12 }}>{name}</div>
-                  <div className="thai" style={{ color: 'var(--fg-3)', fontSize: 11 }}>{desc}</div>
+                  <div className="thai" style={{ color: 'var(--fg-3)', fontSize: 12 }}>{desc}</div>
                 </div>
-                <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 11 }}>{ago}</div>
+                <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>{ago}</div>
               </div>
             ))}
           </div>
@@ -363,7 +382,7 @@ function Module1() {
 
         <div className="card">
           <div className="card-h">
-            <h3>แนวโน้มสภาพแวดล้อม <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Environmental timeline</span></h3>
+            <h3>แนวโน้มสภาพแวดล้อม <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Environmental timeline</span></h3>
             <span className="sub">30 วันที่ผ่านมา</span>
           </div>
           <div style={{ display: 'grid', gap: 12 }}>
@@ -387,8 +406,8 @@ function TimelineRow({ label, unit, color, data }) {
   return (
     <div>
       <div className="row space-between" style={{ marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{label}</span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{data.at(-1)} {unit}</span>
+        <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{label}</span>
+        <span className="mono" style={{ fontSize: 12, color: 'var(--fg-3)' }}>{data.at(-1)} {unit}</span>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="28" preserveAspectRatio="none">
         {data.map((v, i) => {

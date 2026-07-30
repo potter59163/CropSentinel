@@ -7,10 +7,13 @@ function Sidebar({ module, setModule }) {
     { id: 'm2', label: 'เครื่องมือพยากรณ์', en: 'Predictive Engine', sub: 'M02' },
     { id: 'm3', label: 'แพลตฟอร์มตัดสินใจ', en: 'Decision Platform', sub: 'M03' },
   ];
-  const secondary = [
-    { id: 'reports', label: 'รายงาน', sub: 'PDF' },
-    { id: 'models', label: 'โมเดล', sub: 'v3.2' },
-    { id: 'settings', label: 'ตั้งค่า', sub: 'ADMIN' },
+  // เดิมมีเมนู "รายงาน PDF / โมเดล v3.2 / ตั้งค่า ADMIN" ซึ่งกดไม่ได้และไม่มีอยู่จริง
+  // เมนูที่ชี้ไปยังฟีเจอร์ที่ไม่มี ทำให้คนดูเข้าใจผิดว่าระบบทำได้มากกว่าที่ทำได้จริง
+  // จึงแทนด้วยลิงก์ไปแหล่งข้อมูลต้นทางที่เปิดให้ตรวจสอบได้จริง
+  const sources = [
+    { id: 'rice', label: 'ชั้นข้อมูลข้าวรายแปลง', href: 'https://gistdaportal.gistda.or.th/arcgis/rest/services/Hosted/20260415_rice_40m/FeatureServer/0' },
+    { id: 'amphoe', label: 'ขอบเขตอำเภอ', href: 'https://gistdaportal.gistda.or.th/data/rest/services/L05_AdminBoundary/L05_Amphoe_GISTDA_50k/MapServer/0' },
+    { id: 'flood', label: 'น้ำท่วมซ้ำซาก 2548-2559', href: 'https://gistdaportal.gistda.or.th/data/rest/services/FL_Flood/FL_RepeatedFlooding_GISTDA_50k_Y2005_Y2016/FeatureServer/0' },
   ];
 
   return (
@@ -34,7 +37,7 @@ function Sidebar({ module, setModule }) {
             <span className="nav-dot" />
             <div className="nav-label">
               <div className="thai">{it.label}</div>
-              <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: 12, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
                 {it.en}
               </div>
             </div>
@@ -43,14 +46,21 @@ function Sidebar({ module, setModule }) {
         ))}
       </div>
 
-      <div className="nav-section thai">พื้นที่ทำงาน</div>
+      <div className="nav-section thai">ตรวจสอบแหล่งข้อมูล</div>
       <div className="secondary-list">
-        {secondary.map((it) => (
-          <div key={it.id} className="nav-item" style={{ opacity: 0.6 }}>
+        {sources.map((it) => (
+          <a
+            key={it.id}
+            className="nav-item"
+            href={it.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="เปิดชั้นข้อมูลต้นทางของ GISTDA"
+          >
             <span className="nav-dot" />
             <div className="nav-label thai">{it.label}</div>
-            <span className="nav-sub">{it.sub}</span>
-          </div>
+            <span className="nav-sub">↗</span>
+          </a>
         ))}
       </div>
 
@@ -59,7 +69,7 @@ function Sidebar({ module, setModule }) {
           <span className="pulse" />
           ระบบพร้อมใช้งาน
         </div>
-        <div className="thai" style={{ marginTop: 8, fontSize: 11, color: 'var(--fg-3)' }}>
+        <div className="thai" style={{ marginTop: 8, fontSize: 12, color: 'var(--fg-3)' }}>
           ทีมวิเคราะห์ต้นแบบ
           <br />
           อัปเดตเซสชัน {window.CS_DATA.province.lastUpdate}
@@ -123,7 +133,7 @@ function TopBar({ module }) {
           {D.province.dataSource === 'LIVE' ? 'ข้อมูลจริง LIVE' : 'กำลังโหลดข้อมูล…'}
         </span>
         {D.province.dataSource === 'LIVE' && (
-          <span className="chip data" style={{ fontSize: 11, gap: 4 }}>
+          <span className="chip data" style={{ fontSize: 12, gap: 4 }}>
             🌧 {D.province.weekRain ?? '--'} มม./สัปดาห์ &nbsp;·&nbsp;
             🌡 {D.province.weatherTemp ?? '--'}°C &nbsp;·&nbsp;
             💨 PM2.5 {D.province.pm25}
@@ -155,7 +165,7 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
       onClick={() => setHeroOpen(o => !o)}
       title={heroOpen ? 'พับ overview' : 'ขยาย overview'}
     >
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', letterSpacing: '0.12em', marginRight: 16, whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)', letterSpacing: '0.12em', marginRight: 16, whiteSpace: 'nowrap' }}>
         PROTOTYPE OVERVIEW
       </span>
       <div style={{ display: 'flex', gap: 20, flex: 1, flexWrap: 'wrap' }}>
@@ -169,12 +179,12 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
           ['PM2.5', `${D.province.pm25} μg/m³`],
         ].map(([k, v, c]) => (
           <span key={k} style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>
-            <span style={{ color: 'var(--fg-3)', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{k}</span>
+            <span style={{ color: 'var(--fg-3)', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{k}</span>
             <strong style={{ color: c || 'var(--fg-0)', fontFamily: 'var(--font-mono)' }}>{v}</strong>
           </span>
         ))}
       </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 12 }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)', marginLeft: 12 }}>
         {heroOpen ? '▲' : '▼'}
       </span>
     </div>

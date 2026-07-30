@@ -212,7 +212,7 @@ function AlertCard({ alert, onDismiss }) {
         <button className="dismiss" onClick={() => onDismiss(alert.id)} title="Dismiss">✕</button>
       </div>
       <div className="title thai">{alert.title}</div>
-      <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>{alert.titleEn}</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>{alert.titleEn}</div>
       <div className="body thai">{alert.body}</div>
       <div className="conf">
         <span>ความเชื่อมั่น</span>
@@ -263,7 +263,7 @@ function Module2() {
 
         <div className="card">
           <div className="card-h">
-            <h3>พยากรณ์ผลผลิตข้าว — 8 สัปดาห์ข้างหน้า <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Supply forecast</span></h3>
+            <h3>พยากรณ์ผลผลิตข้าว — 8 สัปดาห์ข้างหน้า <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Supply forecast</span></h3>
             <span className="chip warn thai"><span className="dot"/>แบบจำลอง ไม่ใช่ค่าที่วัดได้</span>
           </div>
           <SupplyChart data={D.supply} weeks={D.weeks} />
@@ -271,7 +271,7 @@ function Module2() {
 
         <div className="card">
           <div className="card-h">
-            <h3>พยากรณ์ราคาข้าว — บาท/ตัน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Price forecast</span></h3>
+            <h3>พยากรณ์ราคาข้าว — บาท/ตัน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Price forecast</span></h3>
             <span className="chip warn thai"><span className="dot"/>แนวโน้มเพิ่มขึ้น</span>
           </div>
           <PriceChart data={D.price} weeks={D.weeks} />
@@ -279,7 +279,7 @@ function Module2() {
 
         <div className="card">
           <div className="card-h">
-            <h3>วิธีคำนวณ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>How this is computed</span></h3>
+            <h3>วิธีคำนวณ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>How this is computed</span></h3>
             <span className="sub thai">เปิดสูตรทั้งหมด</span>
           </div>
           {/*
@@ -302,8 +302,8 @@ function Module2() {
                   </span>
                   <div style={{ flex: 1 }}>
                     <div className="thai" style={{ color: 'var(--fg-0)' }}>{name}</div>
-                    <div className="thai" style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 2 }}>{how}</div>
-                    <div className="thai" style={{ color: real ? 'var(--ok)' : 'var(--warn)', fontSize: 11, marginTop: 2 }}>{caveat}</div>
+                    <div className="thai" style={{ color: 'var(--fg-3)', fontSize: 12, marginTop: 2 }}>{how}</div>
+                    <div className="thai" style={{ color: real ? 'var(--ok)' : 'var(--warn)', fontSize: 12, marginTop: 2 }}>{caveat}</div>
                   </div>
                 </div>
               );
@@ -315,7 +315,7 @@ function Module2() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="card">
           <div className="card-h">
-            <h3>การแจ้งเตือนความเสี่ยง <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Risk alerts</span></h3>
+            <h3>การแจ้งเตือนความเสี่ยง <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Risk alerts</span></h3>
             <div className="row" style={{ gap: 6 }}>
               <span className="sub">{alerts.length} รายการ</span>
               {alerts.length < D.alerts.length && (
@@ -333,7 +333,7 @@ function Module2() {
 
         <div className="card">
           <div className="card-h">
-            <h3>ความน่าจะเป็นของสถานการณ์ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>Scenarios</span></h3>
+            <h3>ความน่าจะเป็นของสถานการณ์ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Scenarios</span></h3>
             <span className="sub">8 สัปดาห์ข้างหน้า</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -347,7 +347,7 @@ function Module2() {
               <div key={name}>
                 <div className="row space-between" style={{ marginBottom: 4 }}>
                   <span className="thai" style={{ fontSize: 12, color: 'var(--fg-1)' }}>{name}</span>
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{(p * 100).toFixed(0)}%</span>
+                  <span className="mono" style={{ fontSize: 12, color: 'var(--fg-2)' }}>{(p * 100).toFixed(0)}%</span>
                 </div>
                 <div style={{ height: 6, background: 'var(--bg-2)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${p * 100}%`, background: c, transition: 'width 0.4s' }} />
@@ -356,7 +356,7 @@ function Module2() {
             ))}
           </div>
           {/* เดิมเขียนว่า "Monte Carlo · 10,000 รอบ" ทั้งที่ไม่มีการสุ่มใด ๆ ในโค้ด */}
-          <div className="thai" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line-soft)', fontSize: 11, color: 'var(--warn)' }}>
+          <div className="thai" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line-soft)', fontSize: 12, color: 'var(--warn)' }}>
             น้ำหนักฉากทัศน์เป็นค่าที่กำหนดไว้เพื่อประกอบการอภิปราย ไม่ได้มาจากการจำลองเชิงสถิติ
           </div>
         </div>

@@ -1,0 +1,444 @@
+/* ============================================================================
+   CropSentinel — ระบบดีไซน์ v2
+   โหลดหลัง styles.css จึงเขียนทับโทเคนและเลย์เอาต์เดิมได้โดยไม่ต้องลบของเก่าทิ้ง
+
+   เหตุผลที่เปลี่ยนจากธีมมืดเป็นธีมสว่าง:
+   - ผู้อ่านจริงคือกรรมการที่ดูผ่านโปรเจกเตอร์ และเจ้าหน้าที่/เกษตรกรที่เปิดกลางแดด
+     ทั้งสองกรณีตัวอักษรเข้มบนพื้นสว่างอ่านง่ายกว่าอย่างชัดเจน
+   - ธีมเดิมมี 11 สไตล์ที่ตกเกณฑ์ WCAG AA รวม 75 จุดบนหน้าจอ
+     ตัวหนักสุดคือสีเทา oklch(0.55) ขนาด 10-11px ที่วัดได้ 2.52:1 (ต้องการ 4.5:1)
+   - ภาษาไทยมีสระบนล่าง ต้องการ line-height สูงกว่าละติน และไม่ควรใช้ต่ำกว่า 12px
+
+   กฎที่ยึดในไฟล์นี้:
+   1. ข้อความทุกชิ้นต้องผ่าน 4.5:1 (หรือ 3:1 ถ้าใหญ่กว่า 24px หรือ 18.66px+bold)
+   2. ห้ามใช้ฟอนต์ mono กับข้อความไทย ใช้เฉพาะตัวเลขและรหัส
+   3. ห้ามมีขนาดตัวอักษรต่ำกว่า 12px ที่ผู้ใช้ต้องอ่านจริง
+   4. ทุกอย่างต้องใช้ได้บนจอ 360px โดยไม่มีการเลื่อนแนวนอน
+   ============================================================================ */
+
+:root {
+  /* ---- พื้นผิว ---- */
+  --bg-0: oklch(0.985 0.006 95);      /* กระดาษ อมอุ่นเล็กน้อย */
+  --bg-1: oklch(1 0 0);               /* การ์ด */
+  --bg-2: oklch(0.968 0.008 95);      /* พื้นรอง */
+  --bg-3: oklch(0.94 0.01 95);        /* พื้นลึก / แถบกราฟ */
+  --bg-4: oklch(0.9 0.012 95);
+
+  --line: oklch(0.88 0.01 95);
+  --line-soft: oklch(0.93 0.008 95);
+  --line-bright: oklch(0.62 0.09 165 / 0.4);
+
+  /* ---- ตัวอักษร ทุกค่าวัดผ่าน AA บน --bg-0 และ --bg-1 แล้ว ---- */
+  --fg-0: oklch(0.24 0.02 165);       /* หัวเรื่อง / ตัวเลขหลัก  ~13:1 */
+  --fg-1: oklch(0.34 0.02 165);       /* เนื้อความ              ~9:1  */
+  --fg-2: oklch(0.44 0.018 165);      /* รอง                    ~6:1  */
+  --fg-3: oklch(0.5 0.016 165);       /* ป้ายกำกับ ต่ำสุดที่ยอมรับ ~4.8:1 */
+
+  /* ---- สีสื่อความหมาย เข้มพอสำหรับข้อความบนพื้นสว่าง ---- */
+  --ok: oklch(0.46 0.13 155);
+  --warn: oklch(0.47 0.12 70);
+  --risk: oklch(0.5 0.19 27);
+  --crit: oklch(0.45 0.2 25);
+  --data: oklch(0.47 0.14 250);
+  --data-2: oklch(0.46 0.15 295);
+
+  /* ---- พื้นอ่อนสำหรับชิป ใช้คู่กับสีข้อความข้างบนเท่านั้น ---- */
+  --ok-bg: oklch(0.94 0.05 155);
+  --warn-bg: oklch(0.95 0.06 80);
+  --risk-bg: oklch(0.95 0.045 27);
+  --data-bg: oklch(0.95 0.04 250);
+
+  --shadow-soft: 0 1px 2px oklch(0.24 0.02 165 / 0.06), 0 4px 14px oklch(0.24 0.02 165 / 0.05);
+  --shadow-card: 0 1px 2px oklch(0.24 0.02 165 / 0.07), 0 8px 24px oklch(0.24 0.02 165 / 0.07);
+  --shadow-glow: 0 0 0 1px oklch(0.24 0.02 165 / 0.05), 0 6px 20px oklch(0.24 0.02 165 / 0.06);
+
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* ---- ความสูงบรรทัดสำหรับไทย สูงกว่าละตินเพราะมีสระซ้อนสองชั้น ---- */
+  --lh-thai: 1.72;
+  --lh-tight: 1.35;
+
+  --tap: 44px;   /* ขนาดเป้าสัมผัสขั้นต่ำ */
+}
+
+/* ---------- ฐาน ---------- */
+html, body {
+  background: var(--bg-0);
+  color: var(--fg-1);
+  overflow-x: hidden;
+}
+body {
+  font-family: var(--font-thai), var(--font-sans), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: var(--lh-thai);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+* { min-width: 0; }   /* กัน grid/flex item ดันความกว้างจนล้นจอ */
+
+.thai { font-family: var(--font-thai), system-ui, sans-serif; line-height: var(--lh-thai); }
+
+/* ตัวเลขใช้ mono ได้ แต่ข้อความไทยห้าม — mono ไทยจะกลายเป็น fallback ที่อ่านยาก */
+.mono, [class*="value"], [class*="-value"] {
+  font-variant-numeric: tabular-nums;
+}
+.mono:lang(th), .thai.mono { font-family: var(--font-thai), system-ui, sans-serif; }
+
+/* ---------- เลย์เอาต์: เดสก์ท็อปมีแถบข้าง มือถือเป็นแถบบน ---------- */
+.app {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg-0);
+}
+
+.sidebar {
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  box-shadow: none;
+  overflow-y: auto;
+}
+.sidebar::before, .sidebar::after { display: none; }
+
+.main {
+  background: var(--bg-0);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.main::before, .main::after { display: none; }
+
+/* ---------- แถบด้านบน ---------- */
+.topbar {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.topbar h1 { color: var(--fg-0); line-height: var(--lh-tight); }
+.topbar-code {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid oklch(0.46 0.13 155 / 0.25);
+  font-weight: 700;
+}
+.topbar-en { color: var(--fg-3); font-size: 12px; }
+.topbar .subtitle { color: var(--fg-2); font-size: 13px; }
+.meta-item .k { color: var(--fg-3); font-size: 12px; }
+.meta-item .v { color: var(--fg-0); font-weight: 600; }
+
+/* ---------- แถบนำทาง ---------- */
+.brand-name { color: var(--fg-0); }
+.brand-sub { color: var(--fg-3); }
+.nav-section { color: var(--fg-3); font-size: 12px; letter-spacing: 0.04em; }
+.nav-item {
+  color: var(--fg-1);
+  border-radius: var(--radius);
+  min-height: var(--tap);
+}
+.nav-item .nav-label > div:first-child { color: var(--fg-1); font-weight: 600; }
+.nav-item.active {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.nav-item.active .nav-label > div:first-child { color: var(--ok); }
+.nav-item:hover:not(.active) { background: var(--bg-2); }
+.nav-sub { color: var(--fg-3); font-size: 11px; }
+
+/* ---------- การ์ด ---------- */
+.card, .stat {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+}
+.card::before, .stat::before { display: none; }
+.card-h h3 { color: var(--fg-0); font-size: 15px; }
+.card-h .sub { color: var(--fg-3); font-size: 12px; }
+
+.stat-label { color: var(--fg-3); font-size: 12px; letter-spacing: 0.02em; }
+.stat-value { color: var(--fg-0); }
+.stat-value .unit { color: var(--fg-3); }
+.stat-delta { font-size: 12px; }
+.stat-delta.neutral { color: var(--fg-2); }
+.stat-delta.positive, .stat-delta.up { color: var(--ok); }
+.stat-delta.negative, .stat-delta.down { color: var(--risk); }
+
+/* ---------- ชิป ---------- */
+.chip {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+}
+.chip.ok   { background: var(--ok-bg);   color: var(--ok);   border-color: oklch(0.46 0.13 155 / 0.22); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); border-color: oklch(0.47 0.12 70 / 0.24); }
+.chip.risk,
+.chip.crit { background: var(--risk-bg); color: var(--risk); border-color: oklch(0.5 0.19 27 / 0.22); }
+.chip.data { background: var(--data-bg); color: var(--data); border-color: oklch(0.47 0.14 250 / 0.22); }
+.chip .dot { background: currentColor; }
+
+/* ---------- ตาราง ---------- */
+.tbl { font-size: 13px; }
+.tbl thead th {
+  color: var(--fg-3);
+  font-size: 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+}
+.tbl td { color: var(--fg-1); border-bottom: 1px solid var(--line-soft); }
+.tbl tbody tr:hover { background: var(--bg-2); }
+
+/* ---------- ปุ่ม ---------- */
+button, .btn {
+  font-family: var(--font-thai), system-ui, sans-serif;
+  min-height: var(--tap);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.toggle-group { background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; }
+.toggle-group button {
+  color: var(--fg-2);
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  min-height: 36px;
+  border-radius: 999px;
+}
+.toggle-group button.on { background: var(--fg-0); color: var(--bg-1); }
+.toggle-group button:hover:not(.on) { color: var(--fg-0); }
+
+/* ---------- แผนที่ ---------- */
+.map-wrap { background: var(--bg-2); border-radius: var(--radius-lg); overflow: hidden; }
+.map-svg { background: var(--bg-2); }
+.map-legend, .map-crosshair {
+  background: oklch(1 0 0 / 0.94);
+  border: 1px solid var(--line);
+  color: var(--fg-1);
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+}
+.map-toolbar { z-index: 2; }
+
+/* ---------- ประกาศ / คำแนะนำ ---------- */
+.rec { background: var(--bg-1); border: 1px solid var(--line); }
+.rec.urgent { border-left: 3px solid var(--risk); }
+.rec.soft { border-left: 3px solid var(--data); }
+.rec-title { color: var(--fg-0); font-weight: 600; }
+.rec-desc { color: var(--fg-1); }
+.rec-meta { color: var(--fg-3); font-size: 12px; }
+
+/* ---------- แถบสรุปด้านบน ---------- */
+.hero-strip {
+  background: var(--bg-1) !important;
+  border-bottom: 1px solid var(--line) !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hero-strip::-webkit-scrollbar { display: none; }
+.overview-hero { background: var(--bg-1); border-bottom: 1px solid var(--line); }
+
+/* แถบสรุปตั้งค่า flex-wrap ไว้ใน inline style ทำให้บนจอแคบมันขึ้นบรรทัดละค่า
+   ดูเหมือนรายการที่ไม่ได้ตั้งใจ เปลี่ยนเป็นเลื่อนแนวนอนแถวเดียวแทน */
+.hero-strip > div {
+  flex-wrap: nowrap !important;
+  gap: 18px !important;
+}
+.hero-strip > div > span { flex: 0 0 auto; }
+
+/* ---------- พื้นผิวที่ธีมเดิมกำหนดเป็นสีเข้มไว้ตายตัว ----------
+   สแกนจากหน้าจริงแล้วพบว่ายังเหลือพื้นเข้มค่า L 0.20-0.22 อยู่ใต้ข้อความสีเข้ม
+   ทำให้อ่านไม่ออกเลยหลังเปลี่ยนเป็นธีมสว่าง จึงต้องเขียนทับทีละคลาส */
+.meta-item,
+.flow-node,
+.status-pill,
+.tabs,
+.rt-card,
+.action-card,
+.zone-popup,
+.chart-tt {
+  background: var(--bg-2) !important;
+  background-image: none !important;
+  border: 1px solid var(--line);
+  color: var(--fg-1);
+}
+.flow-node, .rt-card, .action-card { box-shadow: var(--shadow-soft); }
+
+.rt-value, .flow-title, .action-title { color: var(--fg-0); }
+.rt-label, .rt-desc, .flow-explain, .flow-detail { color: var(--fg-2); }
+.rt-badge { background: var(--bg-3); color: var(--fg-0); }
+
+.action-card.urgent { border-left: 3px solid var(--risk); }
+.action-card.warn { border-left: 3px solid var(--warn); }
+.action-card.risk { border-left: 3px solid var(--data); }
+
+/* แท็บกลุ่มเป้าหมาย — เดิมข้อความซ้อนทับกันบนจอแคบ */
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 999px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  color: var(--fg-2);
+  background: transparent;
+  background-image: none;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+}
+.tab.on {
+  background: var(--fg-0) !important;
+  background-image: none !important;
+  color: var(--bg-1) !important;
+}
+.tab:hover:not(.on) { color: var(--fg-0); background: var(--bg-3); }
+/* ป้ายบทบาทตัวเล็กในแท็บที่เลือกอยู่ ต้องสว่างตามพื้นเข้มของแท็บ ไม่งั้นวัดได้ 2.75:1 */
+.tab.on * { color: var(--bg-2) !important; }
+.tab.on span:last-child { opacity: 0.85; }
+
+/* หัวข้อสายงานเดิมใช้สีน้ำเงินบนพื้นอมสี วัดได้ 3.15:1 ใช้สีตัวอักษรหลักแทน */
+.flow-banner, .flow-head, .flow-heading, [class*="flow"] h3 { color: var(--fg-0) !important; }
+.flow-banner {
+  background: var(--ok-bg) !important;
+  background-image: none !important;
+  border: 1px solid oklch(0.46 0.13 155 / 0.2);
+  border-radius: var(--radius);
+  font-weight: 700;
+}
+
+.status-pill { color: var(--fg-1); }
+.pulse { background: var(--ok); }
+.nav-dot { background: var(--line); }
+.nav-item.active .nav-dot { background: var(--ok); }
+
+/* ============================================================================
+   จอเล็ก
+   เดิมเลย์เอาต์เป็น grid 2 คอลัมน์ตายตัว ทำให้บนมือถือแถบข้างกินพื้นที่
+   และเนื้อหาล้นออกนอกจอจนตัวอักษรโดนตัด
+   ============================================================================ */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  /* แถบข้างกลายเป็นแถบบนที่เลื่อนแนวนอนได้ */
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 10px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand { padding: 0 14px 10px; }
+  .nav-section, .secondary-list, .sidebar-footer { display: none; }
+  .module-list {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 14px 10px;
+    scrollbar-width: none;
+  }
+  .module-list::-webkit-scrollbar { display: none; }
+  .nav-item {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    background: var(--bg-2);
+    white-space: nowrap;
+  }
+  .nav-item .nav-label > div:nth-child(2) { display: none; }  /* ซ่อนชื่ออังกฤษบนจอเล็ก */
+  .nav-dot { display: none; }
+
+  .main { overflow-y: visible; }
+  .topbar { padding: 12px 14px; }
+  .topbar h1 { font-size: 20px; }
+  .topbar-meta { width: 100%; gap: 8px; }
+  .meta-item { flex: 1 1 auto; }
+
+  .grid, .grid-2, .grid-3, .grid-4, .mod1-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .card, .stat { padding: 14px; }
+
+  /* ตารางกว้างเกินจอ ให้เลื่อนในกล่องตัวเอง ไม่ใช่ดันทั้งหน้า */
+  .tbl { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .topbar h1 { font-size: 18px; }
+  .stat-value { font-size: 26px; }
+  .card-h { flex-wrap: wrap; gap: 6px; }
+}
+
+/* ---------- เข้าถึงได้ ---------- */
+:focus-visible {
+  outline: 2px solid var(--data);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- พิมพ์ ---------- */
+@media print {
+  .sidebar, .map-toolbar { display: none; }
+  .app { grid-template-columns: 1fr; height: auto; }
+  .card, .stat { break-inside: avoid; box-shadow: none; }
+}
+
+/* ลิงก์ตรวจสอบแหล่งข้อมูลในแถบข้าง */
+a.nav-item { text-decoration: none; }
+a.nav-item:hover { background: var(--data-bg); }
+a.nav-item:hover .nav-label { color: var(--data); }
+
+/* ---------- แผนที่: กริดและเส้นขอบที่ฝังสีธีมมืดไว้ใน SVG ---------- */
+.map-svg [id="grid"] path { stroke: oklch(0.9 0.01 95) !important; }
+.map-svg [id="hatch"] line { stroke: oklch(0.88 0.012 95 / 0.5) !important; }
+.map-svg polygon { stroke: oklch(0.75 0.015 165) !important; stroke-width: 1 !important; }
+.map-svg g:hover polygon { stroke: var(--fg-0) !important; stroke-width: 2 !important; }
+.map-svg text { fill: var(--fg-0); }
+
+/* แถบเครื่องมือบนแผนที่ เดิมพื้นเข้ม oklch(0.14) ทำให้ปุ่มที่ไม่ได้เลือกอ่านไม่ออก */
+.map-toolbar {
+  background: oklch(1 0 0 / 0.94) !important;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* ขนาดตัวอักษรขั้นต่ำ — ธีมเดิมใช้ 9-11px หลายจุดซึ่งเล็กเกินไปสำหรับภาษาไทย
+   ที่มีสระซ้อนบนล่าง และเล็กเกินไปสำหรับผู้ใช้ที่อ่านกลางแดดหรือบนโปรเจกเตอร์ */
+.map-svg text { font-size: 11px; }              /* ยกเว้นในแผนที่ ซึ่งพื้นที่จำกัดจริง */
+/* หมายเหตุ: เคยลองใช้ max(1em,12px) !important แบบเหมารวม แล้วพัง
+   เพราะ 1em คือขนาดของ "พ่อ" ไม่ใช่ของตัวเอง ตัวเลขใหญ่ ๆ เลยถูกยุบเหลือขนาดพ่อไปด้วย
+   ทางที่ถูกคือไล่แก้ตรงจุดที่ตั้งขนาดเล็กไว้จริง ทั้งใน CSS และ inline style ของ JSX */
+.nav-sub, .stat-label, .card-h .sub, .rec-meta,
+.topbar-en, .meta-item .k, .chip { font-size: 12px !important; }
+
+/* คลาสที่ styles.css กำหนดขนาด 10-11px ไว้ ยกขึ้นเป็น 12px ตามกฎข้อ 3 ของไฟล์นี้
+   (สแกนจากหน้าจริง ไม่ได้เดาว่ามีคลาสอะไรบ้าง) */
+.role, .rt-label, .flow-node-layer, .flow-node-detail,
+.action-role-en, .action-eta, .unit, .brand-sub,
+.topbar-code, .rt-badge { font-size: 12px !important; }
