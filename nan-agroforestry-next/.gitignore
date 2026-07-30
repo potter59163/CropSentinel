@@ -23,3 +23,7 @@ data-templates/batch-results.csv
 
 # in-flight SDM experiment scratch (levers under evaluation; promote deliberately if one wins)
 ml/exp_*/
+# gazetteer working directory: bulk polygon geometry plus GADM (academic-use-only,
+# redistribution prohibited) and raw OSM (ODbL share-alike). The one licence-clean
+# deliverable is promoted into src/data/geo/ instead — never commit this directory.
+ml/gazetteer/
