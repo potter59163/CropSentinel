@@ -18,6 +18,7 @@ import { Icon, type IconName } from './components/Icon';
 import { Splash } from './components/Splash';
 import { Tour, type TourStep } from './components/Tour';
 import { PlanLoading } from './components/PlanLoading';
+import { PlantingSeason } from './components/PlantingSeason';
 import { farmInputSchema, sanitizeAssumptions } from './lib/planSchema';
 
 const TOUR_KEY = 'nan-agro-tour-v1';
@@ -619,6 +620,26 @@ export function App() {
           </div>
         </div>
       )}
+      {/* A reserved-forest hit is the most consequential legal signal the app can produce
+          for Nan highland land, so it sits above the plans like the sanctuary stop — but
+          worded as a warning to verify, never as a determination, because the boundary is
+          RFD-approximate and the source is an unofficial 2019 mirror. */}
+      {!prot?.inside && prot?.reservedForest && (
+        <div className="agro-legal-warn" role="alert">
+          <span className="agro-legal-stop-ic"><Icon name="shield" size={26} /></span>
+          <div>
+            <b className="thai">
+              แปลงนี้อาจอยู่ในเขตป่าสงวนแห่งชาติ{prot.reservedForestName ? ` “${prot.reservedForestName}”` : ''}
+            </b>
+            <div className="thai">
+              ป่าสงวนแห่งชาติเป็นชั้นที่ตัดสินว่าการแผ้วถางบนพื้นที่สูงผิดกฎหมายหรือไม่
+              · <b>ต้องตรวจสอบกับเจ้าหน้าที่ป่าไม้หรือเกษตรอำเภอก่อนปลูก</b>
+              {' '}แผนด้านล่างใช้เพื่อการวางแผนเท่านั้น ยังไม่ใช่การยืนยันสิทธิ์
+              {prot.reservedForestCode ? ` · รหัสป่า ${prot.reservedForestCode}` : ''}
+            </div>
+          </div>
+        </div>
+      )}
       {!prot?.inside && legalUnknown(prot) && (
         <div className="agro-legal-warn" role="alert">
           <span className="agro-legal-stop-ic"><Icon name="warning" size={26} /></span>
@@ -672,6 +693,11 @@ export function App() {
             <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
           </div>
 
+          {/* When to plant. Sits directly under the plan because it is the first thing a
+              farmer has to act on, and the 10-yr cashflow above it is meaningless if the
+              seedlings go in at the wrong end of the year. */}
+          <PlantingSeason climate={climate} />
+
           {existingZoneRows(input).length > 0 && (
             <div className="agro-selection-summary agro-transition-summary">
               <div>
@@ -709,6 +735,11 @@ export function App() {
                   : prot!.inside ? `อยู่ในเขต${prot!.type}`
                   : prot!.near ? `ใกล้เขต${prot!.type}`
                   : 'ไม่พบในชั้นที่ตรวจได้'}</b>
+              </div>
+              <div>
+                <span>ป่าสงวนแห่งชาติ</span>
+                <b>{prot?.reservedForestStatus !== 'ok' ? 'ตรวจไม่สำเร็จ'
+                  : prot.reservedForest ? 'อาจอยู่ในเขต' : 'ไม่พบ (ขอบเขตประมาณ)'}</b>
               </div>
               <div>
                 <span>ป่าปกคลุมเดิม (ปี 2556-57)</span>
@@ -812,6 +843,41 @@ export function App() {
                       </div></>
                   )}
                   <div className="agro-gistda-src">ที่มา: {prot.source} · ตรวจได้ 1 ชั้น: เขตรักษาพันธุ์สัตว์ป่า</div>
+                </div>
+              </div>
+            )}
+
+            {prot && prot.reservedForestStatus === 'ok' && prot.reservedForest && (
+              <div className="agro-gistda warn">
+                <span className="agro-gistda-icon"><Icon name="shield" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">
+                    ป่าสงวนแห่งชาติ: {prot.reservedForestName ?? 'ไม่ระบุชื่อ'}
+                    {prot.reservedForestCode ? ` (${prot.reservedForestCode})` : ''}
+                    {prot.reservedForestAreaRai ? ` · เนื้อที่ ${prot.reservedForestAreaRai.toLocaleString('en-US')} ไร่` : ''}
+                  </b>
+                  <div className="thai">
+                    การครอบครองหรือแผ้วถางในเขตป่าสงวนแห่งชาติมีข้อจำกัดทางกฎหมาย
+                    ผู้ที่ทำกินอยู่เดิมอาจเข้าข่ายโครงการจัดที่ดิน (คทช.) ได้
+                    · <b>ต้องตรวจสอบสถานะกับหน่วยป่าไม้ในพื้นที่</b> ระบบนี้ชี้ความเสี่ยงได้ แต่ไม่ใช่การรับรองสิทธิ์
+                  </div>
+                  <div className="agro-gistda-src">
+                    ที่มา: ชั้นข้อมูลป่าสงวนแห่งชาติ (ArcGIS Online · DEQP mirror ปี 2562) · ตรวจสอบตรงกับทะเบียนป่าสงวน 1,221 ป่าของกรมป่าไม้
+                    · ขอบเขตเป็น “แนวเขตโดยประมาณ” ตามนิยามกรมป่าไม้
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {prot && prot.reservedForestStatus !== 'ok' && (
+              <div className="agro-gistda warn">
+                <span className="agro-gistda-icon"><Icon name="warning" size={24} /></span>
+                <div className="agro-gistda-body">
+                  <b className="thai">ตรวจเขตป่าสงวนแห่งชาติไม่สำเร็จรอบนี้</b>
+                  <div className="thai">
+                    <b>ไม่ได้แปลว่าแปลงนี้อยู่นอกเขตป่าสงวน</b> · ป่าสงวนแห่งชาติครอบคลุมพื้นที่สูงของน่านเป็นส่วนใหญ่
+                    ควรตรวจกับหน่วยป่าไม้หรือเกษตรอำเภอก่อนลงมือทุกครั้ง
+                  </div>
                 </div>
               </div>
             )}

@@ -107,12 +107,73 @@ describe('checkProtected — an outage must never read as a clear result', () =>
     expect(r.protectedStatus).toBe('ok');
   });
 
+  // ป่าสงวนแห่งชาติ is the class that decides whether clearing Nan highland farmland is
+  // prosecutable: on a 48-point Nan grid it hits 70.8% of points vs 8.3% for the sanctuary
+  // layer. Its source is an unofficial 2019 mirror of RFD data with an approximate boundary,
+  // so a hit is a warning and a miss is never clearance.
+  describe('reserved forest (ป่าสงวนแห่งชาติ)', () => {
+    const rfHit = {
+      features: [{ attributes: { FR_ID: 'H2.016', FR_NAME: 'ป่าดอยภูคาและป่าผาแดง', AREA_RAI: 1565312 } }],
+    };
+    const isReservedQuery = (url: string) => url.includes('/FeatureServer/4/query');
+
+    it('reports a hit with its name, code and area', async () => {
+      stubFetch((url) => (isReservedQuery(url) ? rfHit : { features: [] }));
+      const r = await checkProtected(NAN_LAT, NAN_LNG);
+      expect(r.reservedForest).toBe(true);
+      expect(r.reservedForestStatus).toBe('ok');
+      expect(r.reservedForestName).toBe('ป่าดอยภูคาและป่าผาแดง');
+      expect(r.reservedForestCode).toBe('H2.016');
+      expect(r.reservedForestAreaRai).toBe(1565312);
+    });
+
+    it('does not let a reserved-forest hit masquerade as a sanctuary determination', async () => {
+      // These are separate legal classes with separate consequences; a reserved-forest hit
+      // must not set `inside`, which drives the hard "หยุด · ผิดกฎหมาย" stop.
+      stubFetch((url) => (isReservedQuery(url) ? rfHit : { features: [] }));
+      const r = await checkProtected(NAN_LAT, NAN_LNG);
+      expect(r.inside).toBe(false);
+      expect(r.near).toBe(false);
+    });
+
+    it('marks a failed query unavailable rather than reporting "not in reserved forest"', async () => {
+      stubFetch((url) => {
+        if (isReservedQuery(url)) throw new Error('RFD reserved-forest HTTP 503');
+        return { features: [] };
+      });
+      const r = await checkProtected(NAN_LAT, NAN_LNG);
+      expect(r.reservedForestStatus).toBe('unavailable');
+      expect(r.reservedForest).toBe(false); // meaningless default — UI must gate on the status
+    });
+
+    it('treats an ArcGIS error object (HTTP 200, no features array) as a failure', async () => {
+      // ArcGIS returns errors with a 200, so a missing `features` array must not read as
+      // an empty result — that would render as "ไม่พบ" and imply the land is clear.
+      stubFetch((url) => (isReservedQuery(url)
+        ? { error: { code: 400, message: 'Invalid query parameters' } }
+        : { features: [] }));
+      const r = await checkProtected(NAN_LAT, NAN_LNG);
+      expect(r.reservedForestStatus).toBe('unavailable');
+    });
+
+    it('degrades independently of the sanctuary check', async () => {
+      stubFetch((url) => {
+        if (isReservedQuery(url)) throw new Error('down');
+        return { features: [] };
+      });
+      const r = await checkProtected(NAN_LAT, NAN_LNG);
+      expect(r.reservedForestStatus).toBe('unavailable');
+      expect(r.protectedStatus).toBe('ok');
+    });
+  });
+
   it('names the legal classes it cannot check, so the UI can state the gap', () => {
-    // A negative result covers the sanctuary layer only. These are what actually decide
-    // whether clearing Nan highland farmland is prosecutable — and อุทยานแห่งชาติ belongs
-    // here too, because this GISTDA service exposes no genuine park boundary layer.
+    // อุทยานแห่งชาติ is listed because this GISTDA service exposes no genuine park layer,
+    // and ลุ่มน้ำชั้น 1A because no live source exists by any route.
     expect(UNCHECKED_LEGAL_CLASSES).toContain('อุทยานแห่งชาติ');
-    expect(UNCHECKED_LEGAL_CLASSES).toContain('ป่าสงวนแห่งชาติ');
     expect(UNCHECKED_LEGAL_CLASSES).toContain('ลุ่มน้ำชั้น 1A');
+    // ป่าสงวนแห่งชาติ IS now checked, so it must have been removed from the unchecked list —
+    // otherwise the UI tells the farmer it was skipped while a warning for it is on screen.
+    expect(UNCHECKED_LEGAL_CLASSES).not.toContain('ป่าสงวนแห่งชาติ');
   });
 });

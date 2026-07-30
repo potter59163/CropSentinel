@@ -41,11 +41,37 @@ const LEGAL_LAYERS = [
   { id: 2, type: 'เขตรักษาพันธุ์สัตว์ป่า' },
 ];
 
-// The legal classes this check cannot see, surfaced to the UI so the gap is stated
-// to the farmer rather than hidden behind a reassuring absence. อุทยานแห่งชาติ is on
-// this list because, per the note above, this service has no genuine park layer.
+// ป่าสงวนแห่งชาติ (national reserved forest) — the class that actually decides whether
+// clearing Nan highland farmland is prosecutable. On a 48-point grid across Nan this layer
+// hits 70.8% of points while the sanctuary layer above hits 8.3%, so without it the app is
+// blind to the dominant legal class over roughly two thirds of the province.
+//
+// PROVENANCE, and why a hit is only ever a WARNING: this is not an official RFD endpoint.
+// The Royal Forest Department's own advertised WMS/WFS host (gis.forest.go.th) has no DNS
+// record at all — confirmed against 8.8.8.8, 1.1.1.1 and 9.9.9.9 while neighbouring
+// forest.go.th hosts resolve fine. The only live source is this public 2019 item on a
+// third-party ArcGIS Online account (owner deqp_datateam, modified 2019-05-03, no licence,
+// no SLA) which also hosts landfill surveys and a service named "test_ระบบ". The owner can
+// unshare it without notice.
+//
+// Its DATA is trustworthy: all 193 forests match the official RFD registry of 1,221 gazetted
+// forests on both code and area, and it carries all 16 of Nan's H2.* reserved forests. But
+// RFD's own wording for this boundary product is "แนวเขต…โดยประมาณ" (approximate), and a
+// zero-feature response is indistinguishable from out-of-coverage — Nan farmland, Bangkok,
+// Surat Thani and a point inside Laos all return byte-identical empty responses. So a miss
+// is never permission.
+const RESERVED_FOREST_URL =
+  'https://services1.arcgis.com/iZtkT1QkRyBwT4eu/arcgis/rest/services/' +
+  encodeURIComponent('ป่าสงวนแห่งชาติ') +
+  '/FeatureServer/4';
+
+// The classes still not checked at all, surfaced to the UI so the gap is stated to the
+// farmer rather than hidden behind a reassuring absence. อุทยานแห่งชาติ is here because,
+// per the note above, this GISTDA service exposes no genuine park layer; ลุ่มน้ำชั้น 1A is
+// here because no live source for it exists by any route (ONEP publishes only a 347 MB zip
+// behind a WAF).
 export const UNCHECKED_LEGAL_CLASSES = [
-  'อุทยานแห่งชาติ', 'ป่าสงวนแห่งชาติ', 'ป่าไม้ถาวร', 'ลุ่มน้ำชั้น 1A',
+  'อุทยานแห่งชาติ', 'ป่าไม้ถาวร', 'ลุ่มน้ำชั้น 1A',
 ];
 
 const RIVER_LAYER_ID = 0;
@@ -78,6 +104,14 @@ export interface ProtectedArea {
   // 2013–2014 satellite forest-cover read (GISTDA layer 1). Context, never legality.
   forestCover?: boolean;
   forestCoverStatus?: 'ok' | 'unavailable';
+  // ป่าสงวนแห่งชาติ. A hit is a WARNING that must be verified with a forestry officer; a
+  // miss is NOT clearance (approximate boundary, and 0 features cannot be distinguished
+  // from out-of-coverage). 'unavailable' means the query itself failed.
+  reservedForest?: boolean;
+  reservedForestName?: string;
+  reservedForestCode?: string;
+  reservedForestAreaRai?: number;
+  reservedForestStatus?: 'ok' | 'unavailable';
   disasterStatus?: 'live' | 'missing-key' | 'unavailable' | 'bad-request';
   disasterSource?: string;
   disasterUpdatedAt?: string;
@@ -254,6 +288,39 @@ async function checkProtectedLayers(lat: number, lng: number) {
   return { inside: false, near: false, protectedStatus: 'ok' as const };
 }
 
+// Reserved-forest point lookup. Uses the same query shape as every other layer here — the
+// hosted FeatureServer accepts the "lng,lat" shorthand despite a research note claiming it
+// required Esri-JSON geometry plus an explicit where clause (tested: all four combinations
+// return the identical feature, so no special-casing is needed).
+async function checkReservedForest(lat: number, lng: number) {
+  const p = new URLSearchParams({
+    geometry: `${lng},${lat}`,
+    geometryType: 'esriGeometryPoint',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'FR_ID,FR_NAME,AREA_RAI',
+    returnGeometry: 'false',
+    f: 'json',
+  });
+  const r = await fetch(`${RESERVED_FOREST_URL}/query?${p}`, { signal: AbortSignal.timeout(9000) });
+  if (!r.ok) throw new Error(`RFD reserved-forest HTTP ${r.status}`);
+  const body = await r.json();
+  // An ArcGIS error object comes back with HTTP 200, so absence of `features` is a failure,
+  // not an empty result — treating it as empty would read as "not in reserved forest".
+  if (!Array.isArray(body.features)) throw new Error('RFD reserved-forest: malformed response');
+  const f = body.features[0];
+  if (!f) return { reservedForest: false, reservedForestStatus: 'ok' as const };
+  const a = f.attributes ?? {};
+  const areaRai = Number(attr(a, 'AREA_RAI'));
+  return {
+    reservedForest: true,
+    reservedForestName: attr(a, 'FR_NAME') || undefined,
+    reservedForestCode: attr(a, 'FR_ID') || undefined,
+    reservedForestAreaRai: Number.isFinite(areaRai) ? areaRai : undefined,
+    reservedForestStatus: 'ok' as const,
+  };
+}
+
 // Existing tree cover, from the 2013–2014 satellite product described above. Genuinely
 // useful for an agroforestry tool — a plot that already carries canopy is a restoration
 // candidate rather than a conversion — but it is NOT a legal determination.
@@ -264,12 +331,15 @@ async function checkForestCover(lat: number, lng: number) {
 
 export async function checkProtected(lat: number, lng: number): Promise<ProtectedArea> {
   const src = 'GISTDA · ข้อมูลทรัพยากรธรรมชาติ';
-  const [protectedLayers, forest, river, fire, disaster] = await Promise.all([
+  const [protectedLayers, forest, reserved, river, fire, disaster] = await Promise.all([
     checkProtectedLayers(lat, lng).catch(() => ({
       inside: false, near: false, protectedStatus: 'unavailable' as const,
     })),
     checkForestCover(lat, lng).catch(() => ({
       forestCover: false, forestCoverStatus: 'unavailable' as const,
+    })),
+    checkReservedForest(lat, lng).catch(() => ({
+      reservedForest: false, reservedForestStatus: 'unavailable' as const,
     })),
     checkRiver(lat, lng).catch(() => ({ riverNear: false, riverStatus: 'unavailable' as const })),
     checkFire(lat, lng).catch(() => ({ fireHotspots: 0, fireNearby: 0, fireProtected: 0, fireStatus: 'unavailable' as const })),
@@ -287,5 +357,5 @@ export async function checkProtected(lat: number, lng: number): Promise<Protecte
     })),
   ]);
 
-  return { ...protectedLayers, ...forest, ...river, ...fire, ...disaster, source: src };
+  return { ...protectedLayers, ...forest, ...reserved, ...river, ...fire, ...disaster, source: src };
 }

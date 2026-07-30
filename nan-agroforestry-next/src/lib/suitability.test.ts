@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { plantSuitability, modelMeta } from './suitability';
-import { plantById } from '../data/plants';
+import { plantById, PLANTS } from '../data/plants';
 import type { Climate } from './climate';
 
 // A plausible lowland-Nan climate near the training medians. These golden values
@@ -102,5 +102,43 @@ describe('envelope fallback must not outscore the trained model', () => {
     expect(s.source).toBe('envelope');
     expect(s.confidence).toBe('expert');
     expect(s.score).toBeLessThanOrEqual(0.72);
+  });
+});
+
+// ── train/serve skew on the disaster features ───────────────────────────────
+// The shipped model has weights for five GISTDA disaster columns that are near-constant in
+// its training pool (flood7d_near is 0 in all 4,245 cells) while the runtime fed them real
+// values. Because logitPredict standardizes by (x - mean) / std and those stds are tiny,
+// a live fire7d_near of log1p(9) landed ~24 SD out and pinned the sigmoid at 1.0. Measured
+// before the fix: suitability moved by mean 0.347 / max 0.777 at one 1,200 m Nan plot, with
+// taro 0.223 -> 1.000 — an ~87% swing in projected revenue driven by data coverage.
+describe('live GISTDA risk must not reach the SDM feature vector', () => {
+  const climate: Climate = {
+    t2m: 23.1, prec: 1076, drym: 5, pseas: 62, trange: 22, solar: 18, rh: 79, gwet: 0.65, elev: 1200,
+  };
+  // Deliberately extreme but realistic for Nan in fire season.
+  const liveRisk = {
+    disasterFire7dNear: 9,
+    disasterBurnFreqNear: 4,
+    disasterFlood7dNear: 0,
+    disasterFloodFreqNear: 12,
+    disasterDroughtLayers: ['a', 'b', 'c'],
+    fireNearby: 9,
+  } as unknown as Parameters<typeof plantSuitability>[2];
+
+  it('gives byte-identical suitability with and without live risk, for every crop', () => {
+    for (const p of PLANTS) {
+      const off = plantSuitability(p, climate, null, null).score;
+      const on = plantSuitability(p, climate, liveRisk, null).score;
+      expect(on, `${p.id} shifted when live GISTDA risk was supplied`).toBeCloseTo(off, 10);
+    }
+  });
+
+  it('never saturates a crop at a perfect score because of risk data', () => {
+    // taro and galangal were the two that hit exactly 1.000 before the fix.
+    for (const id of ['taro', 'galangal', 'turmeric']) {
+      const s = plantSuitability(plantById(id), climate, liveRisk, null).score;
+      expect(s, `${id} saturated`).toBeLessThan(1);
+    }
   });
 });

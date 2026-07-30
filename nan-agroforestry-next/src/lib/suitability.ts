@@ -96,10 +96,37 @@ export function soilFeatureContext(soil: SoilContext | null) {
   };
 }
 
+// Features the SDM has a weight for but never meaningfully saw vary during training, so a
+// real runtime value lands far outside the distribution the weight was fitted on.
+//
+// Measured over the 4,245 training cells: flood7d_near is 0 in ALL of them (its std is a
+// forced 1.0), fire7d_near is nonzero in 13, burn_freq_near in 22, flood_freq_near in 70,
+// and drought_layers is a binary 0/3 that is 3 exactly when the GISTDA scan reached the
+// cell — a data-coverage flag, not a drought measurement. Yet drought_layers carries the
+// largest disaster weight in the shipped logit (mean |w| 0.880).
+//
+// Because logitPredict standardizes by (x - mean) / std, a live fire7d_near of log1p(9)≈2.30
+// becomes (2.30 - 0.0062) / 0.0964 ≈ 24 SD. That single term swamps the linear predictor and
+// pins the sigmoid at 1.0. Measured end to end at one 1,200 m Nan plot, toggling live GISTDA
+// values moved suitability by mean 0.347 / max 0.777 — taro 0.223 -> 1.000, galangal
+// 0.250 -> 1.000 — and since engine.plantFlow scales revenue by (0.4 + 0.6 * suit) that is
+// up to an ~87% swing in a farmer's projected 10-year income, caused by data coverage.
+//
+// Serving therefore has to match training: pass the training median for these, which is what
+// training effectively saw. This is NOT discarding the risk data — engine.ts still reads the
+// live GISTDA values through disasterFeatureContext for its rule-based riskFit score, which
+// is where they belong. Listed by name rather than detected by std, because flood7d_near's
+// std is masked to 1.0 by the exporter. On a model that drops these columns (v4) the set
+// simply never matches and this is a no-op.
+const DEGENERATE_IN_TRAINING = new Set([
+  'fire7d_near', 'burn_freq_near', 'flood7d_near', 'flood_freq_near', 'drought_layers',
+]);
+
 function vector(c: Climate, risk: ProtectedArea | null, soil: SoilContext | null): number[] {
   const disaster = disasterFeatureContext(risk);
   const soilf = soilFeatureContext(soil);
   const base = M.base.map((n, i) => {
+    if (DEGENERATE_IN_TRAINING.has(n)) return M.median[i];
     const v = ((c as any)[n] ?? (disaster as any)[n] ?? (soilf as any)[n]) as number;
     return Number.isFinite(v) ? v : M.median[i];
   });
