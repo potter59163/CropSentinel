@@ -153,9 +153,9 @@ function Module3() {
   const priceNow          = D.price.actual[D.price.actual.length - 1];
   const priceDeltaPct     = Math.round(((priceNow - priceStart) / priceStart) * 1000) / 10;
   const flowSummary = [
-    { layer: 'Data Layer', explain: 'รู้ว่า "ตอนนี้เกิดอะไรขึ้น"', detail: 'Satellite + NDVI + flood + drought + PM2.5' },
-    { layer: 'AI Layer', explain: 'รู้ว่า "จะเกิดอะไรต่อ"', detail: 'ปฏิทินเก็บเกี่ยวจากดาวเทียม + ฉากทัศน์ราคา' },
-    { layer: 'Decision Layer', explain: 'รู้ว่า "ควรทำอะไร"', detail: 'Action plan รายกลุ่มเป้าหมายแบบเรียลไทม์' },
+    { layer: 'ชั้นข้อมูล', explain: 'รู้ว่า "ตอนนี้เกิดอะไรขึ้น"', detail: 'ข้าวรายแปลง GISTDA + น้ำท่วมซ้ำซาก + อากาศ' },
+    { layer: 'ชั้นคาดการณ์', explain: 'รู้ว่า "จะเกิดอะไรต่อ"', detail: 'ปฏิทินเก็บเกี่ยวจากดาวเทียม + ฉากทัศน์ราคา' },
+    { layer: 'ชั้นตัดสินใจ', explain: 'รู้ว่า "ควรทำอะไร"', detail: 'ข้อเสนอการดำเนินการ แยกตามกลุ่มเป้าหมาย' },
   ];
   const actionMatrix = [
     {
@@ -287,7 +287,7 @@ function Module3() {
       <div className="decision-overview card">
         <div className="card-h">
           <h3>
-            Real-time Dashboard <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Feature 6</span>
+            สรุปสถานการณ์ <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Situation summary</span>
           </h3>
           <span className="sub thai">Actionable Insight</span>
         </div>

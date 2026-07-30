@@ -564,3 +564,43 @@ a.nav-item:hover .nav-label { color: var(--data); }
   .mission-cal-col { min-width: 54px; }
   .mission-brief h2 { font-size: 19px; }
 }
+
+/* ปุ่มสลับชั้นบนแผนที่ styles.css ตั้งไว้ 11px ซึ่งต่ำกว่าพื้นขั้นต่ำที่ไฟล์นี้กำหนด */
+.toggle-group button { font-size: 12px !important; letter-spacing: 0.02em; }
+
+/* ที่มาของการแจ้งเตือน แทนแถบ "ความเชื่อมั่น" ที่เคยแสดงตัวเลขซึ่งไม่ได้คำนวณ */
+.alert-basis {
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--fg-2); font-size: 12px; line-height: 1.55;
+}
+.conf { display: none; }
+
+/* ---------- การ์ดแจ้งเตือน ----------
+   ธีมเดิมวาดพื้นเข้มด้วย background-image (linear-gradient) ทับ background-color ขาว
+   ตัวอักษรที่เปลี่ยนเป็นสีเข้มตามธีมใหม่จึงกลายเป็นเข้มบนเข้ม อ่านไม่ออก
+   บทเรียน: การตรวจคอนทราสต์ที่อ่านแต่ background-color จะมองไม่เห็นกรณีนี้ */
+.alert {
+  background: var(--bg-1) !important;
+  background-image: none !important;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--fg-3);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+.alert.crit, .alert.risk { border-left-color: var(--risk); }
+.alert.warn { border-left-color: var(--warn); }
+.alert .title { color: var(--fg-0); font-weight: 600; }
+.alert .body { color: var(--fg-1); }
+.alert .dismiss { color: var(--fg-3); background: transparent; border: none; min-height: 28px; }
+.alert .dismiss:hover { color: var(--fg-0); }
+
+/* ---------- กวาดเกรเดียนต์พื้นเข้มที่เหลือจากธีมเดิม ----------
+   styles.css วาดพื้นเข้มด้วย background-image ไว้ 19 จุด การไล่แก้ทีละคลาสจะพลาดได้ง่าย
+   และการตรวจคอนทราสต์อัตโนมัติมองไม่เห็น เพราะอ่านแต่ background-color
+   จึงล้างทั้งหมดในพื้นที่เนื้อหา แล้วคืนเฉพาะที่ตั้งใจให้มี (โลโก้)
+   ถ้าจะเพิ่มเกรเดียนต์ใหม่ ต้องเพิ่มชื่อคลาสในรายการยกเว้นด้านล่างด้วย */
+.main *:not(.brand-mark),
+.sidebar *:not(.brand-mark),
+.topbar * { background-image: none !important; }
+.brand-mark { background-image: linear-gradient(135deg, var(--ok), var(--data)) !important; }

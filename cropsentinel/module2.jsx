@@ -17,9 +17,11 @@ function SupplyChart({ data, weeks }) {
   const projPath = data.projected.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ');
   const demPath = data.demand.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ');
 
-  // Shortage zone (projected below demand)
+  // พื้นที่ที่ระบายคือส่วนที่ "ล้น" — ข้าวมาถึงเกินกำลังรับซื้อ
+  // เดิมระบายส่วนที่ต่ำกว่ากำลังรับซื้อ (shortage) ซึ่งกลับด้านกับปัญหาจริงของพื้นที่นี้
+  // และกลับด้านกับป้ายกำกับใน legend ด้วย
   const shortPath = [
-    ...data.projected.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(Math.min(v, data.demand[i]))}`),
+    ...data.projected.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(Math.max(v, data.demand[i]))}`),
     ...data.demand.slice().reverse().map((v, i) => `L ${x(weeks.length - 1 - i)} ${y(v)}`),
     'Z',
   ].join(' ');
@@ -51,7 +53,7 @@ function SupplyChart({ data, weeks }) {
             <text x={padL - 8} y={y(t) + 3} textAnchor="end" fontFamily="var(--font-mono)" fontSize="9" fill="var(--fg-3)">{t}</text>
           </g>
         ))}
-        <text x={padL - 30} y={padT + 6} fontFamily="var(--font-mono)" fontSize="9" fill="var(--fg-3)" transform={`rotate(-90 ${padL-30} ${padT+6})`}>TONS (K)</text>
+        <text x={padL - 30} y={padT + 6} fontFamily="var(--font-thai)" fontSize="11" fill="var(--fg-3)" transform={`rotate(-90 ${padL-30} ${padT+6})`}>พันตัน</text>
 
         {/* shortage region */}
         <path d={shortPath} fill="oklch(0.6 0.19 25 / 0.2)" />
@@ -83,11 +85,11 @@ function SupplyChart({ data, weeks }) {
         {/* Legend */}
         <g transform={`translate(${padL}, ${padT - 4})`}>
           <rect width="12" height="2" y="4" fill="var(--data)"/>
-          <text x="18" y="8" fontSize="10" fill="var(--fg-2)" fontFamily="var(--font-mono)">PROJECTED SUPPLY</text>
+          <text x="20" y="9" fontSize="11" fill="var(--fg-2)" fontFamily="var(--font-thai)">ข้าวเข้าตลาด (วัดได้)</text>
           <rect width="12" height="2" y="4" x="170" fill="var(--fg-2)"/>
-          <text x="188" y="8" fontSize="10" fill="var(--fg-2)" fontFamily="var(--font-mono)">DEMAND BASELINE</text>
+          <text x="188" y="9" fontSize="11" fill="var(--fg-2)" fontFamily="var(--font-thai)">กำลังรับซื้อ (สมมติ)</text>
           <rect width="12" height="8" y="1" x="330" fill="oklch(0.6 0.19 25 / 0.3)"/>
-          <text x="348" y="8" fontSize="10" fill="var(--fg-2)" fontFamily="var(--font-mono)">SHORTAGE ZONE</text>
+          <text x="348" y="9" fontSize="11" fill="var(--fg-2)" fontFamily="var(--font-thai)">ส่วนที่ล้น</text>
         </g>
       </svg>
 
@@ -97,9 +99,9 @@ function SupplyChart({ data, weeks }) {
           top: 10,
           transform: hover > weeks.length - 3 ? 'translateX(-105%)' : 'translateX(10px)'
         }}>
-          <div className="row space-between"><span className="k">Week</span><span className="v">{weeks[hover]}</span></div>
-          <div className="row space-between"><span className="k">Supply</span><span className="v" style={{ color: 'var(--data)' }}>{data.projected[hover]}kt</span></div>
-          <div className="row space-between"><span className="k">Demand</span><span className="v">{data.demand[hover]}kt</span></div>
+          <div className="row space-between"><span className="k thai">ช่วง</span><span className="v thai">{weeks[hover]}</span></div>
+          <div className="row space-between"><span className="k thai">ข้าวเข้าตลาด</span><span className="v" style={{ color: 'var(--data)' }}>{data.projected[hover]} พันตัน</span></div>
+          <div className="row space-between"><span className="k thai">กำลังรับซื้อ</span><span className="v">{data.demand[hover]} พันตัน</span></div>
           <div className="row space-between" style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--line-soft)' }}>
             <span className="k">Δ</span>
             <span className="v" style={{ color: data.projected[hover] < data.demand[hover] ? 'var(--risk)' : 'var(--ok)' }}>
@@ -182,9 +184,9 @@ function PriceChart({ data, weeks }) {
 
         <g transform={`translate(${padL}, ${padT - 4})`}>
           <rect width="12" height="2" y="4" fill="var(--warn)"/>
-          <text x="18" y="8" fontSize="10" fill="var(--fg-2)" fontFamily="var(--font-mono)">FORECAST THB/TON</text>
+          <text x="18" y="8" fontSize="10" fill="var(--fg-2)" fontFamily="var(--font-mono)">ราคาตามฉากทัศน์ (บาท/ตัน)</text>
           <rect width="12" height="8" y="1" x="180" fill="var(--warn)" opacity="0.3"/>
-          <text x="198" y="8" fontSize="10" fill="var(--fg-2)" fontFamily="var(--font-mono)">80% CONFIDENCE BAND</text>
+          <text x="198" y="9" fontSize="11" fill="var(--fg-2)" fontFamily="var(--font-thai)">ช่วงกว้าง ±6% (ค่าสมมติ)</text>
         </g>
       </svg>
 
@@ -194,7 +196,7 @@ function PriceChart({ data, weeks }) {
           top: 10,
           transform: hover > weeks.length - 3 ? 'translateX(-105%)' : 'translateX(10px)'
         }}>
-          <div className="row space-between"><span className="k">Week</span><span className="v">{weeks[hover]}</span></div>
+          <div className="row space-between"><span className="k thai">ช่วง</span><span className="v thai">{weeks[hover]}</span></div>
           <div className="row space-between"><span className="k">Forecast</span><span className="v" style={{ color: 'var(--warn)' }}>฿{data.actual[hover].toLocaleString()}</span></div>
           <div className="row space-between"><span className="k">Low</span><span className="v">฿{data.band_low[hover].toLocaleString()}</span></div>
           <div className="row space-between"><span className="k">High</span><span className="v">฿{data.band_high[hover].toLocaleString()}</span></div>
@@ -214,11 +216,14 @@ function AlertCard({ alert, onDismiss }) {
       <div className="title thai">{alert.title}</div>
       <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>{alert.titleEn}</div>
       <div className="body thai">{alert.body}</div>
-      <div className="conf">
-        <span>ความเชื่อมั่น</span>
-        <div className="bar"><div className="fill" style={{ width: `${alert.confidence * 100}%` }}/></div>
-        <span style={{ color: 'var(--fg-1)' }}>{(alert.confidence * 100).toFixed(0)}%</span>
-      </div>
+      {/*
+        เดิมตรงนี้แสดงแถบ "ความเชื่อมั่น" จากฟิลด์ alert.confidence ซึ่งเป็นตัวเลข
+        ที่พิมพ์ไว้เฉย ๆ ไม่ได้คำนวณ พอถอดฟิลด์นั้นออกไป แถบจึงแสดง "NaN%" ค้างอยู่
+        แทนที่ด้วยที่มาของข้อมูลจริง ซึ่งมีประโยชน์กับผู้อ่านมากกว่าตัวเลขที่แต่งขึ้น
+      */}
+      {alert.basisTh && (
+        <div className="alert-basis thai">ที่มา: {alert.basisTh}</div>
+      )}
     </div>
   );
 }
@@ -238,32 +243,31 @@ function Module2() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="grid grid-3">
           <div className="stat">
-            <div className="stat-label thai">ผลผลิตปัจจุบัน</div>
+            <div className="stat-label thai">ผลผลิตทั้งฤดู</div>
             <div className="stat-value">{currentSupply}<span className="unit">พันตัน</span></div>
-            <div className="stat-delta negative thai">▼ ลดลง 9% เทียบกับ 4 สัปดาห์ก่อน</div>
+            <div className="stat-delta neutral thai">{D.province.riceRai.toLocaleString()} ไร่ × {D.province.productKgPerRai[0]} กก./ไร่</div>
           </div>
           <div className="stat">
-            <div className="stat-label thai">คาดการณ์ขาดแคลน สัปดาห์ที่ 8</div>
-            <div className="stat-value" style={{ color: shortage > 0 ? 'var(--risk)' : 'var(--ok)' }}>
-              {shortage > 0 ? '−' : '+'}{Math.abs(shortage).toFixed(1)}
-              <span className="unit">พันตัน</span>
+            <div className="stat-label thai">ล้นเกินกำลังรับซื้อ ช่วง {D.supply.peakWindowTh ?? '-'}</div>
+            <div className="stat-value" style={{ color: 'var(--risk)' }}>
+              {Math.abs(shortage).toFixed(1)}<span className="unit">พันตัน</span>
             </div>
-            <div className={`stat-delta ${shortage > 0 ? 'negative' : ''} thai`}>
-              {shortage > 0
-                ? `▲ ต่ำกว่าความต้องการ ${((shortage / D.supply.demand[7]) * 100).toFixed(0)}%`
-                : `▼ เกินความต้องการ ${(Math.abs(shortage) / D.supply.demand[7] * 100).toFixed(0)}%`}
+            <div className="stat-delta negative thai">
+              เกินกำลังรับซื้อที่ตั้งสมมติไว้ {(D.supply.projected[D.supply.peakWindowIndex ?? 7] / (D.supply.demand[0] || 1)).toFixed(1)} เท่า
             </div>
           </div>
           <div className="stat">
-            <div className="stat-label thai">ราคาคาดการณ์ สัปดาห์ที่ 8</div>
-            <div className="stat-value">฿{D.price.actual[7].toLocaleString()}</div>
-            <div className="stat-delta negative thai">▲ เพิ่มขึ้น {priceDelta.toFixed(1)}% จากปัจจุบัน</div>
+            <div className="stat-label thai">ฉากทัศน์ราคาช่วงข้าวออกหนาแน่น</div>
+            <div className="stat-value">฿{D.price.actual[D.supply.peakWindowIndex ?? 7].toLocaleString()}</div>
+            <div className="stat-delta negative thai">
+              {priceDelta < 0 ? '▼ ลดลง' : '▲ เพิ่มขึ้น'} {Math.abs(priceDelta).toFixed(1)}% จากราคาอ้างอิง · ไม่ใช่การพยากรณ์
+            </div>
           </div>
         </div>
 
         <div className="card">
           <div className="card-h">
-            <h3>พยากรณ์ผลผลิตข้าว — 8 สัปดาห์ข้างหน้า <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Supply forecast</span></h3>
+            <h3>ปฏิทินข้าวเข้าตลาด — 8 ช่วงครึ่งเดือน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Harvest arrival calendar</span></h3>
             <span className="chip warn thai"><span className="dot"/>แบบจำลอง ไม่ใช่ค่าที่วัดได้</span>
           </div>
           <SupplyChart data={D.supply} weeks={D.weeks} />
@@ -271,8 +275,8 @@ function Module2() {
 
         <div className="card">
           <div className="card-h">
-            <h3>พยากรณ์ราคาข้าว — บาท/ตัน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Price forecast</span></h3>
-            <span className="chip warn thai"><span className="dot"/>แนวโน้มเพิ่มขึ้น</span>
+            <h3>ฉากทัศน์ราคาข้าว — บาท/ตัน <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Price scenario</span></h3>
+            <span className="chip warn thai"><span className="dot"/>ฉากทัศน์ ไม่ใช่การพยากรณ์</span>
           </div>
           <PriceChart data={D.price} weeks={D.weeks} />
         </div>
@@ -338,10 +342,10 @@ function Module2() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              ['กรณีพื้นฐาน — ขาดแคลนเล็กน้อย', 0.42, 'var(--warn)'],
+              ['กรณีพื้นฐาน — ข้าวออกกระจุกตามที่ดาวเทียมเห็น', 0.42, 'var(--warn)'],
               ['วิกฤติน้ำท่วมรุนแรง', 0.26, 'var(--risk)'],
-              ['ภัยแล้งต่อเนื่อง — ผลผลิตลด', 0.17, 'var(--warn)'],
-              ['ฟื้นตัว — นำเข้าชดเชยได้', 0.10, 'var(--ok)'],
+              ['ฝนมาเร็ว ต้องเร่งเกี่ยว', 0.17, 'var(--warn)'],
+              ['เหลื่อมรอบส่งน้ำได้สำเร็จ', 0.10, 'var(--ok)'],
               ['เหตุการณ์ไม่คาดคิด — พายุไต้ฝุ่น', 0.05, 'var(--crit)'],
             ].map(([name, p, c]) => (
               <div key={name}>

@@ -281,7 +281,7 @@ function Module1() {
                 ขอบเขตอำเภอ: GISTDA L05_Amphoe 1:50,000 · พื้นที่ข้าว: GISTDA รายแปลง {D.riceAsOfTh} ({D.ricePixelM} ม./จุดภาพ)
               </div>
             </div>
-            <span className="chip data"><span className="dot"/> LIVE</span>
+            <span className="chip data thai"><span className="dot"/> ภาพดาวเทียม เม.ย. 2569</span>
           </div>
           <div style={{ padding: 12 }}>
             <MapView />

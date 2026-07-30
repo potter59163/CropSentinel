@@ -92,7 +92,7 @@ function TopBar({ module }) {
       code: 'M02',
       th: 'เครื่องมือพยากรณ์',
       en: 'Predictive Intelligence Engine',
-      sub: 'รู้ว่า “จะเกิดอะไรต่อ” จากโมเดลคาดการณ์ supply และราคา',
+      sub: 'รู้ว่า “จะเกิดอะไรต่อ” จากปฏิทินเก็บเกี่ยวที่ดาวเทียมเห็น และฉากทัศน์ราคา',
     },
     m3: {
       code: 'M03',
@@ -137,7 +137,7 @@ function TopBar({ module }) {
         </div>
         <span className="chip ok thai">
           <span className="dot" />
-          {D.province.dataSource === 'LIVE' ? 'ข้อมูลจริง LIVE' : 'กำลังโหลดข้อมูล…'}
+          {D.province.dataSource === 'LIVE' ? 'อากาศสด · ข้าวจากภาพดาวเทียม' : 'กำลังโหลดข้อมูล…'}
         </span>
         {D.province.dataSource === 'LIVE' && (
           <span className="chip data" style={{ fontSize: 12, gap: 4 }}>
@@ -229,8 +229,9 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
             </div>
           </div>
           <p className="thai">
-            ปัญหาหลักของพื้นที่นำร่องคือ น้ำท่วมซ้ำซากและ climate change ทำให้ผลผลิตไม่แน่นอน ระบบนี้เชื่อม satellite,
-            climate data และ AI forecasting เพื่อบอกว่า ตอนนี้เกิดอะไรขึ้น จะเกิดอะไรต่อ และควรทำอะไรทันที
+            ปัญหาหลักของพื้นที่นำร่องไม่ใช่ข้าวไม่พอ แต่คือข้าวเกือบครึ่งฤดูมาถึงพร้อมกันในช่วงครึ่งเดือนเดียว
+            ระบบนี้อ่านชั้นข้อมูลข้าวรายแปลงของ GISTDA ร่วมกับข้อมูลอากาศ เพื่อบอกว่าข้าวจะมาถึงเมื่อไร
+            ตรงไหนรับไม่ไหว และมีคันโยกอะไรให้ขยับได้บ้าง
           </p>
           <div className="overview-tags">
             <span className="chip data thai"><span className="dot" />จังหวัดนำร่อง {D.province.nameTh}</span>
