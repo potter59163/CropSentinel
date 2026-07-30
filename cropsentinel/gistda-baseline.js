@@ -75,36 +75,60 @@ window.CS_GISTDA = {
   ],
   "harvestWindows": [
     {
-      "windowTh": "1-15 สิงหาคม 2569",
-      "rai": 34751
+      "windowTh": "16-30 เมษายน 2569",
+      "rai": 8435,
+      "epochMs": 1777507200000,
+      "tonnes": 6074.8,
+      "shareOfProvince": 0.1106
     },
     {
       "windowTh": "1-15 พฤษภาคม 2569",
-      "rai": 9821
-    },
-    {
-      "windowTh": "16-30 เมษายน 2569",
-      "rai": 8435
-    },
-    {
-      "windowTh": "16-31 กรกฎาคม 2569",
-      "rai": 7323
-    },
-    {
-      "windowTh": "16-30 มิถุนายน 2569",
-      "rai": 6010
+      "rai": 9821,
+      "epochMs": 1778803200000,
+      "tonnes": 7073.0,
+      "shareOfProvince": 0.1288
     },
     {
       "windowTh": "16-31 พฤษภาคม 2569",
-      "rai": 4739
+      "rai": 4739,
+      "epochMs": 1780185600000,
+      "tonnes": 3413.3,
+      "shareOfProvince": 0.0621
     },
     {
       "windowTh": "1-15 มิถุนายน 2569",
-      "rai": 4327
+      "rai": 4327,
+      "epochMs": 1781481600000,
+      "tonnes": 3116.5,
+      "shareOfProvince": 0.0567
+    },
+    {
+      "windowTh": "16-30 มิถุนายน 2569",
+      "rai": 6010,
+      "epochMs": 1782777600000,
+      "tonnes": 4328.5,
+      "shareOfProvince": 0.0788
     },
     {
       "windowTh": "1-15 กรกฎาคม 2569",
-      "rai": 865
+      "rai": 865,
+      "epochMs": 1784073600000,
+      "tonnes": 623.0,
+      "shareOfProvince": 0.0113
+    },
+    {
+      "windowTh": "16-31 กรกฎาคม 2569",
+      "rai": 7323,
+      "epochMs": 1785456000000,
+      "tonnes": 5273.9,
+      "shareOfProvince": 0.096
+    },
+    {
+      "windowTh": "1-15 สิงหาคม 2569",
+      "rai": 34751,
+      "epochMs": 1786752000000,
+      "tonnes": 25026.8,
+      "shareOfProvince": 0.4556
     }
   ],
   "irrigationProjects": [

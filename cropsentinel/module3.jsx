@@ -63,7 +63,7 @@ function Gauge({ value, max = 100 }) {
         {value}
       </text>
       <text x="80" y="86" textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--fg-3)" letterSpacing="0.1em">
-        % OF DEMAND
+        % ที่รับซื้อได้
       </text>
     </svg>
   );
@@ -140,8 +140,9 @@ function Module3() {
 
   const lastWeekIndex     = D.supply.projected.length - 1;
   const currentSupply     = D.supply.current;
-  const shortageRaw       = D.supply.demand[lastWeekIndex] - D.supply.projected[lastWeekIndex];
-  const shortageAtHorizon = Math.max(0, Math.round(shortageRaw * 10) / 10);  // พันตัน, ≥0
+  // ปัญหาคือผลผลิตล้นเกินกำลังรับซื้อในช่วงที่ข้าวออกพร้อมกัน ไม่ใช่ขาดแคลน
+  const peakIdx           = D.supply.peakWindowIndex ?? lastWeekIndex;
+  const gluttAtPeak       = Math.max(0, Math.round((D.supply.projected[peakIdx] - D.supply.demand[peakIdx]) * 10) / 10);
   const supplyLevel       = Math.min(100, D.supply.readiness);                // % capped at 100
   const riskRank         = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
   const floodRiskLevel   = D.province.floodRisk;
@@ -153,21 +154,21 @@ function Module3() {
   const priceDeltaPct     = Math.round(((priceNow - priceStart) / priceStart) * 1000) / 10;
   const flowSummary = [
     { layer: 'Data Layer', explain: 'รู้ว่า "ตอนนี้เกิดอะไรขึ้น"', detail: 'Satellite + NDVI + flood + drought + PM2.5' },
-    { layer: 'AI Layer', explain: 'รู้ว่า "จะเกิดอะไรต่อ"', detail: 'Forecast supply shortage และ price volatility' },
+    { layer: 'AI Layer', explain: 'รู้ว่า "จะเกิดอะไรต่อ"', detail: 'ปฏิทินเก็บเกี่ยวจากดาวเทียม + ฉากทัศน์ราคา' },
     { layer: 'Decision Layer', explain: 'รู้ว่า "ควรทำอะไร"', detail: 'Action plan รายกลุ่มเป้าหมายแบบเรียลไทม์' },
   ];
   const actionMatrix = [
     {
       role: 'รัฐบาล / อปท.',
       roleEn: 'Policy Command',
-      action: `เตรียมแผนนำเข้า ${shortageAtHorizon.toFixed(0)} พันตัน พร้อมแผนจัดสรรน้ำหากภัยแล้งสูงขึ้น`,
+      action: `หารือเหลื่อมรอบส่งน้ำ 15 วันในโครงการเดียว เพื่อกระจาย ${gluttAtPeak.toFixed(1)} พันตันที่ล้นออกจากช่วงพีค`,
       eta: 'ต้องเริ่มใน 7 วัน',
       tone: 'urgent',
     },
     {
       role: 'ผู้ค้าปลีก',
       roleEn: 'Stock Planning',
-      action: 'เพิ่ม safety stock จาก 2.8 เป็น 6 สัปดาห์ พร้อม lock contract ล่วงหน้า',
+      action: 'จองกำลังสีข้าวและพื้นที่เก็บล่วงหน้า ก่อนข้าวออกพร้อมกัน',
       eta: 'เริ่มทันที ก่อนสัปดาห์ที่ 5',
       tone: 'warn',
     },
@@ -179,18 +180,23 @@ function Module3() {
       tone: 'risk',
     },
   ];
+  // ปุ่มนี้ไม่ได้ส่งอะไรออกไปจริง มันคัดลอกสรุปลงคลิปบอร์ดให้เอาไปส่งเอง
+  //
+  // เดิมกดแล้วขึ้นว่า "ส่งผ่าน LINE และ SMS ถึงเกษตรกร 842 ครัวเรือน" ทั้งที่
+  // ไม่มีการเรียกเครือข่ายใด ๆ และไม่มีทะเบียนเกษตรกรอยู่ในระบบ
+  // ข้อความยืนยันต้องตรงกับสิ่งที่เกิดขึ้นจริงเสมอ
   const publishTargets = {
     farmer: {
-      title: 'เผยแพร่คำแนะนำภาคสนามแล้ว',
-      detail: 'ส่งผ่าน LINE และ SMS ถึงเกษตรกร 842 ครัวเรือน พร้อมแจ้งสหกรณ์ 4 แห่งในพื้นที่เสี่ยง',
+      title: 'คัดลอกสรุปสำหรับเกษตรกรแล้ว',
+      detail: 'นำไปวางในไลน์กลุ่มหรือกระดานสหกรณ์ได้ทันที — ระบบนี้ยังไม่ได้เชื่อมกับช่องทางส่งข้อความ',
     },
     lgu: {
-      title: 'ส่งแผนตอบสนองให้หน่วยงานแล้ว',
-      detail: 'แจ้งเตือนถึง อปท. 7 หน่วยงาน และศูนย์ป้องกันภัย 2 จุด เพื่อเตรียมรับมือน้ำท่วม/ภัยแล้ง',
+      title: 'คัดลอกสรุปสำหรับหน่วยงานแล้ว',
+      detail: 'นำไปวางในหนังสือแจ้งเวียนหรืออีเมลได้ — ระบบนี้ยังไม่ได้เชื่อมกับระบบสารบรรณ',
     },
     retailer: {
-      title: 'ปล่อย advisory ให้คู่ค้าปลีกแล้ว',
-      detail: 'อัปเดตสัญญาณ stock และ price outlook ให้ผู้ค้าปลีก 5 รายและคลังหลัก 3 จุด',
+      title: 'คัดลอกสรุปสำหรับผู้รับซื้อแล้ว',
+      detail: 'นำไปวางในอีเมลถึงคู่ค้าได้ — ระบบนี้ยังไม่ได้เชื่อมกับระบบจัดซื้อ',
     },
   };
 
@@ -200,15 +206,36 @@ function Module3() {
     return () => window.clearTimeout(timer);
   }, [publishFeedback]);
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     const rollout = publishTargets[tab];
     const publishedAt = new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date());
 
+    // ทำสิ่งที่ปุ่มบอกว่าทำจริง ๆ คือคัดลอกสรุปที่อ่านได้ลงคลิปบอร์ด
+    const lines = [
+      `สรุปคำแนะนำ CropSentinel — ${D.province.nameTh} (${publishedAt} น.)`,
+      `พื้นที่ข้าว ${D.province.riceRai.toLocaleString()} ไร่ · ${D.province.riceParcels} แปลง (ดาวเทียม ${D.province.riceAsOfTh})`,
+      `ช่วงข้าวออกหนาแน่นที่สุด: ${D.supply.peakWindowTh ?? '-'}`,
+      '',
+      ...(D.recommendations[tab] || []).map((r, i) => `${i + 1}. ${r.title}\n   ${r.desc}`),
+      '',
+      'ที่มา: ชั้นข้อมูลเปิด GISTDA (ข้าวรายแปลง, ขอบเขตอำเภอ, น้ำท่วมซ้ำซาก, โรงสี), Open-Meteo, NASA POWER',
+      'ตัวเลขราคาและกำลังสีข้าวเป็นค่าสมมติ ยังไม่ได้สอบเทียบ',
+    ].join('\n');
+
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(lines);
+      copied = true;
+    } catch (e) {
+      console.warn('[CS] คัดลอกไม่สำเร็จ:', e.message);
+    }
+
     setPublishFeedback({
-      ...rollout,
+      title: copied ? rollout.title : 'คัดลอกอัตโนมัติไม่สำเร็จ',
+      detail: copied ? rollout.detail : 'เบราว์เซอร์ไม่อนุญาตให้เข้าถึงคลิปบอร์ด กรุณาเลือกข้อความในการ์ดคำแนะนำแล้วคัดลอกเอง',
       publishedAt,
     });
   };
@@ -228,7 +255,7 @@ function Module3() {
       titleEn: 'Policy & operations',
       kpis: [
         { k: 'ผลผลิตทั้งจังหวัด', v: `${currentSupply}`, u: 'พันตัน' },
-        { k: 'ขาดแคลน สัปดาห์ 8', v: shortageAtHorizon.toFixed(1), u: 'พันตัน' },
+        { k: 'ล้นเกินช่วงพีค', v: gluttAtPeak.toFixed(1), u: 'พันตัน' },
         { k: 'ระยะเวลานำเข้า', v: '6', u: 'สัปดาห์' },
       ],
     },
@@ -269,7 +296,7 @@ function Module3() {
           <div className="rt-card">
             <div className="rt-label">SUPPLY LEVEL</div>
             <div className="rt-value">{supplyLevel}<span>%</span></div>
-            <div className="rt-desc thai">อุปทานครอบคลุม {supplyLevel}% ของอุปสงค์ · ≈{(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์</div>
+            <div className="rt-desc thai">กำลังรับซื้อในพื้นที่รองรับได้ {supplyLevel}% ของผลผลิตทั้งฤดู หากไม่เกลี่ยจังหวะ · กำลังรับซื้อเป็นค่าสมมติ</div>
           </div>
 
             <div className="rt-card">
@@ -286,7 +313,7 @@ function Module3() {
               <div className="rt-badge">{priceDeltaPct > 0 ? '+' : ''}{priceDeltaPct.toFixed(1)}%</div>
             </div>
             <PriceTrendMini values={D.price.actual} />
-            <div className="rt-desc thai">จาก ฿{priceStart.toLocaleString()} ไป ฿{priceNow.toLocaleString()} ต่อ ตัน ใน 8 สัปดาห์</div>
+            <div className="rt-desc thai">ฉากทัศน์: ฿{priceStart.toLocaleString()} → ฿{priceNow.toLocaleString()} ต่อตัน ในช่วงข้าวออกหนาแน่น (ไม่ใช่การพยากรณ์)</div>
           </div>
         </div>
 
@@ -370,7 +397,7 @@ function Module3() {
                   <span className="unit">%</span>
                 </div>
                 <div className="gauge-desc thai">
-                  อุปทานครอบคลุม {supplyLevel}% ของอุปสงค์ เทียบเท่า {(supplyLevel / 100 * 6).toFixed(1)} สัปดาห์การบริโภค
+                  กำลังรับซื้อรองรับผลผลิตได้ {supplyLevel}% ของทั้งฤดู ส่วนที่เหลือต้องส่งออกนอกพื้นที่หรือรอคิว
                 </div>
               </div>
             </div>
@@ -387,7 +414,7 @@ function Module3() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                ['การเผชิญน้ำท่วม (รังสิต)', 0.28, 'var(--risk)'],
+                ['ความถี่น้ำท่วมซ้ำซาก', 0.28, 'var(--risk)'],
                 ['ฝนต่ำกว่าค่าเฉลี่ย / dry days', 0.22, 'var(--warn)'],
                 ['soil moisture ต่ำ', 0.18, 'oklch(0.72 0.16 70)'],
                 ['NDVI ลดลง', 0.16, 'var(--warn)'],
@@ -443,7 +470,7 @@ function Module3() {
               style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}
               onClick={handlePublish}
             >
-              {publishFeedback ? 'เผยแพร่แล้ว' : 'เผยแพร่คำแนะนำประจำสัปดาห์ →'}
+              {publishFeedback ? 'คัดลอกแล้ว' : 'คัดลอกสรุปคำแนะนำ →'}
             </button>
           </div>
         </div>
@@ -455,7 +482,7 @@ function Module3() {
 function DecisionTimeline({ tab }) {
   const events = {
     farmer: [
-      { w: 1, t: 'เร่งเก็บเกี่ยว - แปลงรังสิต', k: 'urgent' },
+      { w: 1, t: 'นัดคิวรถเกี่ยวและกำลังสีข้าวล่วงหน้า', k: 'urgent' },
       { w: 2, t: 'นัดคิวรถเกี่ยวกับสหกรณ์', k: 'soft' },
       { w: 3, t: 'น้ำท่วม - งดทำงานในนา', k: 'urgent' },
       { w: 5, t: 'เตรียมดินปลูกพันธุ์ทนน้ำ', k: 'soft' },
@@ -469,7 +496,7 @@ function DecisionTimeline({ tab }) {
       { w: 6, t: 'ทบทวนเพดานราคา', k: 'soft' },
     ],
     retailer: [
-      { w: 1, t: 'ล็อกสัญญา KDML105 นาน 6 สัปดาห์', k: 'urgent' },
+      { w: 1, t: 'จองกำลังสีข้าวล่วงหน้าก่อนช่วงข้าวออกหนาแน่น', k: 'urgent' },
       { w: 2, t: 'เปิดใช้ซัพพลายเออร์นครสวรรค์', k: 'soft' },
       { w: 4, t: 'สื่อสารเรื่องราคากับผู้บริโภค', k: 'soft' },
       { w: 6, t: 'ช่วงราคาขยายตัวสูงสุด', k: 'urgent' },

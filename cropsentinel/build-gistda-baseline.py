@@ -56,7 +56,7 @@ def fetch_rice():
     """ข้าวรายแปลงของปทุมธานี พร้อมช่วงปลูก/เก็บเกี่ยว/โครงการชลประทาน"""
     d = q(HOSTED, RICE_SERVICE, "FeatureServer", 0,
           where=f"p_name='{PROVINCE_TH}'",
-          outFields="rai,product,a_name,t_name,start_name,harv_name,proj_name,irr_office",
+          outFields="rai,product,a_name,t_name,start_name,harv_name,harv_date,proj_name,irr_office",
           resultRecordCount=5000)
     return [f["attributes"] for f in d.get("features", [])]
 
@@ -146,10 +146,18 @@ def main():
     for a in rice:
         rai_by_amphoe[a["a_name"]] += a["rai"] or 0
 
+    # ปฏิทินการเก็บเกี่ยว เรียงตามเวลาจริง ไม่ใช่เรียงตามขนาด
+    # เพราะสิ่งที่ภารกิจต้องการเห็นคือ "ข้าวมาถึงเมื่อไร" ไม่ใช่ "ช่วงไหนใหญ่สุด"
     harvest = Counter()
+    harvest_epoch = {}
     for a in rice:
-        if a.get("harv_name"):
-            harvest[a["harv_name"]] += a["rai"] or 0
+        w = a.get("harv_name")
+        if not w:
+            continue
+        harvest[w] += a["rai"] or 0
+        d = a.get("harv_date")
+        if d is not None and (w not in harvest_epoch or d < harvest_epoch[w]):
+            harvest_epoch[w] = d
 
     project = Counter()
     for a in rice:
@@ -194,8 +202,16 @@ def main():
             "productKgPerRai": products,
         },
         "districts": districts,
-        "harvestWindows": [{"windowTh": k, "rai": round(v)} for k, v in
-                           sorted(harvest.items(), key=lambda kv: -kv[1])],
+        "harvestWindows": [
+            {
+                "windowTh": k,
+                "rai": round(v),
+                "epochMs": harvest_epoch.get(k),
+                "tonnes": round(v * products[0] / 1000, 1) if products else None,
+                "shareOfProvince": round(v / total_rai, 4),
+            }
+            for k, v in sorted(harvest.items(), key=lambda kv: harvest_epoch.get(kv[0], 0))
+        ],
         "irrigationProjects": [{"nameTh": k, "rai": round(v)} for k, v in project.most_common()],
         "mills": {
             "national": len(mills),

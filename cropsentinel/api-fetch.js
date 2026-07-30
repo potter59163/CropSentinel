@@ -250,7 +250,8 @@
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DERIVED — Supply & Price Projection (weather-adjusted)
-  // OAE 2024-25 anchor: KDML105 paddy ≈ ฿9,200/ton current season
+  // ราคาอ้างอิงตั้งต้น ฿9,200/ตัน — ยังไม่ได้เชื่อมกับฟีดราคาจริง
+  // ปทุมธานีปลูกข้าวนาปรังพันธุ์ไม่ไวแสง ไม่ใช่หอมมะลิ ราคาจึงต่างจากข้าวหอมมะลิ
   // Supply model: weekly decline driven by water risk + NDVI
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -291,31 +292,42 @@
 
   const stressIndex = clamp(0.45 * rainStress + 0.30 * droughtScore + 0.25 * ndviDeficit, 0, 1);  // 0–1
 
-  // Weekly supply decline: 1.5 % base + up to 2 % stress bonus → realistic 10–25 % 8-week drop
-  const weeklyDecline = 1 - (0.015 + stressIndex * 0.020);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // อุปทาน — ไม่คำนวณอีกต่อไป
+  //
+  // เดิมที่นี่สร้างเส้นอุปทาน 8 สัปดาห์จากสูตรลดลงแบบทบต้น โดยเริ่มจากค่าคงที่
+  // 180 พันตัน ซึ่งขัดกับพื้นที่ข้าวที่ดาวเทียมวัดได้ถึง 3.3 เท่า
+  // ตอนนี้ D.supply.projected คือปริมาณข้าวที่จะเข้าตลาดจริงในแต่ละช่วงเก็บเกี่ยว
+  // อ่านจากชั้นข้อมูลข้าวรายแปลงของ GISTDA (ตั้งไว้แล้วใน data.js) จึงไม่เขียนทับ
+  //
+  // ความเครียดของพืชยังคำนวณอยู่ (stressIndex) แต่ใช้เป็นบริบทประกอบเท่านั้น
+  // ไม่เอาไปคูณกับปริมาณผลผลิต เพราะยังไม่มีการสอบเทียบว่าความเครียดระดับใด
+  // ทำให้ผลผลิตหายไปกี่เปอร์เซ็นต์ในพื้นที่นี้
+  // ═══════════════════════════════════════════════════════════════════════════
+  D.supply.stressIndex = round2(stressIndex);
 
-  const current = D.supply.current;   // keep OAE-anchored starting point (พันตัน)
+  // สัดส่วนผลผลิตที่กระจุกอยู่ในช่วงเก็บเกี่ยวที่หนาแน่นที่สุด — ตัวเลขหลักของภารกิจ
+  const peakIdx = D.supply.projected.indexOf(Math.max(...D.supply.projected));
+  D.supply.peakWindowIndex = peakIdx;
+  D.supply.peakWindowTh = D.weeks[peakIdx];
+  D.supply.peakShare = round2(D.supply.projected[peakIdx] / D.supply.projected.reduce((a, b) => a + b, 0));
 
-  // Build 8-week supply array: index 0 = W1 (current), index 7 = W8 (horizon)
-  const projArr = [current];
-  for (let i = 1; i < 8; i++) {
-    projArr.push(fmt1(current * Math.pow(weeklyDecline, i)));
-  }
-  D.supply.projected = projArr;
-
-  // Readiness: % of W1 demand that current supply covers (capped display at 100)
-  D.supply.readiness = Math.min(100, Math.round((current / D.supply.demand[0]) * 100));
-
-  // Price projection: OAE KDML105 paddy anchor + mild supply-demand gap elasticity
-  // Calibrated so a 20 % supply gap at week 8 → ~16 % price premium (Thai rice market)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ราคา — ฉากทัศน์ ไม่ใช่การพยากรณ์
+  //
+  // ผูกกับ "ปริมาณที่เข้าตลาดเกินกำลังรับซื้อ" ซึ่งเป็นกลไกที่อธิบายได้
+  // แต่ค่าความยืดหยุ่นยังไม่ได้สอบเทียบ จึงต้องแสดงป้ายกำกับทุกครั้ง
+  // ═══════════════════════════════════════════════════════════════════════════
   const anchorPrice = D.price.actual[0];
-  D.price.actual = D.supply.projected.map((supply, i) => {
-    const gap    = Math.max(0, (D.supply.demand[i] - supply) / D.supply.demand[i]);
-    const markup = 1 + gap * 0.80 * (i / 7);   // linear ramp, tops at week 8
-    return Math.round(anchorPrice * markup);
+  const ELASTICITY = 0.6;   // ค่าสมมติ ผู้เล่นปรับได้ในภารกิจ
+  D.price.elasticity = ELASTICITY;
+  D.price.actual = D.supply.projected.map((arriving, i) => {
+    const cap = D.supply.demand[i] || 1;
+    const glut = Math.max(0, (arriving - cap) / cap);   // ล้นเกินกำลังรับซื้อกี่เท่า
+    return Math.round(anchorPrice * (1 - Math.min(0.35, glut * ELASTICITY * 0.15)));
   });
-  D.price.band_low  = D.price.actual.map(p => Math.round(p * 0.968));
-  D.price.band_high = D.price.actual.map(p => Math.round(p * 1.045));
+  D.price.band_low  = D.price.actual.map(p => Math.round(p * 0.94));
+  D.price.band_high = D.price.actual.map(p => Math.round(p * 1.06));
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ALERTS — regenerated from live data
@@ -324,9 +336,19 @@
   const highNames  = D.districts.filter(d => d.risk === 'HIGH').map(d => d.nameTh);
   const droughtCritNames = D.districts.filter(d => d.droughtRisk === 'CRITICAL').map(d => d.nameTh);
   const droughtHighNames = D.districts.filter(d => d.droughtRisk === 'HIGH').map(d => d.nameTh);
-  const shortageW8 = Math.max(0, Math.round((D.supply.demand[7] - D.supply.projected[7]) * 10) / 10);
-  const priceW8    = D.price.actual[7];
-  const priceUpPct = Math.round(((priceW8 - anchorPrice) / anchorPrice) * 100);
+  // ปัญหาของปทุมธานีไม่ใช่ข้าวขาด แต่คือข้าวมาพร้อมกันเกินกำลังรับซื้อ
+  // ช่วงที่หนาแน่นที่สุดคือส่วนเกินที่ต้องบริหาร ไม่ใช่ส่วนขาด
+  const peak       = D.supply.projected[D.supply.peakWindowIndex];
+  const capacity   = D.supply.demand[D.supply.peakWindowIndex];
+  const gluttKt    = Math.round((peak - capacity) * 10) / 10;
+  const gluttRatio = capacity > 0 ? Math.round((peak / capacity) * 10) / 10 : null;
+  const priceW8    = D.price.actual[D.supply.peakWindowIndex];
+  const priceDropPct = Math.round(((anchorPrice - priceW8) / anchorPrice) * 100);
+
+  // readiness = สัดส่วนผลผลิตของทั้งฤดูที่กำลังรับซื้อรองรับได้ ถ้าไม่มีการเกลี่ย
+  const totalKt = D.supply.projected.reduce((a, b) => a + b, 0);
+  const absorbed = D.supply.projected.reduce((s, v, i) => s + Math.min(v, D.supply.demand[i] || 0), 0);
+  D.supply.readiness = totalKt > 0 ? Math.round((absorbed / totalKt) * 100) : 0;
 
   const newAlerts = [];
 
@@ -334,7 +356,8 @@
   if (week1Rain > 20 || critNames.length > 0) {
     const floodZones = critNames.length ? critNames.join(', ') : highNames.join(', ');
     newAlerts.push({
-      id: 'a1', level: week1Rain > 80 ? 'crit' : 'risk', confidence: 0.87,
+      id: 'a1', level: week1Rain > 80 ? 'crit' : 'risk',
+      basisTh: 'ฝนพยากรณ์ Open-Meteo 7 วัน x ความอ่อนไหวรายอำเภอ (ค่าอ่อนไหวเป็นค่าสมมติ)',
       title: `เสี่ยงน้ำท่วม — ฝน ${Math.round(week1Rain)} มม./สัปดาห์ (Open-Meteo Live)`,
       titleEn: `Flood Risk — ${Math.round(week1Rain)} mm/week rain (Open-Meteo Live)`,
       body: `ฝนสะสม 7 วันข้างหน้า ${Math.round(week1Rain)} มม. อุณหภูมิ ${D.province.weatherTemp ?? '--'}°C · ความชื้น ${D.province.weatherHumidity ?? '--'}% — พื้นที่เสี่ยง: ${floodZones || 'ไม่มี'}`,
@@ -348,7 +371,7 @@
     newAlerts.push({
       id: 'a5',
       level: D.province.droughtRisk === 'CRITICAL' ? 'crit' : D.province.droughtRisk === 'HIGH' ? 'risk' : 'warn',
-      confidence: 0.72,
+      basisTh: 'ฝนพยากรณ์ + ความชื้นดิน NASA POWER — เกณฑ์ตัดระดับเป็นค่าสมมติ',
       title: `${D.province.droughtRisk === 'LOW' ? 'เฝ้าระวังภัยแล้ง' : 'เสี่ยงภัยแล้งสะสม'} — water stress ${D.province.waterStress}%`,
       titleEn: `Drought stress ${D.province.waterStress}% — heuristic water-risk score`,
       body: `ฝน 7 วัน ${Math.round(week1Rain)} มม. · วันฝนน้อย ${dryDays}/14 วัน · soil moisture ${soilMoistureBase.toFixed(2)} — พื้นที่ที่ควรเฝ้าระวัง: ${droughtZones}`,
@@ -356,24 +379,26 @@
     });
   }
 
-  // Supply shortage alert
-  if (shortageW8 > 0) {
+  // ผลผลิตกระจุกตัวเกินกำลังรับซื้อ — วัดได้จากปฏิทินเก็บเกี่ยวจริง
+  if (gluttKt > 0) {
     newAlerts.push({
-      id: 'a2', level: shortageW8 > 25 ? 'crit' : 'risk', confidence: 0.81,
-      title: `คาดผลผลิตต่ำกว่าอุปสงค์ ${shortageW8} พันตัน (สัปดาห์ที่ 8)`,
-      titleEn: `Supply gap ${shortageW8}k tons at week-8 horizon`,
-      body: `ผลผลิตคาดการณ์ ${D.supply.projected[7]} พันตัน — อุปสงค์ ${D.supply.demand[7]} พันตัน (gap ${shortageW8} พันตัน) · ดัชนีความเครียด ${Math.round(stressIndex * 100)}%`,
+      id: 'a2', level: gluttRatio >= 2.5 ? 'crit' : 'risk',
+      basisTh: 'ปริมาณจากชั้นข้อมูลข้าวรายแปลง GISTDA · กำลังรับซื้อเป็นค่าสมมติ',
+      title: `ข้าวออกพร้อมกัน ${peak} พันตัน ช่วง ${D.supply.peakWindowTh}`,
+      titleEn: `Harvest concentration ${peak}kt in ${D.supply.peakWindowTh}`,
+      body: `คิดเป็น ${Math.round(D.supply.peakShare * 100)}% ของผลผลิตทั้งฤดูในช่วงครึ่งเดือนเดียว — เกินกำลังรับซื้อที่ตั้งสมมติไว้ ${gluttRatio} เท่า (${gluttKt} พันตันที่ยังไม่มีปลายทาง) จังหวัดมีโรงสี ${D.province.mills.inProvince.length} แห่ง`,
       tag: 'อุปทาน',
     });
   }
 
-  // Price spike alert
-  if (priceUpPct > 4) {
+  // ราคาตกจากภาวะล้นตลาด — เป็นฉากทัศน์ ไม่ใช่การพยากรณ์
+  if (priceDropPct > 2) {
     newAlerts.push({
-      id: 'a3', level: priceUpPct > 14 ? 'risk' : 'warn', confidence: 0.74,
-      title: `เตือนราคาข้าวพุ่ง +${priceUpPct}% ใน 8 สัปดาห์`,
-      titleEn: `Price spike +${priceUpPct}% projected over 8 weeks`,
-      body: `KDML105 คาดแตะ ฿${priceW8.toLocaleString()}/ตัน (จาก ฿${anchorPrice.toLocaleString()}) หากขาดแคลนต่อเนื่องและโควตานำเข้าไม่เพิ่ม`,
+      id: 'a3', level: priceDropPct > 12 ? 'risk' : 'warn',
+      basisTh: 'ฉากทัศน์ ค่าความยืดหยุ่นยังไม่ได้สอบเทียบ',
+      title: `ฉากทัศน์: ราคาอาจลด ${priceDropPct}% ในช่วงข้าวออกหนาแน่น`,
+      titleEn: `Scenario: price down ${priceDropPct}% at peak arrival`,
+      body: `ถ้าไม่มีการเกลี่ยจังหวะเก็บเกี่ยว ราคาในช่วง ${D.supply.peakWindowTh} อาจลงจาก ฿${anchorPrice.toLocaleString()} เหลือ ฿${priceW8.toLocaleString()}/ตัน — ตัวเลขนี้เป็นการจำลอง ไม่ใช่การพยากรณ์`,
       tag: 'ราคา',
     });
   }
@@ -382,7 +407,8 @@
   if (D.province.pm25 > 35) {
     const pmPeak = [...D.districts].sort((a,b)=>b.pm25-a.pm25)[0];
     newAlerts.push({
-      id: 'a4', level: D.province.pm25 > 55 ? 'risk' : 'warn', confidence: 0.92,
+      id: 'a4', level: D.province.pm25 > 55 ? 'risk' : 'warn',
+      basisTh: 'PM2.5 จาก Open-Meteo Air Quality ที่พิกัดจังหวัด',
       title: `PM2.5 ${D.province.pm25} μg/m³ สูงเกินมาตรฐาน (WAQI Live)`,
       titleEn: `PM2.5 ${D.province.pm25} μg/m³ elevated (WAQI Live)`,
       body: `ค่าฝุ่น PM2.5 ปัจจุบัน ${D.province.pm25} μg/m³ (WHO ≤15) — คาดผลผลิตลด 4-6% หากสภาพนี้ต่อเนื่อง 2 สัปดาห์ สูงสุด: ${pmPeak.nameTh} (${pmPeak.pm25} μg/m³)`,
@@ -419,11 +445,11 @@
   };
 
   D.recommendations.lgu[0] = {
-    urgency: shortageW8 > 20 ? 'urgent' : 'soft',
+    urgency: gluttRatio >= 2 ? 'urgent' : 'soft',
     icon: '!',
-    title: `เริ่มพิจารณาโควตานำเข้าข้าว — gap ${shortageW8} พันตัน`,
-    desc: `คาดว่าจะขาดแคลน ${shortageW8} พันตัน ในสัปดาห์ที่ 8 แนะนำให้เริ่มเจรจารัฐต่อรัฐ (เวียดนาม เมียนมา) โดยทันที ระยะเวลานำเข้า ~6 สัปดาห์`,
-    meta: [`ขาดแคลน: ${shortageW8} พันตัน`, 'ระยะเวลานำเข้า: 6 สัปดาห์', `ราคาคาด: ฿${priceW8.toLocaleString()}`],
+    title: `เกลี่ยจังหวะเก็บเกี่ยว — ${D.supply.peakWindowTh} ล้น ${gluttRatio} เท่า`,
+    desc: `ผลผลิต ${Math.round(D.supply.peakShare * 100)}% ของทั้งฤดูมาถึงในช่วงครึ่งเดือนเดียว เกินกำลังรับซื้อในพื้นที่ ทางเลือกคือขยับรอบส่งน้ำของโครงการชลประทานหนึ่งโครงการให้เหลื่อมออกไป 15 วัน เพื่อกระจายวันเก็บเกี่ยว — ขอบเขตโครงการชลประทานไม่ตรงกับขอบเขตอำเภอ จึงต้องดูแผนที่ประกอบ`,
+    meta: [`ล้นเกิน: ${gluttKt} พันตัน`, `โรงสีในจังหวัด: ${D.province.mills.inProvince.length} แห่ง`, 'กำลังรับซื้อ: ค่าสมมติ'],
   };
 
   D.recommendations.lgu[1] = {
@@ -435,11 +461,11 @@
   };
 
   D.recommendations.retailer[0] = {
-    urgency: priceUpPct > 10 ? 'urgent' : 'soft',
-    icon: '!',
-    title: `ล็อกสต็อก KDML105 ก่อนราคาพุ่ง +${priceUpPct}%`,
-    desc: `ราคาคาดแตะ ฿${priceW8.toLocaleString()}/ตัน ใน 8 สัปดาห์ ล็อกราคาสต็อก 6 สัปดาห์ทันทีก่อนราคาขึ้น ประหยัดได้ประมาณ ${Math.min(priceUpPct - 2, 15)}% เทียบกับซื้อตลาดจร`,
-    meta: [`SKU: KDML105`, `ราคาปัจจุบัน: ฿${anchorPrice.toLocaleString()}`, `คาด 8 สัปดาห์: +${priceUpPct}%`],
+    urgency: priceDropPct > 10 ? 'urgent' : 'soft',
+    icon: '◐',
+    title: `วางแผนรับซื้อล่วงหน้าช่วง ${D.supply.peakWindowTh}`,
+    desc: `ดาวเทียมเห็นวันเก็บเกี่ยวล่วงหน้าหลายเดือน ช่วงที่ข้าวออกหนาแน่นที่สุดคือโอกาสรับซื้อในปริมาณมาก แต่ต้องเตรียมที่เก็บและการอบลดความชื้นไว้ก่อน ตัวเลขราคาที่แสดงเป็นฉากทัศน์ ไม่ใช่การพยากรณ์`,
+    meta: [`ปริมาณช่วงพีค: ${peak} พันตัน`, `ราคาอ้างอิง: ฿${anchorPrice.toLocaleString()}`, 'ราคา: ฉากทัศน์'],
   };
 
   // ═══════════════════════════════════════════════════════════════════════════

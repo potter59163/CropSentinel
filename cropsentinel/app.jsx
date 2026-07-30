@@ -136,9 +136,10 @@ function TopBar({ module }) {
 
 function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
   const D = window.CS_DATA;
-  const shortageAtHorizon = Math.round(
-    (D.supply.demand[D.supply.demand.length - 1] - D.supply.projected[D.supply.projected.length - 1]) * 10
-  ) / 10;
+  // ปริมาณข้าวที่มาถึงในช่วงหนาแน่นที่สุด เกินกำลังรับซื้อในพื้นที่ไปเท่าไร
+  // (เดิมคำนวณเป็น "ส่วนขาด" ซึ่งกลับทิศกับสถานการณ์จริงของปทุมธานี)
+  const peakIdx = D.supply.peakWindowIndex ?? D.supply.projected.indexOf(Math.max(...D.supply.projected));
+  const gluttAtPeak = Math.max(0, Math.round((D.supply.projected[peakIdx] - D.supply.demand[peakIdx]) * 10) / 10);
 
   const riskColor = { LOW: 'var(--ok)', MEDIUM: 'var(--warn)', HIGH: 'var(--risk)', CRITICAL: 'var(--crit)' };
 
@@ -160,7 +161,7 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
       <div style={{ display: 'flex', gap: 20, flex: 1, flexWrap: 'wrap' }}>
         {[
           ['Supply', `${D.supply.current} K ตัน`],
-          ['Gap W8', `${shortageAtHorizon.toFixed(1)} K ตัน`],
+          ['ล้นเกินช่วงพีค', `${gluttAtPeak.toFixed(1)} K ตัน`],
           ['ราคาปัจจุบัน', `฿${D.price.actual[0].toLocaleString()}`],
           ['NDVI', D.province.avgNDVI.toFixed(2)],
           ['Flood Risk', D.province.floodRisk, riskColor[D.province.floodRisk]],
@@ -202,7 +203,7 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
               <span className="label thai">พันตันอุปทานปัจจุบัน</span>
             </div>
             <div className="overview-proof-item">
-              <span className="value">{shortageAtHorizon.toFixed(1)}</span>
+              <span className="value">{gluttAtPeak.toFixed(1)}</span>
               <span className="label thai">พันตัน gap ท้ายช่วงคาดการณ์</span>
             </div>
             <div className="overview-proof-item">
@@ -228,7 +229,7 @@ function OverviewHero({ module, setModule, heroOpen, setHeroOpen }) {
           <div className="overview-stat"><span className="label thai">ราคาข้าวล่าสุด</span><strong>฿{D.price.actual[0].toLocaleString()}</strong></div>
           <div className="overview-stat"><span className="label thai">Flood Risk</span><strong style={{ color: riskColor[D.province.floodRisk] }}>{D.province.floodRisk}</strong></div>
           <div className="overview-stat"><span className="label thai">Drought Risk</span><strong style={{ color: riskColor[D.province.droughtRisk] }}>{D.province.droughtRisk}</strong></div>
-          <div className="overview-stat"><span className="label thai">Gap ณ ปลายช่วงคาดการณ์</span><strong>{shortageAtHorizon.toFixed(1)} พันตัน</strong></div>
+          <div className="overview-stat"><span className="label thai">ล้นเกินกำลังรับซื้อช่วงพีค</span><strong>{gluttAtPeak.toFixed(1)} พันตัน</strong></div>
         </div>
       </div>
 
