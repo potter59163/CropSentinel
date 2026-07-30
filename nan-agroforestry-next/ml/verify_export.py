@@ -14,7 +14,9 @@ import json, math, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '..', 'src')
-M = json.load(open(os.path.join(SRC, 'data', 'sdm_model.json')))
+MODEL_PATH = sys.argv[1] if len(sys.argv) > 1 else os.path.join(SRC, 'data', 'sdm_model.json')
+M = json.load(open(MODEL_PATH))
+print(f'verifying: {MODEL_PATH}\n')
 
 fail = []
 

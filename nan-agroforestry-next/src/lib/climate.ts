@@ -1,7 +1,12 @@
 // Real plot features for the SDM — same set the model was trained on.
 // NASA POWER monthly climatology (→ bioclim) + DEM elevation. Free, no key, CORS-OK.
-// (Soil was dropped: SoilGrids is CORS-blocked in-browser, so it can't be served at
-//  inference time; training without it keeps train/runtime consistent and honest.)
+// Soil is NOT part of this feature set, but the old reason recorded here — "SoilGrids is
+// CORS-blocked in-browser so it can't be served at inference" — is obsolete: this is a
+// Next.js app and planRunner fetches SoilGrids + LDD server-side on every request. The
+// current reason is measured, not architectural: under a region-matched, nested protocol,
+// adding the five raw soil columns moves mean blocked AUC by about -0.003 to -0.005, i.e.
+// nothing. See ml/MODEL-FINDINGS.md. Soil still does real work as the agronomic guardrail
+// in engine.ts (drainage/pH gating), just not as an SDM predictor at this grid size.
 export interface Climate {
   t2m: number; prec: number; drym: number; pseas: number; trange: number;
   solar: number; rh: number; gwet: number; elev: number;

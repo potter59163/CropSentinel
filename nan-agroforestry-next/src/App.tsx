@@ -84,9 +84,11 @@ function missionText(sat: SatContext | null, prot: ProtectedArea | null, climate
   if (prot?.riverNear) return `ใกล้ลำน้ำในระยะ ${prot.riverDistanceM?.toLocaleString('en-US')} ม.: ควรทำแนวไม้ยืนต้นกันชน ลดดินไหลลงน้ำ`;
   if ((climate?.drym ?? 0) >= 5 && (prot?.disasterDroughtLayers?.length ?? 0) > 0) return `ฤดูแล้ง ${climate?.drym} เดือน และเชื่อมชั้นภัยแล้ง GISTDA (${prot?.disasterDroughtLayers?.join(', ')}): แผนควรเน้นร่มเงา คลุมดิน และชนิดทนแล้ง`;
   if (sat?.verdict === 'restore') return 'พื้นที่เกษตร/เสื่อมโทรม: เหมาะกับการฟื้นฟูด้วยไม้ยืนต้นหลายชั้น';
-  // Deliberately NOT "ปลูกได้" — this branch only knows the plot missed two layers
-  // (park, sanctuary). ป่าสงวน/ป่าไม้ถาวร/ลุ่มน้ำ 1A were never queried.
-  return `ไม่พบในชั้นอุทยาน/เขตรักษาพันธุ์สัตว์ป่า · ยังไม่ได้ตรวจ ${UNCHECKED_LEGAL_CLASSES.join(' / ')} ซึ่งเป็นตัวตัดสินทางกฎหมายบนพื้นที่สูง — ต้องยืนยันสิทธิ์ที่ดินกับเจ้าหน้าที่ก่อนลงมือ`;
+  // Deliberately NOT "ปลูกได้" — this branch only knows the plot missed the ONE legal
+  // layer that is real (sanctuary). อุทยานแห่งชาติ/ป่าสงวน/ป่าไม้ถาวร/ลุ่มน้ำ 1A were
+  // never queried; a measurement over 48 grid points in Nan found reserved forest hits
+  // 70.8% of them while this check hits 8.3%, so the app is blind on most of the province.
+  return `ไม่พบในชั้นเขตรักษาพันธุ์สัตว์ป่า (ชั้นเดียวที่ตรวจได้) · ยังไม่ได้ตรวจ ${UNCHECKED_LEGAL_CLASSES.join(' / ')} ซึ่งเป็นตัวตัดสินทางกฎหมายบนพื้นที่สูง — ต้องยืนยันสิทธิ์ที่ดินกับเจ้าหน้าที่ก่อนลงมือ`;
 }
 
 const STEPS: Array<{ t: string; d: string; icon: IconName }> = [
@@ -802,14 +804,14 @@ export function App() {
                     <><b className="thai">ใกล้เขต{prot.type} {prot.name ?? ''} (~3 กม.)</b>
                       <div className="thai">วนเกษตรหลายชั้นช่วยเป็นแนวกันชนปกป้องป่าและลดการรุกป่า</div></>
                   ) : (
-                    <><b className="thai">ไม่พบในชั้นอุทยานแห่งชาติและเขตรักษาพันธุ์สัตว์ป่า</b>
+                    <><b className="thai">ไม่พบในชั้นเขตรักษาพันธุ์สัตว์ป่า</b>
                       <div className="thai">
-                        <b>ยังไม่ใช่การยืนยันว่าปลูกได้ตามกฎหมาย</b> — ชุดข้อมูลนี้มีเพียง 2 ชั้นดังกล่าว
+                        <b>ยังไม่ใช่การยืนยันว่าปลูกได้ตามกฎหมาย</b> — ชุดข้อมูลนี้ตรวจได้เพียงชั้นเดียว
                         ยังไม่ได้ตรวจ {UNCHECKED_LEGAL_CLASSES.join(' · ')} ซึ่งเป็นชั้นที่ตัดสินว่าการแผ้วถางบนพื้นที่สูงในน่านผิดกฎหมายหรือไม่
                         · ต้องยืนยันสิทธิ์ที่ดินกับเกษตรอำเภอหรือหน่วยป่าไม้ก่อนลงมือ
                       </div></>
                   )}
-                  <div className="agro-gistda-src">ที่มา: {prot.source} · ตรวจ 2 ชั้น: อุทยานแห่งชาติ, เขตรักษาพันธุ์สัตว์ป่า</div>
+                  <div className="agro-gistda-src">ที่มา: {prot.source} · ตรวจได้ 1 ชั้น: เขตรักษาพันธุ์สัตว์ป่า</div>
                 </div>
               </div>
             )}
