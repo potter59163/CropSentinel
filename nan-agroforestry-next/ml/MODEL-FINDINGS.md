@@ -126,11 +126,16 @@ predictor at a 27 km grain.
 
 The stale CORS comment in `src/lib/climate.ts` has been corrected.
 
-**3. The GISTDA disaster features are near-constant in training — and this is a LIVE
-production defect, not a caveat.**
+**3. The GISTDA disaster features are near-constant in training — this WAS a live production
+defect. Fixed at the inference layer; kept here because it explains the fix.**
 
-This is the most important item in this file and it applies to the model that is deployed
-**right now**, independently of any AUC argument.
+> **Status: fixed.** `suitability.ts` now passes the training median for these five columns
+> instead of live values, so inference matches training. Measured after the fix: toggling live
+> GISTDA risk changes suitability by mean **0.0000** and max **0.0000** across all 21 crops
+> (was mean 0.347 / max 0.777). The risk data is *not* discarded — `engine.ts` still reads it
+> for the rule-based `waterFit`/`riskFit`, which still move the ranking (riskFit 0.864 → 0.916
+> on the test plot). The v4 candidate drops the columns entirely, which is the cleaner fix if
+> it is ever shipped.
 
 `engine.ts` passes the live GISTDA risk context into `plantSuitability`, and then scales
 revenue by `(0.4 + 0.6 × suitability)`. Toggling the live GISTDA values on versus off at a
@@ -247,6 +252,140 @@ The audit scripts are kept so the table above is checkable rather than asserted:
 Remember `export SSL_CERT_FILE=$(python3 -c 'import certifi;print(certifi.where())')` first —
 the Python 3.14 framework has no CA bundle and every HTTPS call fails without it.
 
+## The most important thing in this file: ~90% of the skill is 200 km geography
+
+Shuffle each crop's occurrence labels **inside** every 2-degree block — destroying all
+within-block information while leaving the between-block pattern intact — and mean AUC falls
+only from **0.719 to 0.697**. So of the 0.219 of above-chance skill, roughly **0.022 (about
+10%) is within-block discrimination and about 90% is coarse ~200 km between-block
+geography**. Measured over all 21 crops, and independently reproduced.
+
+**Nan province is roughly one 2-degree block.** So the metric that says 0.72 is mostly
+certifying something the app does not need: telling northern Thailand from the central plains.
+The thing the app actually does — ranking crops for one plot, and ranking neighbouring plots
+against each other inside Nan — is the part the 0.72 barely measures.
+
+Honest one-line characterisation, and this should travel with any number quoted externally:
+
+> The index ranks agro-climatic zones well. It is much weaker at ranking neighbouring plots
+> inside Nan.
+
+This also explains why the two levers below failed. Finer climate cannot help if the labels
+only locate a crop to a 27 km cell; and per-crop feature tuning cannot help if the signal
+being fitted is regional rather than local.
+
+## Three attempts to raise AUC, and what each measured
+
+All three ran under the unchanged v4 protocol (region-matched background, 2-degree spatial
+blocks, GroupKFold, nested inner-fold selection). **None was shipped.** Scratch work is under
+`ml/exp_*/`, which is gitignored.
+
+### Lever 1 — Thai cultivation statistics instead of GBIF: the data exists, and the headline metric is the wrong question
+
+**The data is real and was obtained.** DOAE (กรมส่งเสริมการเกษตร) publishes ภาวะการผลิตพืช at
+**tambon** level, nationally, machine-readable, via data.go.th / catalog.doae.go.th — 752,054
+rows carrying province/amphoe/tambon, crop, households, planted and standing area in rai.
+All 21 crops appear by name, including the obscure ones (มะแขว่น 13 rows, มะคาเดเมีย 40, ชา 57).
+OAE by contrast publishes only province-level PDFs, and **Nan's own provincial open-data portal
+publishes nothing about crop area at all** (183 packages enumerated).
+
+On the mandated metric this lever **loses**: 0.678 versus a matched-species baseline of 0.709,
+i.e. −0.031. But the two numbers answer different questions, and the experimenter said so
+rather than papering over it:
+
+- The baseline asks *"can you tell a GBIF cell from SE-Asian background?"*
+- The lever asks *"can you tell a Thai district that grows this crop from one that doesn't?"*
+
+The second is harder and is much closer to what the product needs. So a shared-test-set
+comparison was run — rank districts in a held-out 2-degree block by whether DOAE reports
+≥20 rai, identical labels and folds for both competitors, selection nested inside each one's
+own training data:
+
+| trained on | mean AUC at predicting real Thai cultivation |
+|---|---|
+| GBIF (the shipped recipe) | **0.605** |
+| DOAE cultivation statistics | **0.680** |
+
+DOAE wins **14 of 19** crops, and the design was deliberately biased *against* it (the GBIF
+model was allowed to train on points inside the held-out block). **The shipped model is below
+chance at predicting where Thai farmers actually grow banana (0.472), chili (0.437) and
+galangal (0.456).**
+
+That is a product finding the 0.72 headline cannot surface, and it deserves a decision.
+
+**Two tempting results were rejected as the same artifact v3 shipped.** Using DOAE presences
+against the cached background scores 0.741, and GBIF+DOAE combined scores 0.753 — a clean
+looking +0.034. Both are fake: a model given **zero crop information** separates district
+centroids from the cached background at **AUC 0.917**, because district centroids sit on
+populated valley floors and the background does not. Information-free random district cells
+reproduce **52%** of the combined arm's entire gain. Recorded as rejected, not pending.
+
+**The blocker is geocoding, not data.** The DOAE files are tambon-level (7,436 units) but OSM
+publishes only 434 tambon boundaries, so everything collapsed to 928 amphoe centroids. A real
+tambon gazetteer (HDX Thailand ADM3, LDD, or DOPA TIS-1099) grows the presence universe ~8x
+and fixes both of this arm's weaknesses at once — the saturated contrast for common crops
+(banana: 451 positives against only 118 available background cells) and the small-n crops.
+**That is the highest-value next step in the whole model workstream.**
+
+### Lever 2 — 1 km CHELSA climate instead of 27 km: refuted
+
+−0.0006 (p=0.97), and every like-for-like variant within ±0.002 — inside a background-seed
+noise floor of 0.005–0.010. The 27 km-**aggregated** version of the same CHELSA data matches
+or beats the 1 km version in all four paired comparisons. The predicted pattern did not appear
+either: macadamia +0.014 and coffee +0.003, but ชาเมี่ยง −0.004 and มะแขว่น −0.004, while the
+largest single move was sweetpotato +0.065, a lowland crop.
+
+Worth keeping for the record: the 27 km cell really does hide 1–2.5 °C and ~160 mm of rainfall
+in Nan, and the 1 km raster resolves that gradient almost perfectly (within-cell r = −0.99
+against elevation, −0.62 °C/100 m). So the coarse grid is a genuine limitation of the *inputs* —
+it just is not the binding constraint on this metric. **The binding constraint is that the
+presence labels only locate a crop to a 27 km cell**, which no climate raster can fix.
+Anyone who proposes "just use CHELSA" should be shown `ml/exp_chelsa/results_summary.json`.
+
+### Lever 3 — per-species features and ensembling: thesis refuted, one small generic gain
+
+**Per-species feature selection — the lever's actual thesis — is refuted**, negative in 6 of 6
+background draws, and forward selection was the single worst of 14 procedures tried.
+
+What survived is generic model averaging: averaging the logit and GBM predictions instead of
+selecting between them with the exported `preferred` flag gives **+0.011 ± 0.002, positive in
+6 of 6 independent draws**. Honest framing, per adversarial verification:
+
+- Quote **0.713 → 0.724** averaged over draws, not the single-draw 0.7185 → 0.7331. **The
+  headline stays ~0.72.**
+- The gain (+0.011) is **smaller than the metric's own sensitivity to the background sample
+  (0.0131 across draws)** — a refinement, not a change in capability.
+- **0 of 21 crops** clear their own fold SD, so there are no per-crop claims to make.
+- A single balanced random forest alone scores +0.0095, about two-thirds of the 14-model
+  ensemble's gain, so "averaging is what helps" is *not* established — "the current
+  logit/GBM pair is slightly weak" fits equally well.
+- Under a label-shuffle null the averaging rule still scores +0.004, so roughly a third of the
+  observed effect is mechanical. It is distinguishable from noise by **consistency** (6/6
+  draws, 16–20 of 21 crops up), not by magnitude.
+
+It is cheap to adopt (both models are already exported; it is one expression in
+`suitability.ts` and retiring `preferred`) and it *removes* a selection step. But it shifts
+every score slightly and `engine.ts` feeds suitability straight into the 10-year cashflow, so
+it is left as a human decision rather than slipped in.
+
+### A gating instability worth fixing regardless of any lever
+
+`AUC_MIN = 0.65` in `suitability.ts` decides whether a crop is ranked by the model or falls
+back to the elevation envelope. The number of crops below that gate swings **2 / 5 / 6 / 3 /
+5 / 5** across background seeds, and at one seed the weakest crop scores **0.476 — below
+chance**. A production behaviour switch is therefore partly determined by a training random
+seed. The fix is to average blocked AUC over several background draws before it gates
+anything; it costs only compute and changes no part of the protocol.
+
+## Correction to an earlier claim in this file
+
+An earlier revision said mean Brier 0.19 means "the score is uncalibrated and is not a
+probability of a successful harvest". The second half stands; **the first half was wrong.**
+Measured: at most 0.005 of that 0.19 is miscalibration, Platt scaling recovers 0.0001, and
+isotonic regression actively hurts. The scores are already close to calibrated *for what they
+estimate* — which is presence-vs-background contrast, not yield. Calibration is not an
+available lever.
+
 ## Limits of 0.72 that no protocol change removes
 
 Worth carrying into any external description, because these are properties of the data, not
@@ -259,8 +398,10 @@ of the fitting:
 - **It is not a Nan model.** Across all 21 crops there are only about a dozen occurrence
   records inside Nan province, and 12 crops have none at all. It is a regional
   climate-envelope model applied to Nan.
-- **Not calibrated.** Mean Brier ≈ 0.19. The score is a relative suitability index, not a
-  probability of a successful harvest, and must not be presented as one.
+- **Not a yield probability.** Mean Brier ≈ 0.19. The score is a relative suitability index
+  and must not be presented as a probability of a successful harvest. Note this is NOT a
+  calibration failure — see the correction section above; at most 0.005 of that Brier is
+  miscalibration. It is simply estimating a different quantity than yield.
 - **Noise floor.** Per-species fold SD is 0.017–0.099 (mean ≈ 0.049), so any single-species
   gap under ~0.05 is not a real difference.
 - **Residual selection optimism.** About 20 configurations were compared and the best was
