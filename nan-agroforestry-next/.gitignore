@@ -20,3 +20,6 @@ data-raw/
 data-templates/batch-results.csv
 .vercel
 .env*
+
+# in-flight SDM experiment scratch (levers under evaluation; promote deliberately if one wins)
+ml/exp_*/

@@ -203,5 +203,30 @@ export const modelMeta = () => {
     minAuc: sp.reduce((m, v) => Math.min(m, v.auc), 1),
     weakCount: weak.length,
     weakMaxAuc: weak.reduce((m, v) => Math.max(m, v.auc), 0),
+    validation: (M as { validation?: string }).validation ?? null,
   };
 };
+
+/**
+ * How well the model discriminates each crop, and — the part that matters for honesty —
+ * WHY it does badly on some of them.
+ *
+ * Per-species AUC correlates negatively with how wide the crop's elevation tolerance is
+ * (r = -0.516) and negatively with sample size (r = -0.372). The weak crops are the
+ * cosmopolitan ones: ginger tolerates 300-1200 m, pumpkin and lemongrass 0-1200 m. A crop
+ * that genuinely grows almost anywhere cannot be separated from background by climate, so a
+ * low score for it is the CORRECT answer, not a defect to be optimised away. Reported so an
+ * officer can say which recommendations rest on a fitted model and which rest on the
+ * elevation envelope plus the agronomic rules in engine.ts.
+ */
+export function speciesReliability() {
+  const rows = Object.entries(M.species).map(([sdmId, s]) => ({
+    sdmId,
+    auc: s.auc,
+    n: s.n,
+    tier: (s.auc >= 0.82 ? 'strong' : s.auc >= AUC_MIN ? 'usable' : 'envelope') as
+      'strong' | 'usable' | 'envelope',
+  }));
+  rows.sort((a, b) => b.auc - a.auc);
+  return rows;
+}

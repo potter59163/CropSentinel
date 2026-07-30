@@ -1,4 +1,6 @@
 import { Icon, type IconName } from './Icon';
+import { modelMeta, speciesReliability } from '../lib/suitability';
+import { PLANTS } from '../data/plants';
 
 const FLOW: Array<{ icon: IconName; title: string; body: string }> = [
   {
@@ -48,6 +50,136 @@ function Card({ icon, title, body }: { icon: IconName; title: string; body: stri
         <p className="thai">{body}</p>
       </div>
     </article>
+  );
+}
+
+const NICHE_TIERS = [
+  {
+    key: 'narrow',
+    maxBand: 800,
+    th: 'ภูมิอากาศทำนายได้ดี',
+    desc: 'พืชที่ขึ้นได้ในช่วงความสูงแคบ — โมเดลชี้ตำแหน่งที่เหมาะได้ชัด',
+    cls: 'ok',
+  },
+  {
+    key: 'mid',
+    maxBand: 1000,
+    th: 'ทำนายได้พอใช้',
+    desc: 'ช่วงกว้างปานกลาง ควรดูประกอบกับสภาพดินและน้ำของแปลงจริง',
+    cls: 'warn',
+  },
+  {
+    key: 'wide',
+    maxBand: Infinity,
+    th: 'ต้องใช้กฎเกษตรช่วย',
+    desc: 'พืชทนช่วงกว้างมาก ภูมิอากาศแยกไม่ออก — ระบบใช้เกณฑ์ความสูงและกฎดิน/ร่มเงาจัดอันดับ',
+    cls: 'data',
+  },
+] as const;
+
+/**
+ * Honest model-quality section.
+ *
+ * Crops are grouped by NICHE BREADTH (elevation tolerance from plants.ts), deliberately NOT
+ * by the shipped model's per-species AUC. Two reasons:
+ *
+ * 1. Those AUCs are not trustworthy. The shipped export reports, per crop, whichever of two
+ *    candidate models scored higher on the very folds used to score them, and several rest on
+ *    tiny samples — it claims galangal 0.923 from 22 occurrence records, taro 0.921 and chili
+ *    0.936, where an honest re-measurement with region-matched background and nested
+ *    selection gives 0.680, 0.641 and 0.694. Rendering them as reliability tiers would have
+ *    told a farmer the model is excellent at ข่า and เผือก when those are in fact its weakest
+ *    crops — and would have contradicted the explanation printed directly underneath.
+ * 2. Niche breadth is structural, independently verifiable from plants.ts, and is what
+ *    actually drives the pattern: per-species AUC correlates with elevation tolerance at
+ *    r = -0.516. A crop that genuinely grows from 0-1200 m cannot be placed by climate, so a
+ *    low score for it is the correct answer rather than a defect.
+ *
+ * So this section explains WHERE the model has purchase and where the app leans on the
+ * elevation envelope and the agronomic rules in engine.ts — which is what an officer needs to
+ * be able to say out loud — without republishing figures that are under revision.
+ */
+function ModelReliability() {
+  const meta = modelMeta();
+  const modelled = new Set(speciesReliability().map((r) => r.sdmId));
+  const bandOf = (p: (typeof PLANTS)[number]) => p.elevMax - p.elevMin;
+  const tierOf = (p: (typeof PLANTS)[number]) =>
+    NICHE_TIERS.find((t) => bandOf(p) <= t.maxBand)!;
+
+  return (
+    <div className="method-section">
+      <div className="method-section-head">
+        <span className="agro-impact-k">ความน่าเชื่อถือของโมเดล</span>
+        <h3 className="thai">โมเดลทำนายพืชไหนได้ดี — และพืชไหนไม่ได้ พูดตรงๆ</h3>
+      </div>
+
+      <p className="thai method-reliability-lead">
+        ความเหมาะสมของพืชมาจากแบบจำลองการกระจายพันธุ์ (SDM) ที่ตรวจความแม่นด้วยวิธีแบ่งพื้นที่
+        เป็นบล็อก (spatial cross-validation) ไม่ใช่การสุ่มธรรมดา — เพื่อไม่ให้คะแนนสูงเกินจริง
+        จากการที่จุดฝึกและจุดทดสอบอยู่ติดกัน · <b>คะแนนที่แสดงเป็นดัชนีเปรียบเทียบความเหมาะสม
+        ไม่ใช่ความน่าจะเป็นที่จะปลูกสำเร็จ</b> และไม่ได้ปรับเทียบกับผลผลิตจริง
+      </p>
+
+      <div className="method-reliability-revision thai">
+        <Icon name="warning" size={16} />
+        <span>
+          <b>ตัวเลขความแม่นยำรายชนิดอยู่ระหว่างปรับแก้:</b> การตรวจสอบภายในพบว่าค่าที่โมเดลชุดนี้
+          รายงานไว้สูงเกินจริง เพราะวิธีสุ่มข้อมูลเปรียบเทียบและวิธีเลือกโมเดล เราจึงยัง
+          ไม่ประกาศตัวเลขรายชนิดจนกว่าจะวัดใหม่เสร็จ · ตารางด้านล่างจัดกลุ่มด้วย
+          <b>ช่วงความสูงที่พืชทนได้</b> ซึ่งตรวจสอบได้ตรงจากฐานข้อมูลพืช และเป็นตัวอธิบาย
+          ว่าทำไมโมเดลทำนายบางพืชได้ดีกว่าพืชอื่น
+        </span>
+      </div>
+
+      <div className="method-reliability">
+        {NICHE_TIERS.map((t) => {
+          const list = PLANTS.filter((p) => tierOf(p).key === t.key);
+          if (!list.length) return null;
+          return (
+            <div key={t.key} className={`method-tier is-${t.cls}`}>
+              <div className="method-tier-head">
+                <b className="thai">{t.th}</b>
+                <span className="thai">{t.desc}</span>
+              </div>
+              <div className="method-tier-crops">
+                {list.map((p) => (
+                  <span key={p.id} className="thai method-tier-crop">
+                    {p.nameTh}
+                    <i>
+                      {`${p.elevMin.toLocaleString('en-US')}–${p.elevMax.toLocaleString('en-US')} ม.`}
+                      {modelled.has(p.sdmId ?? '') ? '' : ' · ไม่มีโมเดล'}
+                    </i>
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="method-reliability-note thai">
+        <Icon name="info" size={16} />
+        <span>
+          <b>ทำไมบางพืชโมเดลทำนายไม่ได้:</b> พืชอย่างเผือก ข่า ตะไคร้ ฟักทอง มันเทศ ปลูกได้จริง
+          ตั้งแต่ที่ราบถึงที่สูง (หลายชนิด 0–1,200 ม.) ภูมิอากาศจึงแยกไม่ออกว่าควรอยู่ที่ไหน
+          — คะแนนต่ำของพืชกลุ่มนี้คือ<b>คำตอบที่ถูกต้อง</b> ไม่ใช่ข้อบกพร่อง สำหรับพืชกลุ่มนี้
+          ระบบใช้เกณฑ์ความสูงและกฎทางเกษตร (การระบายน้ำ ความเป็นกรดของดิน ร่มเงา) จัดอันดับแทน
+        </span>
+      </div>
+
+      <div className="method-reliability-limits thai">
+        <b>ข้อจำกัดที่ยังแก้ไม่ได้ด้วยการปรับโมเดล</b>
+        <ul>
+          <li>ตารางข้อมูลภูมิอากาศหยาบราว 27 กม. — แยกหุบเขา 400 ม. กับสันเขา 1,400 ม. ไม่ออก</li>
+          <li>ข้อมูลจุดพบพืชในน่านมีน้อยมาก จึงเป็นโมเดลระดับภูมิภาคที่นำมาใช้กับน่าน</li>
+          <li>ยังไม่เคยตรวจกับผลลัพธ์จากแปลงจริง — ข้อมูลจากการลงพื้นที่จะมีค่ากว่าการปรับโมเดลทุกอย่างรวมกัน</li>
+        </ul>
+        <span className="method-reliability-src">
+          โมเดลเวอร์ชัน {meta.version ?? '—'} · มีโมเดล {meta.count + meta.weakCount} จาก {PLANTS.length} ชนิด
+          {meta.validation ? ` · การตรวจความแม่น: ${meta.validation}` : ''}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -102,6 +234,8 @@ export function Methodology() {
           </div>
         </div>
       </div>
+
+      <ModelReliability />
 
       <details className="method-details">
         <summary className="thai">
