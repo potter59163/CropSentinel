@@ -442,3 +442,125 @@ a.nav-item:hover .nav-label { color: var(--data); }
 .role, .rt-label, .flow-node-layer, .flow-node-detail,
 .action-role-en, .action-eta, .unit, .brand-sub,
 .topbar-code, .rt-badge { font-size: 12px !important; }
+
+/* ============================================================================
+   ภารกิจ "วอร์รูมจังหวะเกี่ยว"
+   ============================================================================ */
+.mission { display: flex; flex-direction: column; gap: 14px; }
+
+.mission-steps { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.mission-steps::-webkit-scrollbar { display: none; }
+.mission-step {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--bg-1); color: var(--fg-2); font-weight: 600; white-space: nowrap;
+}
+.mission-step.on { background: var(--fg-0); color: var(--bg-1); border-color: var(--fg-0); }
+.mission-step.done { border-color: var(--ok); color: var(--ok); }
+/* เคยเขียน background: currentColor คู่กับ color: var(--bg-1) บนกฎเดียวกัน
+   currentColor หมายถึง color ของตัวเอง พื้นจึงกลายเป็นสีเดียวกับตัวอักษร = ขาวบนขาว
+   ต้องระบุสีพื้นตรง ๆ ไม่ใช้ currentColor เมื่อ color ถูกกำหนดในกฎเดียวกัน */
+.mission-step-n {
+  display: inline-grid; place-items: center; width: 20px; height: 20px;
+  border-radius: 999px; background: var(--fg-2); color: oklch(1 0 0);
+  font-size: 12px; font-weight: 700;
+}
+.mission-step.on .mission-step-n { background: oklch(1 0 0); color: var(--fg-0); }
+.mission-step.done .mission-step-n { background: var(--ok); color: oklch(1 0 0); }
+
+/* ปุ่มรองที่ไม่ใช่ .primary ธีมเดิมให้พื้นเข้ม ทำให้ตัวอักษรเข้มบนพื้นเข้ม */
+.btn:not(.primary) {
+  background: var(--bg-1) !important;
+  background-image: none !important;
+  color: var(--fg-0) !important;
+  border: 1px solid var(--line) !important;
+  padding: 12px 22px; font-weight: 600; align-self: flex-start;
+}
+.btn:not(.primary):hover { background: var(--bg-2) !important; }
+
+.mission-brief h2 { color: var(--fg-0); font-size: 22px; line-height: 1.4; margin: 6px 0 10px; }
+.mission-brief p { color: var(--fg-1); margin: 0 0 10px; max-width: 68ch; }
+.mission-role {
+  display: inline-block; padding: 4px 12px; border-radius: 999px;
+  background: var(--data-bg); color: var(--data); font-weight: 600; font-size: 13px;
+}
+.mission-res { display: grid; gap: 12px; margin: 16px 0; }
+.mission-res-item { display: flex; gap: 12px; padding: 14px; background: var(--bg-2); border-radius: var(--radius); }
+.mission-res-n {
+  flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 999px; background: var(--fg-0); color: var(--bg-1); font-weight: 700;
+}
+.mission-res-d { color: var(--fg-2); font-size: 13px; margin-top: 3px; }
+.mission-warn {
+  padding: 12px 14px; border-left: 3px solid var(--warn);
+  background: var(--warn-bg); color: var(--fg-1); border-radius: 0 var(--radius) var(--radius) 0;
+  margin-bottom: 16px; font-size: 13px;
+}
+
+.mission-evidence, .mission-decide, .mission-result { display: flex; flex-direction: column; gap: 14px; }
+.mission-note { color: var(--fg-2); font-size: 12px; line-height: 1.6; }
+
+.mission-cal { display: flex; gap: 6px; align-items: flex-end; padding: 12px 0; overflow-x: auto; }
+.mission-cal-col { flex: 1 1 0; min-width: 62px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mission-cal-v { font-size: 12px; font-weight: 700; color: var(--fg-0); font-variant-numeric: tabular-nums; }
+.mission-cal-bar { width: 100%; border-radius: 4px 4px 0 0; }
+.mission-cal-l { font-size: 12px; color: var(--fg-2); text-align: center; line-height: 1.35; }
+
+.mission-map { width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--line); }
+.mission-proj-list { display: grid; gap: 8px; margin-top: 12px; }
+.mission-proj {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--bg-1); text-align: left; color: var(--fg-0);
+}
+.mission-proj.on { border-color: var(--data); background: var(--data-bg); }
+.mission-proj-d { color: var(--fg-2); font-size: 12px; }
+
+.mission-choices { display: grid; gap: 8px; }
+.mission-choice {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-1); cursor: pointer; min-height: var(--tap);
+}
+.mission-choice.on { border-color: var(--data); background: var(--data-bg); }
+.mission-choice input { grid-row: span 2; width: 18px; height: 18px; accent-color: var(--data); }
+.mission-choice-d { color: var(--fg-2); font-size: 12px; grid-column: 2; }
+
+.mission-skip { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.mission-skip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.mission-skip-b {
+  padding: 8px 14px; border-radius: 999px; border: 1px dashed var(--line);
+  background: var(--bg-1); color: var(--fg-2); font-weight: 600;
+}
+.mission-skip-b.on { border-style: solid; border-color: var(--warn); background: var(--warn-bg); color: var(--warn); }
+
+.mission-slider { display: block; margin: 14px 0; color: var(--fg-1); font-size: 13px; }
+.mission-slider input { display: block; width: 100%; margin: 8px 0 4px; accent-color: var(--data); }
+.mission-slider .mission-note { display: block; }
+
+.mission-score { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.mission-score-l { color: var(--fg-3); font-size: 12px; }
+.mission-score-v { color: var(--fg-0); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mission-score-v.muted { color: var(--fg-2); }
+.mission-score-v.ok { color: var(--ok); }
+.mission-tbl { width: 100%; margin-bottom: 12px; }
+.mission-best { padding: 12px 14px; background: var(--ok-bg); border-radius: var(--radius); color: var(--fg-1); font-size: 13px; }
+
+.mission-stress { display: grid; gap: 8px; }
+.mission-stress-b {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-1); text-align: left; color: var(--fg-0);
+}
+.mission-stress-b.on { border-color: var(--data); }
+
+.btn.primary {
+  background: var(--fg-0); color: var(--bg-1); border: none;
+  padding: 12px 22px; font-weight: 700; align-self: flex-start;
+}
+.btn.primary:hover { background: var(--ok); }
+
+@media (max-width: 700px) {
+  .mission-cal-col { min-width: 54px; }
+  .mission-brief h2 { font-size: 19px; }
+}

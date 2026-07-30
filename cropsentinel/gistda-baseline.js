@@ -167,5 +167,96 @@ window.CS_GISTDA = {
         "lat": 14.0307
       }
     ]
+  },
+  "mission": {
+    "peakWindowTh": "1-15 สิงหาคม 2569",
+    "peakTonnes": 25026.8,
+    "projects": [
+      {
+        "nameTh": "รังสิตเหนือ",
+        "rai": 38705,
+        "peakRai": 17424,
+        "peakTonnes": 12548.4,
+        "amphoe": [
+          {
+            "nameTh": "หนองเสือ",
+            "rai": 21228
+          },
+          {
+            "nameTh": "คลองหลวง",
+            "rai": 15923
+          },
+          {
+            "nameTh": "ธัญบุรี",
+            "rai": 1419
+          },
+          {
+            "nameTh": "เมืองปทุมธานี",
+            "rai": 131
+          },
+          {
+            "nameTh": "สามโคก",
+            "rai": 4
+          }
+        ],
+        "amphoeCount": 5
+      },
+      {
+        "nameTh": "รังสิตใต้",
+        "rai": 13873,
+        "peakRai": 9326,
+        "peakTonnes": 6716.1,
+        "amphoe": [
+          {
+            "nameTh": "ลำลูกกา",
+            "rai": 12402
+          },
+          {
+            "nameTh": "ธัญบุรี",
+            "rai": 1471
+          }
+        ],
+        "amphoeCount": 2
+      },
+      {
+        "nameTh": "พระยาบรรลือ",
+        "rai": 19480,
+        "peakRai": 7239,
+        "peakTonnes": 5213.2,
+        "amphoe": [
+          {
+            "nameTh": "ลาดหลุมแก้ว",
+            "rai": 13131
+          },
+          {
+            "nameTh": "สามโคก",
+            "rai": 4919
+          },
+          {
+            "nameTh": "เมืองปทุมธานี",
+            "rai": 1429
+          }
+        ],
+        "amphoeCount": 3
+      },
+      {
+        "nameTh": "ชลประทานปทุมธานี",
+        "rai": 3812,
+        "peakRai": 708,
+        "peakTonnes": 509.5,
+        "amphoe": [
+          {
+            "nameTh": "สามโคก",
+            "rai": 2283
+          },
+          {
+            "nameTh": "เมืองปทุมธานี",
+            "rai": 1529
+          }
+        ],
+        "amphoeCount": 2
+      }
+    ],
+    "windowDays": 15
   }
 };

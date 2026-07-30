@@ -132,6 +132,53 @@ def ring_sets(geom):
     return [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
 
 
+def short_project(name):
+    return (name or "ไม่ระบุ").replace("โครงการส่งน้ำและบำรุงรักษา", "").replace("โครงการ", "").strip() or "ไม่ระบุ"
+
+
+def build_mission(rice, harvest, products):
+    """ข้อมูลสำหรับภารกิจ "วอร์รูมจังหวะเกี่ยว"
+
+    แกนของภารกิจคือ ขอบเขตโครงการชลประทานไม่ตรงกับขอบเขตอำเภอ
+    ถ้าคิดเป็นรายอำเภอจะเห็นว่าหนองเสือหนักสุด แต่คันโยกที่ขยับได้จริงคือรอบส่งน้ำ
+    ซึ่งขยับทั้งโครงการพร้อมกัน ครอบคลุมหลายอำเภอ ผู้เล่นจึงต้องดูแผนที่ ไม่ใช่เรียงตาราง
+    """
+    kg = products[0] if products else 0
+    peak_window = max(harvest.items(), key=lambda kv: kv[1])[0]
+
+    projects = {}
+    for a in rice:
+        pj = short_project(a.get("proj_name"))
+        p = projects.setdefault(pj, {"nameTh": pj, "rai": 0.0, "peakRai": 0.0, "amphoe": Counter()})
+        p["rai"] += a["rai"] or 0
+        p["amphoe"][a["a_name"]] += a["rai"] or 0
+        if a.get("harv_name") == peak_window:
+            p["peakRai"] += a["rai"] or 0
+
+    out = []
+    for p in projects.values():
+        if p["rai"] < 500:      # โครงการเล็กมาก รวมอยู่ในภาพรวมแต่ไม่ให้เป็นคันโยก
+            continue
+        out.append({
+            "nameTh": p["nameTh"],
+            "rai": round(p["rai"]),
+            "peakRai": round(p["peakRai"]),
+            "peakTonnes": round(p["peakRai"] * kg / 1000, 1),
+            "amphoe": [{"nameTh": k, "rai": round(v)} for k, v in p["amphoe"].most_common()],
+            "amphoeCount": len(p["amphoe"]),
+        })
+    out.sort(key=lambda x: -x["peakTonnes"])
+
+    return {
+        "peakWindowTh": peak_window,
+        "peakTonnes": round(harvest[peak_window] * kg / 1000, 1),
+        "projects": out,
+        # หน้าต่างเก็บเกี่ยวที่ GISTDA เผยแพร่กว้าง 15 วัน — นี่คือความไม่แน่นอนที่มีอยู่จริง
+        # ไม่ใช่ค่าที่เราปั้นขึ้น และเป็นสิ่งที่ภาพความละเอียดสูงย่อให้แคบลงได้
+        "windowDays": 15,
+    }
+
+
 def main():
     print("ดึงข้อมูลจาก GISTDA ...")
     rice = fetch_rice()
@@ -218,6 +265,7 @@ def main():
             "inProvince": [{"name": m["name"], "lng": m["x"], "lat": m["y"]}
                            for m in mills if m.get("province") and PROVINCE_TH in str(m["province"])],
         },
+        "mission": build_mission(rice, harvest, products),
     }
 
     header = (

@@ -6,6 +6,7 @@ function Sidebar({ module, setModule }) {
     { id: 'm1', label: 'ข้อมูลอัจฉริยะ', en: 'Data Intelligence', sub: 'M01' },
     { id: 'm2', label: 'เครื่องมือพยากรณ์', en: 'Predictive Engine', sub: 'M02' },
     { id: 'm3', label: 'แพลตฟอร์มตัดสินใจ', en: 'Decision Platform', sub: 'M03' },
+    { id: 'mission', label: 'ภารกิจ', en: 'Mission', sub: 'เล่นได้' },
   ];
   // เดิมมีเมนู "รายงาน PDF / โมเดล v3.2 / ตั้งค่า ADMIN" ซึ่งกดไม่ได้และไม่มีอยู่จริง
   // เมนูที่ชี้ไปยังฟีเจอร์ที่ไม่มี ทำให้คนดูเข้าใจผิดว่าระบบทำได้มากกว่าที่ทำได้จริง
@@ -98,6 +99,12 @@ function TopBar({ module }) {
       th: 'แพลตฟอร์มตัดสินใจ',
       en: 'Decision & Visualization Platform',
       sub: 'รู้ว่า “ควรทำอะไร” สำหรับเกษตรกร อปท. และผู้ค้าปลีก',
+    },
+    mission: {
+      code: 'ภารกิจ',
+      th: 'วอร์รูมจังหวะเกี่ยว',
+      en: 'Harvest Timing War Room',
+      sub: 'ลงมือตัดสินใจจากหลักฐานเดียวกับที่เห็นในสามโมดูลข้างบน',
     },
   };
   const t = titles[module];
@@ -281,6 +288,7 @@ function App() {
   if (module === 'm1') view = <window.Module1 key={dataVersion} />;
   if (module === 'm2') view = <window.Module2 key={dataVersion} />;
   if (module === 'm3') view = <window.Module3 key={dataVersion} />;
+  if (module === 'mission') view = <window.Mission key={dataVersion} />;
 
   return (
     <div className="app">
@@ -288,7 +296,10 @@ function App() {
       <main
         className="main"
         data-screen-label={
-          module === 'm1' ? '01 Data Intelligence' : module === 'm2' ? '02 Predictive Engine' : '03 Decision Platform'
+          module === 'm1' ? '01 Data Intelligence'
+            : module === 'm2' ? '02 Predictive Engine'
+            : module === 'm3' ? '03 Decision Platform'
+            : 'Mission — วอร์รูมจังหวะเกี่ยว'
         }
       >
         <TopBar module={module} />
