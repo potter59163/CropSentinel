@@ -7,6 +7,7 @@ import './styles/animations.css';
 import { UNCHECKED_LEGAL_CLASSES, type ProtectedArea } from './lib/gistda';
 import type { SatContext } from './lib/satellite';
 import type { SoilContext } from './lib/soil';
+import type { CultivationContext } from './lib/cultivation';
 import { bahtK } from './lib/format';
 import { LAYER_META, PLANTS } from './data/plants';
 import type { Layer } from './data/types';
@@ -19,6 +20,7 @@ import { Splash } from './components/Splash';
 import { Tour, type TourStep } from './components/Tour';
 import { PlanLoading } from './components/PlanLoading';
 import { PlantingSeason } from './components/PlantingSeason';
+import { LocalCultivation } from './components/LocalCultivation';
 import { farmInputSchema, sanitizeAssumptions } from './lib/planSchema';
 
 const TOUR_KEY = 'nan-agro-tour-v1';
@@ -174,6 +176,7 @@ export function App() {
   const [prot, setProt] = useState<ProtectedArea | null>(null);
   const [sat, setSat] = useState<SatContext | null>(null);
   const [soil, setSoil] = useState<SoilContext | null>(null);
+  const [cultivation, setCultivation] = useState<CultivationContext | null>(null);
   const [apiWarnings, setApiWarnings] = useState<string[]>([]);
   const [runFailed, setRunFailed] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
@@ -333,6 +336,7 @@ export function App() {
     setProt(null);
     setSat(null);
     setSoil(null);
+    setCultivation(null);
     setApiWarnings([]);
     setRunFailed(false);
     setAttemptedSteps([]);
@@ -385,12 +389,14 @@ export function App() {
         protectedArea: ProtectedArea | null;
         satellite: SatContext | null;
         soil: SoilContext | null;
+        cultivation: CultivationContext | null;
         warnings: string[];
       };
       setClimate(data.climate);
       setProt(data.protectedArea);
       setSat(data.satellite);
       setSoil(data.soil);
+      setCultivation(data.cultivation ?? null);
       setApiWarnings(data.warnings ?? []);
       setActivePlan(0);
       setSystems(data.systems);
@@ -697,6 +703,10 @@ export function App() {
               farmer has to act on, and the 10-yr cashflow above it is meaningless if the
               seedlings go in at the wrong end of the year. */}
           <PlantingSeason climate={climate} />
+
+          {/* Market/feasibility signal, deliberately after the plan and visually distinct from
+              the suitability badges — it is a count from government statistics, not a score. */}
+          <LocalCultivation sys={activeSystem} cultivation={cultivation} />
 
           {existingZoneRows(input).length > 0 && (
             <div className="agro-selection-summary agro-transition-summary">

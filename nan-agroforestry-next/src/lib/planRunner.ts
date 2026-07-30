@@ -7,6 +7,7 @@ import { lookupLddSoilGroup } from './ldd';
 import { fetchSoil, mergeLddSoil } from './soil';
 import { getCropPriceOverrides } from './cropPrices';
 import { sanitizeAssumptions } from './planSchema';
+import { cultivationNear } from './cultivation';
 
 // Layers admin-set prices under the farmer's own advanced overrides (if any),
 // which still win field-by-field — an explicit per-plan number a farmer typed
@@ -58,5 +59,9 @@ export async function runPlan(rawInput: FarmInput) {
   const satellite = satContext(lat, lng);
   const effectiveInput = withPriceOverrides(input, priceOverrides);
   const systems = buildSystems(effectiveInput, climate, protectedArea, soil);
-  return { systems, climate, protectedArea, satellite, soil, lddSoilGroup, warnings };
+  // Local cultivation is a COUNT of what is grown nearby, kept strictly out of the
+  // suitability score and the cashflow — see the header of lib/cultivation.ts for why
+  // blending it in would turn the tool into "grow what your neighbours grow".
+  const cultivation = cultivationNear(lat, lng);
+  return { systems, climate, protectedArea, satellite, soil, lddSoilGroup, cultivation, warnings };
 }
