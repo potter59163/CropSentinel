@@ -178,7 +178,13 @@ export function Tour({ steps, open, onClose }: {
   // Callout placement: sit next to the target on whichever side has real room, so
   // it never covers the highlighted content. Only if no side fits does it pin to
   // the larger margin as an edge bar.
-  const vw = window.innerWidth;
+  // documentElement.clientWidth, NOT window.innerWidth: innerWidth includes a
+  // non-overlay scrollbar's own width (Windows/Linux Chrome, ~15-17px), but the SVG
+  // dimmer below is drawn 1:1 (viewBox matches its pixel width, so there is no scaling
+  // to absorb the difference) — sized to innerWidth it stuck out past the page's actual
+  // visible edge and forced its own horizontal scrollbar while the tour was open.
+  // clientWidth is exactly the visible content width, scrollbar excluded, on every platform.
+  const vw = document.documentElement.clientWidth;
   const vh = window.innerHeight;
   const W = Math.min(384, vw - 28);
   const CH = calloutH;
