@@ -21,9 +21,12 @@ import { Tour, type TourStep } from './components/Tour';
 import { PlanLoading } from './components/PlanLoading';
 import { PlantingSeason } from './components/PlantingSeason';
 import { LocalCultivation } from './components/LocalCultivation';
+import { PlanCompare } from './components/PlanCompare';
+import { snapshotPlan, type PinnedPlan } from './lib/comparison';
 import { farmInputSchema, sanitizeAssumptions } from './lib/planSchema';
 
 const TOUR_KEY = 'nan-agro-tour-v1';
+const PIN_KEY = 'nan-agro-pinned-v1';
 
 const EMPTY_LAYERS: Record<Layer, string[]> = { canopy: [], shrub: [], groundcover: [], root: [] };
 
@@ -183,6 +186,11 @@ export function App() {
   const copyTimerRef = useRef<number | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  // A plan the farmer parked so they can swap a species and see both sets of numbers.
+  // Held in sessionStorage rather than state alone so an accidental reload mid-comparison
+  // does not throw away the plan they were comparing against — and rather than
+  // localStorage, so the next farmer at the same tablet never inherits it.
+  const [pinned, setPinned] = useState<PinnedPlan | null>(null);
 
   // Guided coach-mark tour. Each step optionally moves the wizard to the right
   // step BEFORE the Tour measures its target, so the whole flow can be shown from
@@ -324,6 +332,31 @@ export function App() {
     }
   }, []);
 
+  // Restore a pinned plan across an accidental reload. Best-effort and fail-quiet: a
+  // webview with storage disabled must lose the comparison, never the plan itself.
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(PIN_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw) as PinnedPlan;
+      // Shape-check before trusting it — a stale key from an older build would otherwise
+      // crash the result page on `pinned.plot.lat`.
+      if (p && typeof p === 'object' && p.plot && Array.isArray(p.picks) && p.metrics) setPinned(p);
+    } catch { /* ignore */ }
+  }, []);
+
+  const pinCurrentPlan = () => {
+    if (!activeSystem) return;
+    const snap = snapshotPlan(activeSystem, input, activePlan + 1, `pin-${activePlan}-${input.locationLabel || 'plot'}`);
+    setPinned(snap);
+    try { window.sessionStorage.setItem(PIN_KEY, JSON.stringify(snap)); } catch { /* ignore */ }
+  };
+
+  const unpinPlan = () => {
+    setPinned(null);
+    try { window.sessionStorage.removeItem(PIN_KEY); } catch { /* ignore */ }
+  };
+
   // Officers see several farmers per visit. Without this every plot-specific value —
   // coordinates, elevation, zones, plant picks and any cropAssumptions price override
   // (which engine.applyAssumption silently applies to system-picked plants too) — carried
@@ -337,6 +370,9 @@ export function App() {
     setSat(null);
     setSoil(null);
     setCultivation(null);
+    // A pinned plan belongs to the farmer who pinned it. Carrying it into the next farmer
+    // would offer to compare their plot against someone else's.
+    unpinPlan();
     setApiWarnings([]);
     setRunFailed(false);
     setAttemptedSteps([]);
@@ -671,6 +707,17 @@ export function App() {
               {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
             </div>
             <div className="agro-results-actions">
+              {/* Park this plan, change one species, run again, and see both. The label
+                  changes once something is pinned so it never reads as a second slot. */}
+              <button
+                type="button"
+                className={`agro-osm-link thai ${pinned ? 'is-pinned' : ''}`}
+                onClick={pinCurrentPlan}
+                title="เก็บตัวเลขของแผนนี้ไว้ แล้วลองเปลี่ยนพืชดูว่าดีขึ้นหรือแย่ลง"
+              >
+                <Icon name="pin" size={16} />
+                {' '}{pinned ? 'เก็บแผนนี้แทน' : 'เก็บไว้เทียบ'}
+              </button>
               <button type="button" className="agro-osm-link thai" onClick={copyPlanLink}>
                 <Icon name={copyState === 'ok' ? 'checkCircle' : 'copy'} size={16} />
                 {' '}{copyState === 'ok' ? 'คัดลอกแล้ว' : copyState === 'fail' ? 'คัดลอกไม่ได้ · ใช้ลิงก์จากแถบที่อยู่' : 'คัดลอกลิงก์แผน'}
@@ -694,6 +741,17 @@ export function App() {
               </button>
             ))}
           </div>
+
+          {/* Comparison sits directly under the plan tabs, above the plan detail: once a
+              farmer has pinned something, "did the swap help?" is the question they came
+              back for, and it should not be below a 10-year cashflow chart. */}
+          <PlanCompare
+            pinned={pinned}
+            sys={activeSystem}
+            input={input}
+            rank={activePlan + 1}
+            onUnpin={unpinPlan}
+          />
 
           <div className="agro-plan-panel" role="tabpanel">
             <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />

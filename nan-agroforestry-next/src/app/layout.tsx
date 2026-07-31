@@ -48,7 +48,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#6b4423',
+  themeColor: '#0c6654', // --sugar-1; the old #6b4423 was a leftover from the CropSentinel palette
   viewportFit: 'cover',
 };
 
