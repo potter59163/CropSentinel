@@ -217,3 +217,29 @@ export function metricDeltas(pinned: PlanMetrics, current: PlanMetrics): MetricD
     return { ...spec, pinned: p ?? null, current: c ?? null, delta };
   });
 }
+
+export interface Verdict {
+  kind: 'tie' | 'current-better' | 'pinned-better' | 'tradeoff';
+  /** Metrics where the plan on screen beats the pinned one. */
+  gains: MetricDelta[];
+  /** Metrics where the plan on screen is worse. */
+  losses: MetricDelta[];
+}
+
+/**
+ * A one-line answer, because most people will not read a seven-row table.
+ *
+ * It deliberately REFUSES to name a winner whenever the two plans trade off against each
+ * other — more money for less suitability is the single most common result here, and
+ * collapsing it to "แผนใหม่ดีกว่า" would be the tool making the farmer's decision for it
+ * on an axis the farmer never told it to weight. Only a plan that is better-or-equal on
+ * every metric gets called better.
+ */
+export function verdictOf(deltas: MetricDelta[]): Verdict {
+  const gains = deltas.filter((d) => deltaDirection(d) === 'up');
+  const losses = deltas.filter((d) => deltaDirection(d) === 'down');
+  if (!gains.length && !losses.length) return { kind: 'tie', gains, losses };
+  if (gains.length && !losses.length) return { kind: 'current-better', gains, losses };
+  if (losses.length && !gains.length) return { kind: 'pinned-better', gains, losses };
+  return { kind: 'tradeoff', gains, losses };
+}

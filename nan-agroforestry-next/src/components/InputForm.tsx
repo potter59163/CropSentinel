@@ -331,18 +331,22 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
                   return (
                     <div key={id} className="agro-calc-row">
                       <b className="thai agro-calc-name"><PlantGlyph plantId={plant.id} layer={plant.layer} size={20} /> {plant.nameTh}</b>
+                      {/* Labelled in Thai, not "฿/kg / kg/rai / survival". These three boxes
+                          are otherwise indistinguishable, they feed the cashflow directly,
+                          and a farmer who types a price into the yield box gets a plan that
+                          is wrong by orders of magnitude. */}
                       <label>
-                        <span>฿/kg</span>
+                        <span className="thai">ราคา ฿/กก.</span>
                         <input type="number" className="agro-input" value={a.pricePerKg ?? plant.pricePerKg}
                           onChange={(e) => setAssumption(id, { pricePerKg: Number(e.target.value) || plant.pricePerKg })} />
                       </label>
                       <label>
-                        <span>kg/rai</span>
+                        <span className="thai">ผลผลิต กก./ไร่</span>
                         <input type="number" className="agro-input" value={a.yieldKgPerRai ?? plant.yieldKgPerRai}
                           onChange={(e) => setAssumption(id, { yieldKgPerRai: Number(e.target.value) || plant.yieldKgPerRai })} />
                       </label>
                       <label>
-                        <span>survival</span>
+                        <span className="thai">อัตรารอด (0–1)</span>
                         <input type="number" min={0.1} max={1.2} step={0.05} className="agro-input" value={a.survivalRate ?? 1}
                           onChange={(e) => setAssumption(id, { survivalRate: Number(e.target.value) || 1 })} />
                       </label>

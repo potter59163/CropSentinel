@@ -104,6 +104,8 @@ const STEPS: Array<{ t: string; d: string; icon: IconName }> = [
   { t: 'เป้าหมาย', d: 'รายได้และ assumptions', icon: 'target' },
 ];
 const LAST_STEP = STEPS.length - 1;
+/** Index of the "เลือกพืช" step — the one the compare flow jumps to. */
+const PLANT_STEP = 2;
 
 type RequiredField = 'sizeRai' | 'location' | 'elevationM' | 'goal';
 type FieldIssue = { field: RequiredField; step: number; message: string };
@@ -357,6 +359,16 @@ export function App() {
     try { window.sessionStorage.removeItem(PIN_KEY); } catch { /* ignore */ }
   };
 
+  // "Pin this one, now go change a species." Collapses what used to be four unguided steps
+  // (pin -> แก้ไขข้อมูล -> find the plant step -> re-run) into one button, and re-pins to
+  // whichever plan is on screen so the loop can be repeated from any result.
+  const compareWithOtherPlants = () => {
+    pinCurrentPlan();
+    setStep(PLANT_STEP);
+    setShowResult(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Officers see several farmers per visit. Without this every plot-specific value —
   // coordinates, elevation, zones, plant picks and any cropAssumptions price override
   // (which engine.applyAssumption silently applies to system-picked plants too) — carried
@@ -533,6 +545,19 @@ export function App() {
             </aside>
 
             <main className="agro-wizard-main">
+              {/* Without this the pinned plan is invisible the moment you leave the result
+                  page, so you get back to the plant picker with no reminder of what you
+                  were comparing against or what to press when you are done. */}
+              {pinned && (
+                <div className="agro-compare-armed" role="status">
+                  <Icon name="pin" size={16} />
+                  <span className="thai">
+                    <b>กำลังเทียบกับแผน {pinned.rank}</b> ({bahtK(pinned.metrics.profit10)} ใน 10 ปี)
+                    {' · '}เปลี่ยนพืชที่เลือก แล้วกด <b>ออกแบบระบบ</b> เพื่อดูตัวเลขสองฝั่งเทียบกัน
+                  </span>
+                  <button type="button" className="agro-compare-armed-x thai" onClick={unpinPlan}>ยกเลิก</button>
+                </div>
+              )}
               <div className="agro-step-titlebar">
                 <div>
                   <span className="agro-impact-k">ขั้นที่ {step + 1}/{STEPS.length}</span>
@@ -707,16 +732,19 @@ export function App() {
               {' '}· เป้าหมาย {input.goal === 'fast' ? 'เห็นผลไว' : input.goal === 'profit' ? 'กำไรสูงสุด' : 'สมดุล'}
             </div>
             <div className="agro-results-actions">
-              {/* Park this plan, change one species, run again, and see both. The label
-                  changes once something is pinned so it never reads as a second slot. */}
+              {/* Named for the job, not the mechanism. "เก็บไว้เทียบ" sat among the
+                  copy-link/print utilities and read as a bookmark, so nobody found the
+                  feature; this states the question the farmer actually has. Pinning is
+                  non-destructive and keeps you on the result — the panel below then shows
+                  both ways to produce the other side of the comparison. */}
               <button
                 type="button"
-                className={`agro-osm-link thai ${pinned ? 'is-pinned' : ''}`}
+                className={`agro-compare-start thai ${pinned ? 'is-pinned' : ''}`}
                 onClick={pinCurrentPlan}
-                title="เก็บตัวเลขของแผนนี้ไว้ แล้วลองเปลี่ยนพืชดูว่าดีขึ้นหรือแย่ลง"
+                title="เก็บตัวเลขของแผนนี้ไว้ แล้วเทียบกับแผนอื่นหรือกับพืชชุดอื่น"
               >
                 <Icon name="pin" size={16} />
-                {' '}{pinned ? 'เก็บแผนนี้แทน' : 'เก็บไว้เทียบ'}
+                {' '}{pinned ? 'เก็บแผนนี้แทน' : 'เทียบกับแผนอื่น'}
               </button>
               <button type="button" className="agro-osm-link thai" onClick={copyPlanLink}>
                 <Icon name={copyState === 'ok' ? 'checkCircle' : 'copy'} size={16} />
@@ -751,6 +779,7 @@ export function App() {
             input={input}
             rank={activePlan + 1}
             onUnpin={unpinPlan}
+            onEditPlants={compareWithOtherPlants}
           />
 
           <div className="agro-plan-panel" role="tabpanel">

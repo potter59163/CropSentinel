@@ -162,8 +162,15 @@ select.agro-input { cursor: pointer; }
 }
 .agro-calc-row b { color: var(--fg-0); font-size: 13px; line-height: 1.25; }
 .agro-calc-row label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.agro-calc-row label span { color: var(--fg-3); font: 800 9px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; }
-.agro-calc-row .agro-input { min-height: 38px; padding: 8px 9px; font-size: 13px; border-radius: 9px; }
+/* These labels were 9px uppercase mono reading "฿/kg / kg/rai / survival". At 9px they are
+   not readable outdoors, mono has no Thai glyphs, and uppercase does nothing for Thai — yet
+   they are the ONLY thing distinguishing three number boxes that feed the cashflow directly.
+   A price typed into the yield box is wrong by two orders of magnitude. */
+.agro-calc-row label span {
+  color: var(--fg-2); font: 600 11.5px/1.35 var(--font-thai);
+  letter-spacing: 0; white-space: nowrap;
+}
+.agro-calc-row .agro-input { min-height: 40px; padding: 8px 9px; font-size: 13px; border-radius: 9px; }
 
 /* selectable chips */
 .agro-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -264,8 +271,26 @@ select.agro-input { cursor: pointer; }
 .agro-system-fit { display: flex; flex-wrap: wrap; gap: 6px; }
 .agro-system-fit span { color: var(--data); background: var(--data-bg); border: 1px solid oklch(0.72 0.13 222 / 0.24); border-radius: 999px; padding: 4px 8px; font: 700 10px/1.25 var(--font-mono); overflow-wrap: anywhere; }
 
-.agro-chart { width: 100%; height: auto; display: block; aspect-ratio: 320 / 120; background: var(--bg-1); border-radius: 12px; border: 1px solid var(--line-soft); }
-.agro-axis { font-family: var(--font-mono); font-size: 8px; fill: var(--fg-3); }
+/* aspect-ratio matches the 520x180 viewBox exactly. It was 320/120, so the SVG letterboxed
+   itself inside its own box and ~8% of the height below the plot was dead. Matching it also
+   makes the percentage positions of the HTML labels below land on their user-unit targets. */
+.agro-chart-wrap { position: relative; }
+.agro-chart { width: 100%; height: auto; display: block; aspect-ratio: 520 / 180; background: var(--bg-1); border-radius: 12px; border: 1px solid var(--line-soft); }
+
+/* Axis labels are HTML over the SVG, not <text> inside it — see CashflowChart.tsx. In the
+   viewBox they were scaled to 4.9 CSS px on a phone; out here their size is their size. */
+.agro-chart-y,
+.agro-chart-x,
+.agro-chart-payback {
+  position: absolute; color: var(--fg-3); font-size: 11px; line-height: 1;
+  white-space: nowrap; pointer-events: none;
+}
+.agro-chart-y {
+  left: 0; transform: translateY(-50%); text-align: right; padding-right: 6px;
+  font-family: var(--font-mono); letter-spacing: 0;
+}
+.agro-chart-x { transform: translateX(-50%); }
+.agro-chart-payback { transform: translateX(-50%); color: var(--warn); font-weight: 700; }
 
 .agro-reasons { display: flex; flex-direction: column; gap: 7px; }
 .agro-reason { display: flex; gap: 8px; font-size: 12.5px; color: var(--fg-2); line-height: 1.45; }
@@ -464,9 +489,22 @@ select.agro-input { cursor: pointer; }
   .agro-osm-map { height: 230px; }
   .agro-osm-meta span { flex: 1 1 calc(50% - 7px); text-align: center; }
   .agro-submit { font-size: 15px; }
+  .agro-carbon,
+  .agro-transition-strip { font-size: 12px; }
+}
+
+/* .agro-plant-row is a single flex line: icon, name+area+yield (flex:1), then the
+   suitability badge and, when the farmer picked this species themselves, a "คุณเลือก"
+   badge — both flex-shrink:0. Below 536px the two badges' fixed width leaves too little
+   of the line for the name and the ไร่ allocation next to it, which is the number that
+   answers "how much of my land does this species get" — the row wrapped it into a ragged
+   two-line mess rather than giving it a row of its own. Widened from 430px, which is where
+   this used to end and isn't where the crowding actually starts: `.agro-plant-name` is
+   14px, the shortest Thai species name is still several characters, and two pill badges
+   cost real width before the name gets any — that arithmetic doesn't resolve at 431-535px
+   either. */
+@media (max-width: 536px) {
   .agro-plant-row { display: grid; grid-template-columns: auto minmax(0, 1fr); }
   .agro-picked { grid-column: 2; justify-self: start; }
   .agro-suit { grid-column: 2; justify-self: start; }
-  .agro-carbon,
-  .agro-transition-strip { font-size: 12px; }
 }

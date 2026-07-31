@@ -10,17 +10,34 @@
   .agro-nav, .agro-form, .agro-osm, .agro-foot { display: none !important; }
   .agro-app { width: 100% !important; padding: 0 !important; }
   .agro-plan-tabs { display: none !important; }
-  .agro-plan-panel, .agro-plan, .agro-impact, .agro-gistda { break-inside: avoid; box-shadow: none !important; }
+  .agro-plan-panel, .agro-plan, .agro-impact, .agro-gistda { box-shadow: none !important; }
+
+  /* Two separate reasons the printout lost most of its content.
+
+     1. overflow. `.card` (theme.css) is `overflow: hidden`, and an element with a non-visible
+        overflow is a scroll container, which CSS fragmentation treats as monolithic — it is
+        never split across pages. The plan is wrapped in a `.card`, so everything past the
+        first page was CLIPPED rather than continued. Same for `.agro-context`, the evidence
+        panel that the rules just below go to the trouble of forcing open.
+     2. break-inside. `.agro-plan-panel` and `.agro-plan` are always taller than a sheet of
+        A4, and `break-inside: avoid` on a box that cannot fit tells the engine to push it to
+        a fresh page where it still does not fit — so it ejected a near-blank page and then
+        broke it anyway. Avoidance belongs on the small units that genuinely do fit. */
+  .card, .stat, .agro-context, .agro-plan-panel, .agro-plan { overflow: visible !important; }
+  .agro-impact, .agro-gistda, .agro-kpi, .agro-layer, .agro-season { break-inside: avoid; }
 
   /* The printout is what the farmer actually takes home and acts on, so it must carry
      the constraints — not just the money. <details> collapses by default, which silently
      dropped the legal status, the soil report and every agronomic warning from the page
      the farmer keeps. Force them open and strip the on-screen affordances. */
   details, .agro-context { display: block !important; }
+  /* flex, not block: `.agro-context-body` is a flex column whose only separation between
+     the eleven evidence panels is `gap: 12px`. Forcing it to block dropped the gap and
+     printed them as one unbroken wall of text. */
+  .agro-context-body { display: flex !important; }
   details > summary { list-style: none; font-weight: 700; }
   details > summary::marker,
   details > summary::-webkit-details-marker { display: none; }
-  .agro-context-body { display: block !important; }
   /* Chromium hides a closed <details>' contents with content-visibility on the slot,
      not display, so both must be overridden or the evidence stays off the paper. */
   details:not([open]) > *:not(summary) {
@@ -43,4 +60,16 @@
 
   /* Provenance on paper: which plot this sheet is actually for. */
   .agro-result-loc { font-size: 12pt !important; color: #111 !important; }
+
+  /* Chrome drops background graphics on print unless asked not to. For most of the page
+     that is fine — it saves ink and the text still reads. But in the rainfall chart the
+     bars ARE the data: they are painted entirely with `background`, so the chart printed
+     as an empty 132px box, and the planting-window months lost the colour that identifies
+     them. Same for the two rank/picked badges, which are white text on a coloured pill and
+     would otherwise print white-on-white, i.e. invisible. Scoped to those, not to *. */
+  .agro-season-chart, .agro-season-col i, .agro-season-legend .sw,
+  .agro-picked, .agro-rank.best {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }

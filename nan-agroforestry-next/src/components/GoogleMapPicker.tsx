@@ -58,7 +58,15 @@ export function GoogleMapPicker({
           mapTypeControl: true,
           streetViewControl: false,
           fullscreenControl: false,
-          gestureHandling: 'greedy',
+          // 'cooperative', not 'greedy'. Greedy gives the map every gesture that lands on
+          // it, and this map is full-bleed and ~230-380px tall in the middle of a scrolling
+          // form — so a one-finger swipe that starts anywhere on it pans the map instead of
+          // scrolling the page, and the user cannot get past it to the fields below. It
+          // traps the mouse wheel on desktop for the same reason. Cooperative keeps
+          // one-finger drag for the page and gives the map two-finger pan (plus ctrl+wheel),
+          // which is the behaviour of every embedded Google map and is self-explanatory:
+          // the API shows its own "use two fingers" hint the first time.
+          gestureHandling: 'cooperative',
           clickableIcons: false,
         });
         const marker = new maps.Marker({ position: center, map, draggable: true });

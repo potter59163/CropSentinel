@@ -246,8 +246,18 @@ input::placeholder {
     grid-template-columns: 1fr;
   }
 
+  /* NO `width: 100%` here.
+     This is a starter-template rule, and as an element selector it hit all 340-odd buttons
+     in the app — including every one that is meant to sit inline. `.agro-pick-chip` is the
+     clearest casualty: `.agro-chips` is a wrap flex row, and a flex item whose width is
+     100% has a hypothetical main size of a full line, so exactly one chip fits per line.
+     The whole species picker — the primary interaction of step 3 — became a single column
+     of full-width bars. Same for the plan tabs, the tour nav and the zone add/remove pair.
+     Nothing rescued them: no later sheet sets `width` on those classes.
+     Components that genuinely want to be full-width say so themselves (see
+     `.agro-gps-btn`), which is the right way round. Padding stays: buttons without their
+     own padding rule would collapse to the UA default and get smaller, not larger. */
   button {
-    width: 100%;
     padding: 0.75rem 1rem;
   }
 
@@ -330,6 +340,14 @@ input::placeholder {
     animation: none !important;
     transition: none !important;
   }
+  /* `scroll-behavior` is neither an animation nor a transition, so it walked straight
+     through the rule above — and it drives the biggest movement in the whole app. The
+     wizard scrolls the page on every step change and again when the results open; for
+     someone who set reduce because motion makes them ill, a full-viewport smooth scroll is
+     the exact thing they turned off. Declared in two sheets, hence the two selectors. */
+  html {
+    scroll-behavior: auto !important;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -352,15 +370,22 @@ input::placeholder {
 }
 
 /* High contrast mode */
+/* `!important` because without it this entire block was dead code. Both selectors are
+   element-level (0,0,1) and every control in the app gets its border from a class —
+   `.agro-chip`, `.agro-input`, `.agro-goal`, `.admin-edit-cell input` and so on, all
+   (0,1,0) or higher — so nothing here ever won, and a user who asks the OS for more
+   contrast got exactly the same page. Losing on specificity is silent, which is why it
+   went unnoticed. */
 @media (prefers-contrast: more) {
   button {
-    border: 2px solid var(--fg-0);
+    border: 2px solid var(--fg-0) !important;
   }
 
   input,
   select,
   textarea {
-    border-width: 2px;
+    border-width: 2px !important;
+    border-color: var(--fg-0) !important;
   }
 }
 

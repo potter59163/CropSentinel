@@ -31,7 +31,12 @@
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  font-size: 15px;
+  /* 16px, not 15px. The app-wide iOS zoom guard lives in field-override.css as
+     `input { font-size: 16px }` under (pointer: coarse), but that is specificity (0,0,1)
+     and this rule is (0,1,1) — so the one field it failed to protect was the admin password
+     box, where a mid-login zoom that never resets is at its most annoying. Fixed at source
+     rather than by escalating the global rule. */
+  font-size: 16px;
   background: #fff;
   color: var(--fg-0);
 }
@@ -133,6 +138,23 @@
   gap: 6px;
   align-items: center;
 }
+/* Six nowrap columns make this table ~820px wide inside a ~330px scroller on a phone, so
+   the crop name — the only thing identifying which row you are editing — scrolls out of
+   sight long before the edit fields come into view, and you are typing a price into an
+   anonymous row. Pinning the name column keeps the question "which plant is this?"
+   answerable at every scroll position. */
+.admin-price-table th:first-child,
+.admin-price-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  box-shadow: 1px 0 0 var(--line-soft);
+}
+.admin-price-table th:first-child {
+  background: var(--bg-1);
+  z-index: 1;
+}
+
 .admin-edit-cell input {
   width: 90px;
   padding: 6px 8px;
@@ -140,6 +162,14 @@
   border-radius: var(--radius);
   background: #fff;
   color: var(--fg-0);
+}
+/* 90px was set for a 13px number box. A date input has to fit dd/mm/yyyy plus the calendar
+   picker button, and at the 16px the touch guard gives it that needs ~155px — below which
+   Chrome clips the picker button off the right edge, so the field can only be typed into,
+   never picked. The table scrolls horizontally anyway, so the width costs nothing. */
+.admin-edit-cell input[type='date'] {
+  width: auto;
+  min-width: 158px;
 }
 .admin-edit-cell button {
   padding: 6px 10px;

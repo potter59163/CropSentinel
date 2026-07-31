@@ -57,7 +57,20 @@
   box-shadow: 0 18px 48px rgba(10, 22, 16, 0.30), 0 2px 6px rgba(10, 22, 16, 0.12);
   animation: tour-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
   /* slide smoothly when the spotlight moves to the next target */
-  transition: top 0.42s cubic-bezier(0.4, 0, 0.2, 1), left 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  /* `bottom` is animated too: a callout placed above its target is anchored by its bottom
+     edge, so that is the property that moves between steps. */
+  transition:
+    top 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    bottom 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Backstop for the inline max-height Tour.tsx sets per placement. On a short viewport
+     (a phone in landscape, or with the keyboard up) the card can simply be taller than
+     the space it has; it then scrolls its own content, which keeps ถัดไป reachable
+     instead of stranding the user with no way forward. */
+  max-height: calc(100vh - 28px);
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 @keyframes tour-pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
 

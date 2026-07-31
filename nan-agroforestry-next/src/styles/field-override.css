@@ -626,6 +626,14 @@ body::before {
   }
   .agro-wizard-side {
     position: sticky; top: 18px; padding: 16px;
+    /* A sticky box taller than the viewport can never be scrolled to the end of: it pins at
+       top:18px and its own overflow goes off the bottom of the screen for good. The sidebar
+       runs to ~522px, and this breakpoint starts at 820px WIDE, which a phone in landscape
+       satisfies at ~375px TALL — so steps 3 and 4 of the stepper were simply unreachable
+       there. Cap it to the viewport and let it scroll itself. */
+    max-height: calc(100vh - 36px);
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto; overscroll-behavior: contain;
     border: 1.5px solid var(--line); border-radius: var(--radius-lg);
     background: linear-gradient(180deg, var(--surface), var(--surface-soft));
     box-shadow: var(--shadow-card);
@@ -679,6 +687,30 @@ body::before {
     border-radius: 999px; background: var(--data-bg); color: var(--data); font-weight: 700; }
   .agro-form-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .agro-wiz-nav { align-self: end; width: min(100%, 520px); }
+}
+
+/* The sidebar dead zone.
+   Both editor rows collapse to one column in agro.css, but that rule is `max-width: 760px`
+   — written for a phone, before the sidebar existed. From 820px up the sidebar appears and
+   takes 280px out of the row's container, and the arithmetic at 820px is:
+     .agro-app          min(820 - 40, 1240)            = 780
+     main track         780 - 18 gap - 280 sidebar     = 482
+     content box        482 - 36 padding - 3 border    = 443
+     .agro-calc-row min 150 + 92*3 + 24 gaps + 22 box  = 472   ->  29px too wide
+   So the widest viewport is fine and the narrowest is fine, and it breaks in the middle,
+   which is why it survived: nobody tests 820. It does not even show a scrollbar, because
+   `.card { overflow: hidden }` (theme.css) clips it — the third column, the survival-rate
+   input, is simply not there. Same shape for .agro-zone-row (needs 428, only 15px of slack)
+   where the clipped control is ลบ, the only way to delete a zone.
+   Upper bound is generous: the exact break point moves with how wide the sidebar's own
+   content makes its 230-280px track, and stacking a row early costs a little height,
+   while clipping one costs the user an input they cannot reach. */
+@media (min-width: 820px) and (max-width: 939px) {
+  .agro-calc-row { grid-template-columns: 1fr; }
+  .agro-zone-row { grid-template-columns: 28px 1fr; align-items: stretch; }
+  .agro-zone-row label,
+  .agro-zone-remove { grid-column: 2; }
+  .agro-zone-index { align-self: start; }
 }
 
 @media (min-width: 1120px) {
@@ -1061,6 +1093,28 @@ a:hover { color: var(--sugar-0); }
   input, select, textarea {
     font-size: 16px;
   }
+  /* The same two rows also sized their boxes for a mouse — 40px and 38px in agro.css, both
+     under the 44px touch floor. Font size alone does not make a field tappable. Listed with
+     matching specificity so they win over agro.css by import order, same as the rule above. */
+  .agro-zone-row .agro-input,
+  .agro-calc-row .agro-input,
+  .agro-input { min-height: 44px; }
+
+  /* App-wide touch floor.
+     Almost every control in the app was authored against a mouse and sits under the 44px
+     minimum: species chips 32px, zone add/remove 36px, plan tabs and tab bar 36px, result
+     actions 33px, the tour's ✕ 30px, admin's save 32px. They are spread over five
+     stylesheets and there was no floor anywhere, so each was a separate bug.
+     `!important` is deliberate and is the only thing that works here: an element selector
+     is specificity (0,0,1) and loses to every one of those class rules, so a plain
+     `button { min-height: 44px }` would change nothing where it is actually needed. A
+     minimum hit area is not a value a component should be able to opt out of downwards.
+     min-height only — width is left alone so inline controls stay inline. */
+  button, [role='button'], summary, .agro-chip, .agro-pick-chip {
+    min-height: 44px !important;
+  }
+  /* Icon-only controls need the other axis too, or they stay a 30px-wide sliver. */
+  .tour-x { min-width: 44px !important; }
 }
 
 /* GPS feedback. The denied/failed message is the single most likely field error, and it
@@ -1188,7 +1242,18 @@ a:hover { color: var(--sugar-0); }
   justify-items: center; align-items: end;
   height: 100%; gap: 3px;
 }
+/* The three rows are assigned explicitly, and that is load-bearing rather than tidiness.
+   With auto-placement the bar is only in the 1fr track because the mm label happens to
+   occupy row 1 ahead of it — so `display: none` on the mm label (which is what the ≤560px
+   rule does) silently promoted the bar into the `auto` row. Its inline `height: NN%` then
+   had no definite track to resolve against, fell back to auto, and all twelve bars
+   flattened to the 3px min-height: on every phone the rainfall chart was twelve identical
+   stubs. This is the same failure the comment above describes for flex, reintroduced by
+   hiding a sibling. Naming the rows makes the bar's track independent of what is visible. */
+.agro-season-mm { grid-row: 1; }
+.agro-season-mon { grid-row: 3; }
 .agro-season-col i {
+  grid-row: 2;
   display: block; width: 100%; border-radius: 4px 4px 0 0;
   background: var(--bg-4); min-height: 3px; align-self: end;
 }
@@ -1326,11 +1391,14 @@ a:hover { color: var(--sugar-0); }
 }
 .agro-cultivation-flag svg { flex-shrink: 0; margin-top: 2px; }
 .agro-cultivation .agro-gistda-src { margin-top: 11px; }
-
 /* ── Plan comparison ─────────────────────────────────────────────────────────
    Sits between the plan tabs and the plan detail. Uses --sugar-1 on the left rule
    (rather than --taro like the cultivation card) so the two adjacent panels read as
-   different kinds of information at a glance. */
+   different kinds of information at a glance.
+
+   Layout order is deliberate: the swap, then the verdict, then the numbers behind a
+   <details>. The first build led with the table and testers could not tell what the
+   panel was for. */
 .agro-compare {
   margin: 14px 0 4px; padding: 15px 18px 16px;
   background: var(--surface); border: 1.5px solid var(--line-soft);
@@ -1338,19 +1406,109 @@ a:hover { color: var(--sugar-0); }
   border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
   break-inside: avoid;
 }
+.agro-compare.is-waiting { border-left-color: var(--honey); background: linear-gradient(180deg, #fffdf7, var(--surface) 70%); }
+
 .agro-compare-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
 .agro-compare-head b { font-size: 15px; line-height: 1.5; }
 .agro-compare-unpin {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
   background: none; border: 1.5px solid var(--line-soft); border-radius: 999px;
-  padding: 4px 12px; font-size: 12.5px; color: var(--fg-3); cursor: pointer;
+  min-height: 34px; padding: 6px 14px; font-size: 13px; color: var(--fg-3); cursor: pointer;
   transition: all .18s ease;
 }
 .agro-compare-unpin:hover { border-color: var(--sugar-0); color: var(--sugar-1); }
-.agro-compare-lead, .agro-compare-foot {
-  margin: 9px 0 0; font-size: 13px; line-height: 1.72; color: var(--fg-3);
+
+/* ── entry point, in the results action row ── */
+.agro-compare-start {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 600;
+  color: #fff; border: 1.5px solid var(--sugar-2);
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+  box-shadow: var(--shadow-soft); transition: all .18s var(--ease-bounce, ease);
 }
-.agro-compare-foot { margin-top: 12px; font-size: 12.5px; }
+.agro-compare-start:hover { transform: translateY(-2px); }
+.agro-compare-start.is-pinned {
+  color: var(--sugar-1); background: var(--surface); border-color: var(--sugar-0);
+}
+
+/* ── the "you have one parked" strip, shown in the wizard ── */
+.agro-compare-armed {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
+  margin-bottom: 14px; padding: 10px 14px;
+  border-radius: 11px; font-size: 13px; line-height: 1.65;
+  background: var(--warn-bg); border: 1.5px solid #edd49a; color: var(--warn-ink);
+}
+.agro-compare-armed > svg { flex-shrink: 0; }
+.agro-compare-armed > span { flex: 1 1 240px; min-width: 0; }
+.agro-compare-armed-x {
+  margin-left: auto; min-height: 34px; padding: 5px 13px; cursor: pointer;
+  background: rgba(255, 255, 255, .7); border: 1.5px solid #e2c589; border-radius: 999px;
+  font-family: inherit; font-size: 12.5px; color: var(--warn-ink);
+}
+
+/* ── just-pinned state: what to do next ── */
+.agro-compare-next-lead { margin: 10px 0 0; font-size: 13.5px; line-height: 1.7; color: var(--fg-2); }
+.agro-compare-next { margin-top: 11px; display: grid; gap: 9px; }
+.agro-compare-way {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px;
+  padding: 11px 14px; border-radius: 11px;
+  background: var(--surface-soft); border: 1.5px solid var(--line-soft);
+}
+.agro-compare-way-n {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--sugar-1); color: #fff; font-size: 13px; font-weight: 700;
+}
+.agro-compare-way > div { flex: 1 1 200px; min-width: 0; display: grid; gap: 1px; }
+.agro-compare-way b { font-size: 14px; line-height: 1.5; }
+.agro-compare-way span { font-size: 12.5px; line-height: 1.6; color: var(--fg-3); }
+.agro-compare-cta {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 600; color: #fff;
+  border: 1.5px solid var(--sugar-2);
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+  transition: transform .18s ease;
+}
+.agro-compare-cta:hover { transform: translateY(-2px); }
+
+/* ── what changed, as one sentence ── */
+.agro-compare-swapline {
+  margin: 12px 0 0; font-size: 15px; line-height: 1.75;
+  padding: 10px 14px; border-radius: 11px; background: var(--surface-soft);
+}
+/* No line-through: a strike crosses Thai above-vowels (ขมิ้น carries two) and turns a
+   short crop name into a smudge on a phone. The sentence already says "เอา … ออก". */
+.agro-compare-swapline b.out { color: var(--risk-ink); }
+.agro-compare-swapline b.in { color: var(--ok-ink); }
+
+/* ── the answer ── */
+.agro-compare-verdict {
+  margin-top: 11px; padding: 12px 14px; border-radius: 11px;
+  border: 1.5px solid var(--line-soft); background: var(--surface-soft);
+  display: grid; gap: 8px;
+}
+.agro-compare-verdict > b { font-size: 15.5px; line-height: 1.5; }
+.agro-compare-verdict.v-current-better { background: var(--ok-bg); border-color: #bfe0c9; }
+.agro-compare-verdict.v-current-better > b { color: var(--ok-ink); }
+.agro-compare-verdict.v-pinned-better { background: var(--risk-bg); border-color: #f0c9bd; }
+.agro-compare-verdict.v-pinned-better > b { color: var(--risk-ink); }
+.agro-compare-verdict.v-tradeoff { background: var(--warn-bg); border-color: #edd49a; }
+.agro-compare-verdict.v-tradeoff > b { color: var(--warn-ink); }
+.agro-compare-verdict-list { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.agro-compare-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--surface); border: 1.5px solid var(--line-soft);
+}
+.agro-compare-tag svg { flex-shrink: 0; }
+.agro-compare-tag.up { color: var(--ok-ink); border-color: #bfe0c9; }
+.agro-compare-tag.down { color: var(--risk-ink); border-color: #f0c9bd; }
+.agro-compare-verdict-note { font-size: 12.5px; line-height: 1.65; color: var(--fg-2); }
+
+.agro-compare-kept { margin: 10px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--fg-3); }
+
 .agro-compare-invalid {
   margin-top: 11px; display: flex; gap: 9px; align-items: flex-start;
   padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.7;
@@ -1358,34 +1516,34 @@ a:hover { color: var(--sugar-0); }
 }
 .agro-compare-invalid svg { flex-shrink: 0; margin-top: 3px; }
 
-/* what changed in the mix */
-.agro-compare-swap { margin-top: 12px; display: grid; gap: 6px; }
-.agro-compare-swap-row {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
-  padding: 7px 11px; border-radius: 9px; font-size: 13.5px;
+/* ── the numbers, folded away by default ── */
+.agro-compare-details { margin-top: 12px; }
+.agro-compare-details > summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  min-height: 40px; padding: 9px 15px; border-radius: 999px; list-style: none;
+  font-size: 13.5px; font-weight: 600; color: var(--sugar-1);
+  background: var(--surface); border: 1.5px solid var(--line-soft);
 }
-.agro-compare-swap-row.out { background: var(--risk-bg); color: var(--risk-ink); }
-.agro-compare-swap-row.in { background: var(--ok-bg); color: var(--ok-ink); }
-.agro-compare-swap-row.same { background: var(--surface-soft); color: var(--fg-3); }
-.agro-compare-swap-k {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; opacity: .85;
-  min-width: 74px;
-}
+.agro-compare-details > summary::-webkit-details-marker { display: none; }
+.agro-compare-details > summary::after { content: '▾'; font-size: 11px; }
+.agro-compare-details[open] > summary::after { content: '▴'; }
+.agro-compare-details > summary:hover { border-color: var(--sugar-0); }
 
-/* the metric table */
-.agro-compare-table { margin-top: 13px; border-top: 1px solid var(--line-soft); }
+.agro-compare-table { margin-top: 11px; border-top: 1px solid var(--line-soft); }
 .agro-compare-r {
-  display: grid; grid-template-columns: minmax(96px, 1.35fr) 1fr 1fr minmax(72px, .85fr);
+  display: grid; grid-template-columns: minmax(92px, 1.3fr) 1fr 1fr minmax(76px, .9fr);
   gap: 8px; align-items: baseline;
-  padding: 8px 0; border-bottom: 1px solid var(--line-soft);
+  padding: 9px 0; border-bottom: 1px solid var(--line-soft);
 }
 .agro-compare-hdr {
-  font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase;
-  color: var(--fg-3); border-bottom-width: 1.5px; padding-bottom: 6px;
+  font-size: 11.5px; letter-spacing: .04em;
+  color: var(--fg-3); border-bottom-width: 1.5px; padding-bottom: 7px;
 }
 .agro-compare-k { font-size: 13px; color: var(--fg-2); }
 .agro-compare-v { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Per-cell column label. Hidden on wide screens where the header row does the job; it is
+   what keeps the two values identifiable once the row stacks on a phone. */
+.agro-compare-vlab { display: none; }
 .agro-compare-d {
   font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right;
 }
@@ -1393,27 +1551,155 @@ a:hover { color: var(--sugar-0); }
 .agro-compare-d.down { color: var(--risk-ink); }
 .agro-compare-d.flat, .agro-compare-d.void { color: var(--fg-3); font-weight: 500; }
 
-/* the pin button, once something is parked */
-.agro-osm-link.is-pinned { border-color: var(--sugar-0); color: var(--sugar-1); }
+.agro-compare-foot {
+  margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
+}
+.agro-compare-foot p { margin: 0; flex: 1 1 260px; font-size: 12.5px; line-height: 1.7; color: var(--fg-3); }
+.agro-compare-again {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 10px 16px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--sugar-1);
+  background: var(--surface); border: 1.5px solid var(--sugar-0);
+  transition: all .18s ease;
+}
+.agro-compare-again:hover { background: var(--surface-soft); transform: translateY(-2px); }
 
 @media (max-width: 560px) {
   .agro-compare { padding: 13px 14px 14px; }
-  /* Four columns cannot hold ฿1,234,567 on a 360px phone. Drop the delta to its own
-     right-aligned line under the two values rather than truncating any of them. */
+  .agro-compare-unpin { margin-left: 0; }
+  .agro-compare-swapline { font-size: 14.5px; }
+  .agro-compare-verdict > b { font-size: 15px; }
+  .agro-compare-cta, .agro-compare-again { width: 100%; justify-content: center; }
+  .agro-compare-way { gap: 8px 10px; }
+  /* Full-width and 44px tall, because both sit alone on a line here and a 36px pill is
+     under the touch-target floor. */
+  .agro-compare-unpin, .agro-compare-armed-x,
+  .agro-compare-details > summary { width: 100%; min-height: 44px; justify-content: center; }
+
+  /* Four columns cannot hold ฿1,234,567 on a 360px phone. Stack: label, then the two
+     values side by side each carrying its own column name, then the delta.
+     The header row is dropped entirely here — the per-cell .agro-compare-vlab replaces
+     it, which is more robust than remapping header cells into the same grid areas. */
   .agro-compare-r {
     grid-template-columns: 1fr 1fr;
     grid-template-areas: 'k k' 'a b' 'd d';
-    gap: 2px 8px; padding: 9px 0;
+    gap: 3px 8px; padding: 10px 0;
   }
+  .agro-compare-hdr { display: none; }
   .agro-compare-k { grid-area: k; font-size: 12.5px; }
   .agro-compare-v:nth-of-type(2) { grid-area: a; }
   .agro-compare-v:nth-of-type(3) { grid-area: b; }
   .agro-compare-d { grid-area: d; text-align: left; }
-  /* The header must survive the stack. Dropping it entirely left two bare ฿ figures side
-     by side with nothing saying which one is the pinned plan — readable backwards. Keep
-     only the two column names, sitting in the same a/b areas as the values below. */
-  .agro-compare-hdr > :first-child, .agro-compare-hdr > :last-child { display: none; }
-  .agro-compare-hdr > :nth-child(2) { grid-area: a; }
-  .agro-compare-hdr > :nth-child(3) { grid-area: b; }
-  .agro-compare-unpin { margin-left: 0; }
+  .agro-compare-vlab {
+    display: block; font-size: 10.5px; font-weight: 500; line-height: 1.4;
+    color: var(--fg-3); letter-spacing: .02em;
+    /* A long "แผนเดิม · มะม่วงหิมพานต์" must not push the ฿ figure off-screen. */
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Printing: the numbers are the point of a printed comparison, so the folded table must
+   be forced open — <details> prints collapsed by default. */
+@media print {
+  .agro-compare-details > summary { display: none; }
+  .agro-compare-details > div { display: block !important; }
+  .agro-compare-again, .agro-compare-unpin, .agro-compare-cta, .agro-compare-armed { display: none; }
+}
+
+/* ── Thai at 10px ────────────────────────────────────────────────────────────
+   Two long-standing rules sized Thai text as if it were Latin:
+     theme.css:850  .chip           font-size: 10px, mono, uppercase
+     agro.css:237   .agro-impact-k  font: 700 10px/1 mono, uppercase
+   Thai stacks vowels above and tone marks above those, so it needs MORE height than
+   Latin at the same nominal size, not less — at 10px the marks on คำ like "ขั้นที่" and
+   "ภูมิอากาศจริง" merge into the consonant. Both are also set in a mono family that has
+   no Thai glyphs, so Thai silently fell back to a different face mid-string, and
+   text-transform: uppercase does nothing for Thai while stripping nothing useful.
+
+   The Latin-only uses of these classes (chips reading "SDM", "AUC 0.81") still want the
+   compact mono look, so the fix is scoped to the elements actually carrying Thai. */
+.chip.thai,
+.agro-impact-k {
+  font-family: var(--font-thai);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: .02em;
+}
+
+/* ── Field legibility floor ──────────────────────────────────────────────────
+   Measured on the results page at a 320px viewport with every <details> expanded.
+   Two systemic problems, both inherited from agro.css:
+
+   (a) Thai set in var(--font-mono). Mono carries no Thai glyphs, so every one of these
+       strings silently fell back to another face partway through — "ผลผลิต 1,800 กก./ไร่"
+       renders as two different typefaces spliced together, which is exactly the line a
+       farmer reads to check a yield.
+   (b) 10-11px Thai. Thai stacks a vowel above the consonant and a tone mark above that,
+       so it needs more vertical room than Latin at the same nominal size; at 10px on a
+       phone held at arm's length in sunlight the marks close up and ดี/ด่ี/ตี stop being
+       distinguishable. These are labels on numbers the whole plan rests on — "คืนทุน",
+       "ความเป็นวนเกษตร", the per-species yield and price.
+
+   Numerals keep tabular alignment via font-variant-numeric rather than the mono family. */
+.agro-kpi-k,
+.agro-picked,
+.agro-plant-yp,
+.agro-compat,
+.agro-rank {
+  font-family: var(--font-thai);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.agro-kpi-k { font-size: 11.5px; line-height: 1.4; }
+.agro-picked { font-size: 11px; padding: 4px 9px; }
+.agro-plant-yp { font-size: 12px; line-height: 1.55; }
+.agro-compat, .agro-rank { font-size: 11.5px; }
+/* Purely numeric axis labels on the rainfall chart — they may stay compact, but 9.5px is
+   below what a printed copy resolves, so lift to the same floor. */
+.agro-season-mm { font-size: 10.5px; }
+
+/* Touch targets. Measured at 320px: the three plan tabs were 37px tall, the
+   คัดลอกลิงก์แผน / พิมพ์ PDF buttons 33px, and the help FAB 36px — all under the 44px
+   floor, and the plan tabs are the primary navigation of the entire results page.
+   Scoped to coarse pointers so the denser desktop layout is untouched. */
+@media (pointer: coarse) {
+  .agro-plan-tabs button { min-height: 56px; }
+  .agro-osm-link,
+  .agro-compare-start,
+  .agro-result-back,
+  .agro-result-new,
+  .agro-step-reset { min-height: 44px; }
+  .agro-nav .tour-help-fab { min-height: 44px; min-width: 44px; }
+}
+
+/* Same two problems (mono-for-Thai, sub-11px Thai) in three more places found by the same
+   320px sweep. The score breakdown labels ("ความเป็นวนเกษตร", "ความเหมาะสม") were 10px
+   uppercase mono; the source attributions were 10px mono. */
+.agro-score-part div {
+  font: 700 11.5px/1.4 var(--font-thai);
+  text-transform: none; letter-spacing: 0;
+}
+.agro-score-part b { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.agro-gistda-src {
+  font-family: var(--font-thai); font-size: 11px; line-height: 1.6; letter-spacing: 0;
+}
+.agro-compare-vlab { font-size: 11px; }
+/* Same again on the agroforestry-quality chips ("ครบ 4 ชั้น 100%", "คลุมหน้าดิน 80%") —
+   10px mono, all Thai. */
+.agro-system-fit span {
+  font: 700 11.5px/1.4 var(--font-thai); letter-spacing: 0;
+  font-variant-numeric: tabular-nums; padding: 5px 10px;
+}
+
+/* The planting-season chart is the answer to "when do I put seedlings in the ground", and
+   its month labels were shrunk to 9px on exactly the screens that need them most. Below
+   560px the bars simply get narrower; the labels do not have to shrink with them, because
+   they already rotate out of collision by being centred under their own column. */
+@media (max-width: 560px) {
+  .agro-season-mon { font-size: 10.5px; }
+  /* Ten year labels across a ~280px plot would need ~24px each and collide. ปี1, ปี5 and
+     ปี10 are kept — enough to read the x axis — and the rest drop out. */
+  .agro-chart-x.minor { display: none; }
 }

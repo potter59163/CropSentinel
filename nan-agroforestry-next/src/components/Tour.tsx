@@ -15,7 +15,16 @@ export interface TourStep {
 interface Rect { top: number; left: number; width: number; height: number; }
 
 const DIM = 'rgba(10, 22, 16, 0.72)';
-const CALLOUT_H = 235; // conservative height reservation for placement decisions
+/**
+ * Starting guess for the callout height, used only for the very first frame and for the
+ * scrollIntoView decision. The real height is measured and used from then on.
+ *
+ * It must not be trusted for placement: measured at 320x640, real steps render 242-287px
+ * because the Thai body text wraps to more lines than this estimate assumes. Believing 235
+ * put the callout 7-29px past the bottom edge on two steps, clipping the ถัดไป / เริ่มใช้งาน
+ * button that is the only way forward.
+ */
+const CALLOUT_H = 235;
 
 export function Tour({ steps, open, onClose }: {
   steps: TourStep[];
@@ -26,10 +35,45 @@ export function Tour({ steps, open, onClose }: {
   const [rect, setRect] = useState<Rect | null>(null);
   const [, bump] = useState(0); // re-render on viewport resize so the SVG stays full-screen
   const roRef = useRef<ResizeObserver | null>(null);
+  // Real, measured callout height. Placement must not rely on the CALLOUT_H estimate.
+  const calloutRoRef = useRef<ResizeObserver | null>(null);
+  const [calloutH, setCalloutH] = useState(CALLOUT_H);
   const step = steps[i];
   const last = i === steps.length - 1;
 
   useEffect(() => { if (open) setI(0); }, [open]);
+
+  /**
+   * Measure the callout instead of assuming CALLOUT_H. Every step carries a different
+   * amount of Thai body text and it wraps differently at every width, so the height is
+   * only knowable after layout.
+   *
+   * A callback ref rather than an effect: the callout mounts late (it waits for the first
+   * target measurement via `showCallout`), so an effect keyed on [open, i] would run while
+   * the node is still null and never measure. This fires exactly when the node appears.
+   * The ResizeObserver then catches later reflows — font swap, rotation, a step whose text
+   * rewraps. The tolerance guard stops a measure -> setState -> re-render -> measure loop.
+   */
+  const measureCallout = useCallback((el: HTMLDivElement | null) => {
+    calloutRoRef.current?.disconnect();
+    calloutRoRef.current = null;
+    if (!el) return;
+    // offsetHeight, NOT getBoundingClientRect().height: the latter is the TRANSFORMED box,
+    // and .tour-callout runs a `tour-pop` keyframe that scales it 0.98 -> 1. Measuring
+    // through that transform reported 275px then 281px for the same card, which flipped the
+    // state back and forth, re-rendered on every frame and left the pop animation pinned to
+    // its first frame forever. offsetHeight is layout height and ignores transforms.
+    const measure = () => {
+      const h = el.offsetHeight;
+      if (h > 0) setCalloutH((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    calloutRoRef.current = ro;
+  }, []);
+
+  useEffect(() => () => calloutRoRef.current?.disconnect(), []);
 
   useEffect(() => {
     if (!open) return;
@@ -137,33 +181,68 @@ export function Tour({ steps, open, onClose }: {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const W = Math.min(384, vw - 28);
-  const CH = CALLOUT_H;
+  const CH = calloutH;
   const M = 14;
+  /**
+   * The card is never positioned by a number that has to predict its own height.
+   *
+   * `top: rect.top - CH - M` was the bug: CH is a measurement of the PREVIOUS step, so on
+   * a step whose Thai text wraps to more lines the card was placed as if it were short and
+   * then grew downwards past the bottom edge, clipping ถัดไป. Clamping that value against
+   * the same stale CH could not help — the clamp bound was wrong by exactly the same error.
+   *
+   * So each placement anchors the edge that faces the target and lets the card grow towards
+   * the open space, with a max-height that is pure geometry (viewport and target only, no
+   * CH). Overflow is impossible by construction whatever the content height turns out to be;
+   * if the text really is taller than the gap, the card scrolls internally (tour.css) and
+   * ถัดไป stays reachable.
+   */
+  const MIN_H = 160; // never squeeze the card below this — scroll it instead
   let calloutStyle: React.CSSProperties;
   let place: 'center' | 'bottom' | 'top' | 'right' | 'left' | 'sheet';
   if (!rect) {
     place = 'center';
-    calloutStyle = { width: W, left: Math.round((vw - W) / 2), top: Math.max(24, Math.round(vh / 2 - 150)) };
+    calloutStyle = {
+      width: W,
+      left: Math.round((vw - W) / 2),
+      top: Math.max(24, Math.round(vh / 2 - 150)),
+      maxHeight: vh - 48,
+    };
   } else {
     const rBottom = rect.top + rect.height;
     const rRight = rect.left + rect.width;
     const below = vh - rBottom, above = rect.top, right = vw - rRight, left = rect.left;
     if (below >= CH + M) {
+      // anchored at its top, grows downwards into the gap below the target
       place = 'bottom';
-      calloutStyle = { width: W, left: clamp(rect.left, M, vw - W - M), top: Math.round(rBottom + M) };
+      calloutStyle = {
+        width: W,
+        left: clamp(rect.left, M, vw - W - M),
+        top: Math.round(rBottom + M),
+        maxHeight: Math.max(MIN_H, below - M * 2),
+      };
     } else if (above >= CH + M) {
+      // anchored at its BOTTOM, grows upwards into the gap above the target — this is
+      // the case that used to clip, and it now cannot reach the bottom edge at all.
       place = 'top';
-      calloutStyle = { width: W, left: clamp(rect.left, M, vw - W - M), top: Math.round(rect.top - CH - M) };
+      calloutStyle = {
+        width: W,
+        left: clamp(rect.left, M, vw - W - M),
+        bottom: Math.round(vh - rect.top + M),
+        maxHeight: Math.max(MIN_H, above - M * 2),
+      };
     } else if (right >= W + M) {
       place = 'right';
-      calloutStyle = { width: W, left: Math.round(rRight + M), top: clamp(rect.top, M, vh - CH - M) };
+      calloutStyle = { width: W, left: Math.round(rRight + M), ...sideBox(rect.top, vh, M, MIN_H) };
     } else if (left >= W + M) {
       place = 'left';
-      calloutStyle = { width: W, left: Math.round(rect.left - W - M), top: clamp(rect.top, M, vh - CH - M) };
+      calloutStyle = { width: W, left: Math.round(rect.left - W - M), ...sideBox(rect.top, vh, M, MIN_H) };
     } else {
       // target fills the viewport — pin to the larger vertical margin as an edge bar
       place = 'sheet';
-      calloutStyle = below >= above ? { left: 14, right: 14, bottom: 16, width: 'auto' } : { left: 14, right: 14, top: 16, width: 'auto' };
+      calloutStyle = below >= above
+        ? { left: 14, right: 14, bottom: 16, width: 'auto', maxHeight: vh - 32 }
+        : { left: 14, right: 14, top: 16, width: 'auto', maxHeight: vh - 32 };
     }
   }
 
@@ -195,7 +274,7 @@ export function Tour({ steps, open, onClose }: {
       <div className="tour-blocker" onClick={(e) => e.stopPropagation()} />
 
       {showCallout && (
-        <div className={`tour-callout tour-place-${place}`} style={calloutStyle}>
+        <div ref={measureCallout} className={`tour-callout tour-place-${place}`} style={calloutStyle}>
           <div className="tour-head">
             <span className="tour-icon" aria-hidden><Icon name={step.icon ?? 'sprout'} size={19} /></span>
             <span className="tour-count">{i + 1} / {steps.length}</span>
@@ -233,3 +312,14 @@ export function Tour({ steps, open, onClose }: {
 }
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
+
+/**
+ * Vertical box for a callout placed beside its target. It lines up with the top of the
+ * target, but is pulled up far enough to leave MIN_H of room, and its height is capped by
+ * the distance from there to the bottom edge — so like the other placements it is bounded
+ * by geometry alone and never by a guess at its own height.
+ */
+function sideBox(targetTop: number, vh: number, M: number, MIN_H: number): React.CSSProperties {
+  const top = clamp(targetTop, M, Math.max(M, vh - M - MIN_H));
+  return { top: Math.round(top), maxHeight: Math.max(MIN_H, vh - top - M) };
+}

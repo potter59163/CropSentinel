@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { FarmInput, SystemPlan } from '../data/types';
 import {
   assumptionFingerprint, plotIdentity, comparabilityIssues,
-  diffPicks, metricDeltas, metricsOf, snapshotPlan, deltaDirection,
+  diffPicks, metricDeltas, metricsOf, snapshotPlan, deltaDirection, verdictOf,
 } from './comparison';
 
 const baseInput = (over: Partial<FarmInput> = {}): FarmInput => ({
@@ -155,6 +155,57 @@ describe('metric deltas', () => {
       'profit10', 'annualAvg', 'paybackYear', 'transitionCost',
       'suitability', 'agroforestry', 'carbon10',
     ]);
+  });
+});
+
+describe('verdict — the one-line answer above the table', () => {
+  const v = (a: Partial<SystemPlan>, b: Partial<SystemPlan>) =>
+    verdictOf(metricDeltas(metricsOf(plan(['x'], a)), metricsOf(plan(['x'], b))));
+
+  it('calls two identical plans a tie', () => {
+    expect(v({}, {}).kind).toBe('tie');
+  });
+
+  it('names a winner only when it wins or ties on everything', () => {
+    const better = v({ profit10: 1_000_000 }, { profit10: 1_400_000 });
+    expect(better.kind).toBe('current-better');
+    expect(better.gains.map((g) => g.key)).toContain('profit10');
+    expect(better.losses).toHaveLength(0);
+
+    expect(v({ profit10: 1_400_000 }, { profit10: 1_000_000 }).kind).toBe('pinned-better');
+  });
+
+  // The most common real result, and the one the tool must NOT collapse into a winner:
+  // more money for less suitability is a judgement only the farmer can make.
+  it('refuses to name a winner when the plans trade off', () => {
+    const t = v(
+      { profit10: 1_000_000, suitability: 0.70 },
+      { profit10: 1_400_000, suitability: 0.61 },
+    );
+    expect(t.kind).toBe('tradeoff');
+    expect(t.gains.map((g) => g.key)).toContain('profit10');
+    expect(t.losses.map((l) => l.key)).toContain('suitability');
+  });
+
+  it('does not let an invisible difference create a fake tradeoff', () => {
+    const t = v(
+      { profit10: 1_000_000, suitability: 0.7000 },
+      { profit10: 1_400_000, suitability: 0.6999 },
+    );
+    expect(t.kind).toBe('current-better');
+    expect(t.losses).toHaveLength(0);
+  });
+
+  it('reads payback the right way round — sooner is a gain', () => {
+    const g = v({ paybackYear: 7 }, { paybackYear: 4 });
+    expect(g.kind).toBe('current-better');
+    expect(g.gains.map((x) => x.key)).toContain('paybackYear');
+  });
+
+  it('reads a cheaper start-up cost as a gain, not a loss', () => {
+    const g = v({ transitionCost: 90_000 }, { transitionCost: 50_000 });
+    expect(g.kind).toBe('current-better');
+    expect(g.gains.map((x) => x.key)).toContain('transitionCost');
   });
 });
 
