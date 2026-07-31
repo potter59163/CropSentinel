@@ -270,6 +270,18 @@ select.agro-input { cursor: pointer; }
 .agro-kpi-k { font-size: 10px; color: var(--fg-3); }
 .agro-kpi-v { font-size: 16px; font-weight: 800; color: var(--fg-0); font-family: var(--font-mono); letter-spacing: 0; margin-top: 2px; overflow-wrap: anywhere; }
 
+/* Answers the goal a farmer typed into "เป้าหมายรายได้ต่อปี" — see IncomeGoalNote in
+   ResultPlan.tsx. Sits directly under the KPI row it is judging, not buried further down. */
+.agro-goal-note {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 10px; padding: 10px 13px; border-radius: var(--radius);
+  font-size: 13px; line-height: 1.55;
+}
+.agro-goal-note svg { flex-shrink: 0; margin-top: 2px; }
+.agro-goal-note.is-ok { background: var(--ok-bg); color: var(--ok-ink); }
+.agro-goal-note.is-warn { background: var(--warn-bg); color: var(--warn-ink); }
+.agro-goal-note.is-risk { background: var(--risk-bg); color: var(--risk-ink); }
+
 .agro-score-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .agro-score-part { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line-soft); background: var(--bg-1); overflow: hidden; }
 .agro-score-part div { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--fg-3); font: 700 10px/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }

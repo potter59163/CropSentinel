@@ -5,6 +5,7 @@ import { PlantGlyph } from './PlantGlyph';
 import { CashflowChart } from './CashflowChart';
 import { Icon, type IconName } from './Icon';
 import { bahtK, pct, nf0 } from '../lib/format';
+import { incomeGoalStatus } from '../lib/incomeGoal';
 
 const ORDER: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
 
@@ -37,6 +38,53 @@ function ScorePart({ label, value }: { label: string; value: number }) {
     <div className="agro-score-part">
       <div><span>{label}</span><b>{pct(value)}</b></div>
       <i style={{ width: `${Math.round(value * 100)}%` }} />
+    </div>
+  );
+}
+
+/**
+ * "เป้าหมายรายได้ต่อปี" has been collected in the wizard (InputForm.tsx step 3) and
+ * validated in the schema since the form was built, but nothing ever read it back — a
+ * farmer could type ฿180,000 and never learn whether any plan actually reached it. This is
+ * the missing other half: one line, upfront, next to the numbers it is judging.
+ *
+ * It reports on two horizons rather than one because the blended 10-year average can
+ * legitimately hide a plan that works. A canopy-heavy system with a 5-year lag to first
+ * fruit drags that average down in a way that has nothing to do with whether the system
+ * ultimately clears the goal — so "not there yet" (average short, mature strong) and "not
+ * going to get there" (both short) are told as different, specific stories instead of one
+ * verdict that would be right for one of them and false for the other.
+ */
+function IncomeGoalNote({ sys, targetAnnualIncome }: { sys: SystemPlan; targetAnnualIncome?: number }) {
+  if (!targetAnnualIncome || targetAnnualIncome <= 0) return null;
+  const g = incomeGoalStatus(targetAnnualIncome, sys.annualAvg, sys.cashflow);
+
+  if (g.meetsOnAverage) {
+    return (
+      <div className="agro-goal-note is-ok thai">
+        <Icon name="check" size={15} strokeWidth={2.6} />
+        <span>ถึงเป้าหมายที่ตั้งไว้ — เฉลี่ย <b>{bahtK(g.annualAvg)}</b>/ปี จากเป้า {bahtK(g.target)}/ปี ({pct(g.ratioAvg)})</span>
+      </div>
+    );
+  }
+  if (g.meetsAtMaturity) {
+    return (
+      <div className="agro-goal-note is-warn thai">
+        <Icon name="warning" size={15} strokeWidth={2.6} />
+        <span>
+          ยังไม่ถึงเป้าในช่วงแรก — เฉลี่ยทั้ง 10 ปีอยู่ที่ <b>{bahtK(g.annualAvg)}</b>/ปี ({pct(g.ratioAvg)} ของเป้า)
+          เพราะปีแรกๆ ต้นไม้ยังไม่ให้ผล แต่เมื่อระบบโตเต็มที่ (ปีที่ 8–10) คาดว่าจะได้ประมาณ <b>{bahtK(g.matureAnnual)}</b>/ปี ซึ่งถึงเป้าหมาย {bahtK(g.target)}/ปีแล้ว
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="agro-goal-note is-risk thai">
+      <Icon name="warning" size={15} strokeWidth={2.6} />
+      <span>
+        ยังห่างจากเป้าหมาย — เมื่อระบบโตเต็มที่ (ปีที่ 8–10) คาดว่าจะได้ประมาณ <b>{bahtK(g.matureAnnual)}</b>/ปี
+        ({pct(g.ratioMature)} ของเป้า {bahtK(g.target)}/ปี) ขาดอยู่ประมาณ {bahtK(g.target - g.matureAnnual)}/ปี — ลองเพิ่มพื้นที่ปลูกหรือเปลี่ยนชนิดพืชที่ให้ผลตอบแทนสูงขึ้น
+      </span>
     </div>
   );
 }
@@ -154,7 +202,7 @@ function reasonIcon(tone: CompareTone): IconName {
   return 'check';
 }
 
-export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan; rank: number; allSystems?: SystemPlan[] }) {
+export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }: { sys: SystemPlan; rank: number; allSystems?: SystemPlan[]; targetAnnualIncome?: number }) {
   const best = rank === 1;
   const comparisons = comparisonRows(sys, rank, allSystems);
   return (
@@ -225,6 +273,8 @@ export function ResultPlan({ sys, rank, allSystems = [sys] }: { sys: SystemPlan;
         <div className="agro-kpi"><div className="agro-kpi-k thai">กำไรสะสม 10 ปี</div><div className="agro-kpi-v" style={{ color: sys.profit10 >= 0 ? 'var(--ok)' : 'var(--risk)' }}>{bahtK(sys.profit10)}</div></div>
         <div className="agro-kpi"><div className="agro-kpi-k thai">เฉลี่ย/ปี</div><div className="agro-kpi-v">{bahtK(sys.annualAvg)}</div></div>
       </div>
+
+      <IncomeGoalNote sys={sys} targetAnnualIncome={targetAnnualIncome} />
 
       {/* Thai labels: an older farmer reading this on a phone cannot be expected to parse
           "Water fit" or "GISTDA risk". */}

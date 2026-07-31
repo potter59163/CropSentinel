@@ -783,7 +783,7 @@ export function App() {
           />
 
           <div className="agro-plan-panel" role="tabpanel">
-            <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} />
+            <ResultPlan sys={activeSystem} rank={activePlan + 1} allSystems={systems} targetAnnualIncome={input.targetAnnualIncome} />
           </div>
 
           {/* When to plant. Sits directly under the plan because it is the first thing a
