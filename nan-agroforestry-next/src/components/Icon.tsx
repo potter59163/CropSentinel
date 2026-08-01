@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from 'react';
 export type IconName =
   | 'plot' | 'pin' | 'crosshair' | 'leaf' | 'target' | 'check' | 'tree'
   | 'shieldX' | 'shield' | 'checkCircle' | 'drop' | 'fire' | 'satellite'
-  | 'key' | 'soil' | 'sprout' | 'gear' | 'warning' | 'edit' | 'carbon'
+  | 'key' | 'soil' | 'sprout' | 'gear' | 'warning' | 'edit'
   | 'info' | 'arrowLeft' | 'arrowRight' | 'copy' | 'print' | 'mountain';
 
 const P: Record<IconName, ReactNode> = {
@@ -81,11 +81,6 @@ const P: Record<IconName, ReactNode> = {
   </>),
   edit: (<>
     <path d="M14 5l5 5M4 20l1-4L16 5l3 3L8 19l-4 1z" />
-  </>),
-  carbon: (<>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M8.5 14.5c1.4 1.8 4.8 2.2 6.8.3M15.5 8.8c-1.5-1.3-4.3-1.5-6 .2" />
-    <path d="M8 9.5h3M13 14.5h3" />
   </>),
   info: (<>
     <circle cx="12" cy="12" r="8.5" />

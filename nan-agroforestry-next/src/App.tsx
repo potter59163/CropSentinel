@@ -874,8 +874,8 @@ export function App() {
                 <b>{activeSystem.scoreParts.agroforestry ? `${Math.round(activeSystem.scoreParts.agroforestry * 100)}%` : '—'}</b>
               </div>
               <div>
-                <span>คาร์บอน 10 ปี</span>
-                <b>{activeSystem.carbon10.toLocaleString('en-US')} ตัน CO₂</b>
+                <span>ความเป็นไม้ยืนยาว</span>
+                <b>{Math.round(activeSystem.scoreParts.woodyStructure * 100)}%</b>
               </div>
               <div>
                 <span>กำไร 10 ปี</span>

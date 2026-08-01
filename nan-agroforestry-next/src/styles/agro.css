@@ -162,11 +162,20 @@ select.agro-input { cursor: pointer; }
 .agro-calc-target { display: grid; grid-template-columns: minmax(160px, .45fr) minmax(180px, .55fr); gap: 10px; align-items: center; }
 .agro-calc-target span { color: var(--fg-1); font-weight: 800; }
 .agro-calc-empty { color: var(--fg-3); font-size: 12px; line-height: 1.55; }
+.agro-calc-lead { margin: 10px 0 12px; color: var(--fg-2); font-size: 13px; line-height: 1.7; }
 .agro-calc-grid { display: grid; gap: 8px; }
+/* The row holds exactly five editable numbers (price, yield, establishment cost, annual
+   cost, survival), so the track count is declared rather than auto-fit: auto-fit sized the
+   grid from the container and left a sixth, empty track at desktop width. The species name
+   spans the full width on its own line so the five boxes always share space evenly.
+   5 -> 3 -> 2 columns wraps as 5 / 3+2 / 2+2+1, all of which stay comparable at a glance. */
 .agro-calc-row {
-  display: grid; grid-template-columns: minmax(150px, 1fr) repeat(3, minmax(92px, .55fr)); gap: 8px; align-items: end;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; align-items: end;
   padding: 10px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--bg-1);
 }
+.agro-calc-name { grid-column: 1 / -1; }
+@media (max-width: 760px) { .agro-calc-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 430px) { .agro-calc-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .agro-calc-row b { color: var(--fg-0); font-size: 13px; line-height: 1.25; }
 .agro-calc-row label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 /* These labels were 9px uppercase mono reading "฿/kg / kg/rai / survival". At 9px they are
@@ -365,20 +374,12 @@ select.agro-input { cursor: pointer; }
 .agro-gistda-body b { font-size: 15px; color: var(--fg-0); }
 .agro-gistda-src { margin-top: 6px; font-size: 10px; color: var(--fg-3); font-family: var(--font-mono); }
 
-/* carbon strip */
-.agro-carbon { display: flex; align-items: flex-start; gap: 10px;
-  background: linear-gradient(135deg, oklch(0.34 0.09 154 / 0.5), oklch(0.3 0.06 200 / 0.4));
-  border: 1px solid oklch(0.6 0.12 154 / 0.4); border-radius: 12px; padding: 9px 12px; font-size: 12.5px;
-  color: var(--fg-1); font-family: var(--font-thai); }
+/* transition strip */
 .agro-transition-strip {
   display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 12px;
   border: 1px solid oklch(0.72 0.13 222 / 0.34); background: var(--data-bg);
   color: var(--fg-1); font-family: var(--font-thai); font-size: 12.5px;
 }
-.agro-carbon b { color: var(--ok); font-family: var(--font-mono); }
-.agro-carbon-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 999px; color: var(--ok); }
-.agro-carbon-copy { min-width: 0; }
-.agro-carbon-copy span { display: block; font-size: 11px; color: var(--fg-3); margin-top: 2px; }
 
 .agro-sensitivity,
 .agro-soil-proxy {
@@ -464,7 +465,9 @@ select.agro-input { cursor: pointer; }
   .agro-chips { gap: 7px; }
   .agro-chip { flex: 1 1 calc(50% - 7px); justify-content: center; padding-inline: 10px; font-size: 13px; }
   .agro-calc-target { grid-template-columns: 1fr; }
-  .agro-calc-row { grid-template-columns: 1fr; }
+  /* .agro-calc-row deliberately keeps its auto-fit track here. Forcing 1fr stacked all five
+     number boxes into one very tall column; auto-fit already lands on 2 columns at 320px,
+     which is both shorter and easier to compare across. */
   .agro-osm-head { flex-direction: column; gap: 9px; }
   .agro-osm-link { align-self: flex-start; }
   .agro-osm-map { height: 260px; }
@@ -508,7 +511,6 @@ select.agro-input { cursor: pointer; }
   .agro-osm-map { height: 230px; }
   .agro-osm-meta span { flex: 1 1 calc(50% - 7px); text-align: center; }
   .agro-submit { font-size: 15px; }
-  .agro-carbon,
   .agro-transition-strip { font-size: 12px; }
 }
 

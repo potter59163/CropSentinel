@@ -320,9 +320,21 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
             </div>
           </Field>
 
+          {/* Framed as "your numbers beat ours", not as advanced settings. The old summary
+              said "(ไม่บังคับ)", which reads as skippable — but the defaults are national
+              reference figures, and a farmer who knows what their own buyer pays holds
+              strictly better information about their own plot than any national average.
+              Every ฿ figure in the result is downstream of these five numbers. */}
           {selectedPlantIds.length > 0 && (
             <details className="agro-advanced">
-              <summary className="thai"><Icon name="gear" size={17} /> ปรับราคา/ผลผลิต/อัตรารอด รายชนิด (ไม่บังคับ)</summary>
+              <summary className="thai">
+                <Icon name="gear" size={17} /> ใส่ราคาและต้นทุนของคุณเอง ({selectedPlantIds.length} ชนิด)
+              </summary>
+              <p className="thai agro-calc-lead">
+                ตัวเลขที่ใส่ไว้ให้เป็น<b>ค่าอ้างอิงกลาง</b> ถ้าคุณรู้ราคาที่ขายได้จริงในพื้นที่
+                หรือต้นทุนที่จ่ายจริง <b>ใส่ทับได้เลย — จะแม่นกว่า</b>
+                {' '}เพราะรายได้ทุกตัวในผลลัพธ์คำนวณจากช่องเหล่านี้
+              </p>
               <div className="agro-calc-grid">
                 {selectedPlantIds.map((id) => {
                   const plant = PLANTS.find((p) => p.id === id);
@@ -344,6 +356,22 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
                         <span className="thai">ผลผลิต กก./ไร่</span>
                         <input type="number" className="agro-input" value={a.yieldKgPerRai ?? plant.yieldKgPerRai}
                           onChange={(e) => setAssumption(id, { yieldKgPerRai: Number(e.target.value) || plant.yieldKgPerRai })} />
+                      </label>
+                      {/* Cost, not just price. The engine, the schema and CropAssumption have
+                          supported establishCostPerRai / annualCostPerRai since the start
+                          (engine.ts:258) — there was simply never an input for them, so the
+                          cashflow always used a national default cost against a price the
+                          farmer could correct. Half an override is worse than none: it let a
+                          farmer lower the price and still be charged someone else's costs. */}
+                      <label>
+                        <span className="thai">ต้นทุนปลูก ฿/ไร่</span>
+                        <input type="number" min={0} className="agro-input" value={a.establishCostPerRai ?? plant.establishCostPerRai}
+                          onChange={(e) => setAssumption(id, { establishCostPerRai: Number(e.target.value) || plant.establishCostPerRai })} />
+                      </label>
+                      <label>
+                        <span className="thai">ต้นทุนดูแล ฿/ไร่/ปี</span>
+                        <input type="number" min={0} className="agro-input" value={a.annualCostPerRai ?? plant.annualCostPerRai}
+                          onChange={(e) => setAssumption(id, { annualCostPerRai: Number(e.target.value) || plant.annualCostPerRai })} />
                       </label>
                       <label>
                         <span className="thai">อัตรารอด (0–1)</span>

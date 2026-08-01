@@ -894,25 +894,22 @@ body::before {
 .agro-gistda-body b { color: var(--fg-0); }
 .agro-gistda-src { color: var(--fg-3); }
 
-/* ── carbon strip (was dark green) ─────────────────────────────────────── */
-.agro-carbon {
-  display: flex; align-items: flex-start; gap: 10px;
-  background: linear-gradient(135deg, var(--ok-bg), #e5f2ed);
-  border: 1.5px solid #b9d9c4; border-radius: var(--radius); color: var(--fg-1);
+/* ── transition strip ──────────────────────────────────────────────────────
+   These three rules were previously the .agro-carbon-* ones, which the transition strip
+   borrowed. The carbon panel is gone, so they are named for their only remaining owner. */
+.agro-transition-ic {
+  display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
+  border-radius: 999px; color: var(--taro-deep); background: #fff;
+  box-shadow: var(--shadow-soft);
 }
+.agro-transition-copy { min-width: 0; }
+.agro-transition-copy b { color: var(--taro-deep); }
+.agro-transition-copy span { color: var(--fg-3); display: block; margin-top: 2px; }
 .agro-transition-strip {
   display: flex; align-items: flex-start; gap: 10px;
   background: linear-gradient(135deg, var(--data-bg), #f3eefb);
   border: 1.5px solid #d6c8ef; border-radius: var(--radius); color: var(--fg-1);
 }
-.agro-carbon-icon {
-  display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
-  border-radius: 999px; color: var(--ok); background: #fff;
-  box-shadow: var(--shadow-soft);
-}
-.agro-carbon-copy { min-width: 0; }
-.agro-carbon b { color: var(--ok); }
-.agro-carbon-copy span { color: var(--fg-3); display: block; margin-top: 2px; }
 
 /* ── sensitivity / soil proxy ──────────────────────────────────────────── */
 .agro-sensitivity-grid div { background: var(--bg-1); border: 1.5px solid var(--line-soft); border-radius: var(--radius); }
@@ -1706,3 +1703,28 @@ a:hover { color: var(--sugar-0); }
      ปี10 are kept — enough to read the x axis — and the rest drop out. */
   .agro-chart-x.minor { display: none; }
 }
+
+/* Why-carbon-was-cut list on the Methodology page. Each row is one disqualifying fact with
+   its consequence, so a reviewer who remembers the old carbon headline can check the
+   reasoning rather than take the removal on trust. */
+.method-cutlist { margin-top: 13px; display: grid; gap: 9px; }
+.method-cut {
+  display: grid; gap: 3px; padding: 12px 14px;
+  background: var(--surface-soft); border: 1.5px solid var(--line-soft);
+  border-left: 3px solid var(--risk); border-radius: 11px;
+  break-inside: avoid;
+}
+.method-cut b { font-size: 14px; line-height: 1.55; color: var(--fg-0); }
+.method-cut span { font-size: 13px; line-height: 1.72; color: var(--fg-2); }
+
+/* The qualitative replacement for the carbon panel on the result page. */
+.agro-eco-note {
+  margin-top: 14px; display: flex; gap: 11px; align-items: flex-start;
+  padding: 13px 15px; border-radius: var(--radius-lg);
+  background: var(--ok-bg); border: 1.5px solid #bfe0c9;
+  break-inside: avoid;
+}
+.agro-eco-note-ic { flex-shrink: 0; color: var(--ok-ink); line-height: 1; }
+.agro-eco-note > div { display: grid; gap: 3px; min-width: 0; }
+.agro-eco-note b { font-size: 14px; line-height: 1.55; color: var(--ok-ink); }
+.agro-eco-note span { font-size: 12.5px; line-height: 1.7; color: var(--fg-2); }

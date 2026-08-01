@@ -44,7 +44,7 @@ describe('batch — RECOFTC 30-plot sample', () => {
     const rows = parseCsv(readFileSync(SAMPLE, 'utf8'));
     expect(rows.length).toBeGreaterThanOrEqual(20);
 
-    const out = ['external_ref,farmer_label,size_rai,elevation_m,best_badge,profit10_baht,payback_year,agroforestry_pct,carbon10_tco2e,canopy_species'];
+    const out = ['external_ref,farmer_label,size_rai,elevation_m,best_badge,profit10_baht,payback_year,agroforestry_pct,woody_structure_pct,canopy_species'];
 
     const distinctCanopy = new Set<string>();
     for (const r of rows) {
@@ -69,7 +69,7 @@ describe('batch — RECOFTC 30-plot sample', () => {
       out.push([
         r.external_ref, r.farmer_label, String(input.sizeRai), String(input.elevationM),
         best.badge, String(best.profit10), best.paybackYear === null ? '' : String(best.paybackYear),
-        String(Math.round(best.scoreParts.agroforestry * 100)), String(best.carbon10), canopy,
+        String(Math.round(best.scoreParts.agroforestry * 100)), String(Math.round(best.scoreParts.woodyStructure * 100)), canopy,
       ].map(csvCell).join(','));
     }
 

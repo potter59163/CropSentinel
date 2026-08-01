@@ -102,7 +102,8 @@ export interface LayerPick {
     economics: number;
     waterFit: number;
     riskFit: number;
-    carbon: number;
+    /** Relative woody permanence — see WOODY_STRUCTURE_INDEX in data/plants.ts. */
+    woodyStructure: number;
   };
 }
 
@@ -114,10 +115,7 @@ export interface SystemPlan {
   profit10: number;
   annualAvg: number;
   suitability: number;          // mean across picks
-  carbonPerYear: number;        // tCO2e/yr sequestered at maturity
-  carbon10: number;             // cumulative tCO2e over 10 yr
   productProfit10: number;
-  ecosystemValue10: number;
   transitionCost: number;
   transitionNotes: string[];
   score: number;
@@ -127,7 +125,8 @@ export interface SystemPlan {
     economics: number;
     waterFit: number;
     riskFit: number;
-    carbon: number;
+    /** Relative woody permanence — see WOODY_STRUCTURE_INDEX in data/plants.ts. */
+    woodyStructure: number;
     farmerFit: number;
   };
   agroforestryParts: {

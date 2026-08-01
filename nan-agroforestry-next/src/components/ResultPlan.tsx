@@ -138,7 +138,6 @@ function comparisonRows(sys: SystemPlan, rank: number, allSystems: SystemPlan[])
   const bestOtherScore = Math.max(...others.map(({ plan }) => plan.score));
   const bestOtherProfit = Math.max(...others.map(({ plan }) => plan.profit10));
   const fastestOtherPayback = Math.min(...others.map(({ plan }) => paybackValue(plan)));
-  const bestOtherCarbon = Math.max(...others.map(({ plan }) => plan.carbon10));
   const bestOtherRisk = Math.max(...others.map(({ plan }) => plan.scoreParts.riskFit));
   const bestOtherSuit = Math.max(...others.map(({ plan }) => plan.scoreParts.suitability));
 
@@ -167,7 +166,6 @@ function comparisonRows(sys: SystemPlan, rank: number, allSystems: SystemPlan[])
   }
 
   const strengths = [
-    sys.carbon10 >= bestOtherCarbon ? `คาร์บอนสูงสุด ${sys.carbon10.toLocaleString('en-US')} tCO₂e/10 ปี` : '',
     sys.scoreParts.riskFit >= bestOtherRisk ? `รับมือความเสี่ยง GISTDA ดีสุด ${pct(sys.scoreParts.riskFit)}` : '',
     sys.scoreParts.suitability >= bestOtherSuit ? `ความเหมาะสมพืชสูงสุด ${pct(sys.scoreParts.suitability)}` : '',
   ].filter(Boolean);
@@ -177,7 +175,6 @@ function comparisonRows(sys: SystemPlan, rank: number, allSystems: SystemPlan[])
     const wins = [
       sys.profit10 > plan.profit10 + 1000 ? `กำไร ${signedMoney(sys.profit10 - plan.profit10)}` : '',
       paybackValue(sys) < paybackValue(plan) ? `คืนทุนเร็วกว่า ${paybackValue(plan) - paybackValue(sys)} ปี` : '',
-      sys.carbon10 > plan.carbon10 + 0.5 ? `คาร์บอน ${signedNumber(Math.round(sys.carbon10 - plan.carbon10), ' tCO₂e')}` : '',
       sys.scoreParts.agroforestry > plan.scoreParts.agroforestry + 0.01 ? `วนเกษตร +${scorePoints(sys.scoreParts.agroforestry - plan.scoreParts.agroforestry)} จุด` : '',
       sys.scoreParts.riskFit > plan.scoreParts.riskFit + 0.01 ? `GISTDA risk +${scorePoints(sys.scoreParts.riskFit - plan.scoreParts.riskFit)} จุด` : '',
       sys.scoreParts.suitability > plan.scoreParts.suitability + 0.01 ? `เหมาะสมพืช +${scorePoints(sys.scoreParts.suitability - plan.scoreParts.suitability)} จุด` : '',
@@ -284,7 +281,7 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
         <ScorePart label="ความคุ้มค่าทางเศรษฐกิจ" value={sys.scoreParts.economics} />
         <ScorePart label="ความเหมาะกับปริมาณน้ำ" value={sys.scoreParts.waterFit} />
         <ScorePart label="รับมือความเสี่ยงภัยพิบัติ" value={sys.scoreParts.riskFit} />
-        <ScorePart label="การกักเก็บคาร์บอน" value={sys.scoreParts.carbon} />
+        <ScorePart label="ความเป็นไม้ยืนยาว" value={sys.scoreParts.woodyStructure} />
       </div>
 
       <div className="agro-system-fit">
@@ -295,18 +292,30 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
         <span>เป็นแนวกันชน {pct(sys.agroforestryParts.riskBuffer)}</span>
       </div>
 
-      <div className="agro-carbon">
-        <span className="agro-carbon-icon"><Icon name="carbon" size={24} /></span>
-        <div className="agro-carbon-copy thai">
-          <div>กักคาร์บอน ~<b>{sys.carbonPerYear}</b> tCO₂e/ปี · 10 ปีรวม ~<b>{sys.carbon10}</b> tCO₂e</div>
-          <span>สินค้าเกษตร 10 ปี {bahtK(sys.productProfit10)} · มูลค่าคาร์บอนอ้างอิง {bahtK(sys.ecosystemValue10)} · ไม่ใช่เครดิตรับรอง</span>
+      {/* Replaces a panel that printed "กักคาร์บอน ~X tCO₂e" plus "มูลค่าคาร์บอนอ้างอิง ฿Y".
+          Both numbers were uncited, the tonnage ran 2-4x above the only verified Thai
+          smallholder figure, and the baht value monetised it at an unsourced 220 THB/tCO₂e —
+          money a Nan farmer cannot actually collect. T-VER needs ≥10 rai, legal land-use
+          documents (which much คทช. land in Nan lacks) and ~50,000-75,000 THB of year-one
+          validation cost against a few hundred baht a year of credit value. RECOFTC, this
+          project's own partner, states plainly that it does not offer carbon credits because
+          certification is too expensive and it marginalises smallholders. So the claim is
+          qualitative now, with no number to plant on. Full reasoning in Methodology. */}
+      <div className="agro-eco-note thai">
+        <span className="agro-eco-note-ic"><Icon name="tree" size={22} /></span>
+        <div>
+          <b>ไม้ยืนต้นในแผนนี้ช่วยฟื้นดินและยึดหน้าดินระยะยาว</b>
+          <span>
+            ระบบไม่แสดงตัวเลขคาร์บอนหรือมูลค่าคาร์บอน เพราะการขายคาร์บอนเครดิตยังไม่คุ้มและยังทำไม่ได้จริง
+            สำหรับแปลงขนาดนี้ — ดูเหตุผลและที่มาได้ในหน้า “วิธีการ”
+          </span>
         </div>
       </div>
 
       {sys.transitionCost > 0 && (
         <div className="agro-transition-strip">
-          <span className="agro-carbon-icon"><Icon name="plot" size={23} /></span>
-          <div className="agro-carbon-copy thai">
+          <span className="agro-transition-ic"><Icon name="plot" size={23} /></span>
+          <div className="agro-transition-copy thai">
             <div>ต้นทุนเปลี่ยนผ่านแปลงเดิม ~<b>{bahtK(sys.transitionCost)}</b> หักในปีที่ 1</div>
             <span>{sys.transitionNotes[0]}</span>
           </div>

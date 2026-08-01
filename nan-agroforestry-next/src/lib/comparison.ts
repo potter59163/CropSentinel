@@ -52,7 +52,7 @@ export interface PlanMetrics {
   annualAvg: number;
   paybackYear: number | null;
   suitability: number;
-  carbon10: number;
+  woodyStructure: number;
   transitionCost: number;
   agroforestry: number;
 }
@@ -100,7 +100,7 @@ export function metricsOf(sys: SystemPlan): PlanMetrics {
     annualAvg: sys.annualAvg,
     paybackYear: sys.paybackYear,
     suitability: sys.suitability,
-    carbon10: sys.carbon10,
+    woodyStructure: sys.scoreParts.woodyStructure,
     transitionCost: sys.transitionCost,
     agroforestry: sys.scoreParts.agroforestry,
   };
@@ -163,7 +163,7 @@ export interface MetricDelta {
   delta: number | null;
   /** Whether a larger number is better, so the UI can colour without knowing the metric. */
   higherIsBetter: boolean;
-  format: 'baht' | 'year' | 'pct' | 'tco2e';
+  format: 'baht' | 'year' | 'pct';
 }
 
 const METRIC_SPEC: Array<{
@@ -179,7 +179,7 @@ const METRIC_SPEC: Array<{
   { key: 'transitionCost', label: 'ต้นทุนเริ่มต้น', higherIsBetter: false, format: 'baht' },
   { key: 'suitability', label: 'ความเหมาะสมเฉลี่ย', higherIsBetter: true, format: 'pct' },
   { key: 'agroforestry', label: 'คะแนนวนเกษตร', higherIsBetter: true, format: 'pct' },
-  { key: 'carbon10', label: 'คาร์บอน 10 ปี', higherIsBetter: true, format: 'tco2e' },
+  { key: 'woodyStructure', label: 'ความเป็นไม้ยืนยาว', higherIsBetter: true, format: 'pct' },
 ];
 
 /**
@@ -191,7 +191,6 @@ const DISPLAY_EPSILON: Record<MetricDelta['format'], number> = {
   baht: 0.5,   // rendered as whole baht
   year: 0.5,   // rendered as a whole year
   pct: 0.005,  // rendered as a whole percent
-  tco2e: 0.05, // rendered to one decimal
 };
 
 /**

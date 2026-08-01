@@ -1,5 +1,5 @@
 import type { Plant, Layer, FarmInput, SystemPlan, LayerPick, CashflowPoint, Goal, CropAssumption, SoilHealthProxy, ExistingZone } from '../data/types';
-import { PLANTS, co2Of } from '../data/plants';
+import { PLANTS, woodyOf } from '../data/plants';
 import { disasterFeatureContext, plantSuitability } from './suitability';
 import type { Climate } from './climate';
 import type { ProtectedArea } from './gistda';
@@ -25,8 +25,7 @@ function realizedHorizonFraction(p: Plant): number {
 // realised (not peak-potential) revenue per rai over the horizon
 const realizedValue = (p: Plant) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear * realizedHorizonFraction(p);
 const MAX_VALUE = Math.max(...PLANTS.map(realizedValue));
-const MAX_CARBON = Math.max(...PLANTS.map((p) => co2Of(p.id)));
-const CARBON_VALUE_THB = 220;
+const MAX_WOODY = Math.max(...PLANTS.map((p) => woodyOf(p.id)));
 const TRANSITION_COST_PER_RAI: Record<string, number> = {
   'ข้าวโพดเลี้ยงสัตว์': 2400,
   'ข้าวไร่': 1900,
@@ -49,7 +48,7 @@ interface Scored {
   value: number;
   waterFit: number;
   riskFit: number;
-  carbonFit: number;
+  woodyFit: number;
   soilFit: number;
   realized: number; // fraction of the 10-yr horizon the crop actually yields over
 }
@@ -171,7 +170,7 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: Soi
     // SDM is 62% of the blend so it stays the dominant signal, but water/soil/
     // risk can now nudge the score both ways (not just downward) — good soil no
     // longer fails to help a species the SDM rates only middling.
-    const rawSuit = clamp((s.score * 0.62) + (water * 0.12) + (riskScore * 0.1) + (soilScore * 0.1) + ((co2Of(p.id) / MAX_CARBON) * 0.06), 0, 1);
+    const rawSuit = clamp((s.score * 0.62) + (water * 0.12) + (riskScore * 0.1) + (soilScore * 0.1) + ((woodyOf(p.id) / MAX_WOODY) * 0.06), 0, 1);
     // hard agronomic guardrails still apply: a severe elevation or drainage/
     // acidity mismatch keeps a crop from ever looking "great" on this plot.
     const soilCap = 0.55 + soilScore * 0.45;
@@ -185,7 +184,7 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: Soi
       value: realizedValue(p) / MAX_VALUE,
       waterFit: water,
       riskFit: riskScore,
-      carbonFit: co2Of(p.id) / MAX_CARBON,
+      woodyFit: woodyOf(p.id) / MAX_WOODY,
       soilFit: soilScore,
       realized: realizedHorizonFraction(p),
     });
@@ -197,8 +196,8 @@ function goalRank(goal: Goal, s: Scored): number {
   const fast = s.plant.perennial ? clamp(1 - (s.plant.yearsToYield - 1) / 9, 0, 1) : 1;
   let base: number;
   if (goal === 'fast') base = 0.3 * s.suit + 0.32 * fast + 0.16 * s.value + 0.12 * s.waterFit + 0.1 * s.riskFit;
-  else if (goal === 'profit') base = 0.24 * s.suit + 0.48 * s.value + 0.1 * s.waterFit + 0.1 * s.riskFit + 0.08 * s.carbonFit;
-  else base = 0.36 * s.suit + 0.22 * s.value + 0.17 * s.waterFit + 0.13 * s.riskFit + 0.12 * s.carbonFit;
+  else if (goal === 'profit') base = 0.24 * s.suit + 0.48 * s.value + 0.1 * s.waterFit + 0.1 * s.riskFit + 0.08 * s.woodyFit;
+  else base = 0.36 * s.suit + 0.22 * s.value + 0.17 * s.waterFit + 0.13 * s.riskFit + 0.12 * s.woodyFit;
   // Every goal lives inside the 10-yr horizon, so a crop that yields little/
   // nothing in that window (e.g. teak, first cut ~year 15) shouldn't be auto-
   // ranked as a primary. Farmer-selected plants are forced in elsewhere and
@@ -396,7 +395,7 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
         economics: s.value,
         waterFit: s.waterFit,
         riskFit: s.riskFit,
-        carbon: s.carbonFit,
+        woodyStructure: s.woodyFit,
       },
     });
   };
@@ -419,37 +418,37 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
     return { ...s, cashflow: flow, profit10, annualAvg: Math.round(profit10 / HORIZON), paybackYear: payback(flow) };
   });
 
-  // carbon sequestration (woody layers store carbon as they grow)
-  let carbonPerYear = 0, carbon10 = 0;
+  // How much permanent woody structure the system builds up over the horizon, area-weighted
+  // and ramped by how mature each perennial gets within 10 years. Used only as a relative
+  // score — see WOODY_STRUCTURE_INDEX for why absolute tCO2e figures were removed.
+  let woodyAccum = 0;
   for (const pk of picks) {
-    const co2 = co2Of(pk.plant.id) * pk.shareRai;
-    carbonPerYear += co2;
+    const w = woodyOf(pk.plant.id) * pk.shareRai;
     for (let y = 1; y <= HORIZON; y++) {
       const grow = pk.plant.perennial ? clamp(y / pk.plant.yearsToMature, 0, 1) : 1;
-      carbon10 += co2 * grow;
+      woodyAccum += w * grow;
     }
   }
 
   const suitability = picks.reduce((s, p) => s + p.suitability, 0) / picks.length;
   // per-rai so small and large plots are scored on the same footing (matches how
-  // carbonScore below already normalises by area). ~800k baht/rai over 10 yr = "excellent".
+  // woodyScore below already normalises by area). ~800k baht/rai over 10 yr = "excellent".
   const economics = clamp(cum / Math.max(1, sizeRai * 800_000), 0, 1);
   const water = picks.reduce((s, p) => s + p.scoreParts.waterFit, 0) / picks.length;
   const disaster = picks.reduce((s, p) => s + p.scoreParts.riskFit, 0) / picks.length;
-  const carbonScore = clamp(carbon10 / Math.max(1, sizeRai * 42), 0, 1);
+  const woodyScore = clamp(woodyAccum / Math.max(1, sizeRai * 6.5), 0, 1);
   const farmerTotal = Object.values(input.selectedByLayer ?? {}).reduce((s, ids) => s + ids.length, 0);
   const farmerUsed = picks.filter((p) => p.pickedBy === 'farmer').length;
   const farmerFit = farmerTotal ? farmerUsed / farmerTotal : 0.72;
   const agro = agroforestryFit(picks, cashflow, canopyShadeMature);
-  const scoreParts = { agroforestry: agro.score, suitability, economics, waterFit: water, riskFit: disaster, carbon: carbonScore, farmerFit };
-  const score = scoreParts.agroforestry * 0.22 + scoreParts.suitability * 0.26 + scoreParts.economics * 0.18 + scoreParts.waterFit * 0.1 + scoreParts.riskFit * 0.11 + scoreParts.carbon * 0.08 + scoreParts.farmerFit * 0.05;
+  const scoreParts = { agroforestry: agro.score, suitability, economics, waterFit: water, riskFit: disaster, woodyStructure: woodyScore, farmerFit };
+  const score = scoreParts.agroforestry * 0.22 + scoreParts.suitability * 0.26 + scoreParts.economics * 0.18 + scoreParts.waterFit * 0.1 + scoreParts.riskFit * 0.11 + scoreParts.woodyStructure * 0.08 + scoreParts.farmerFit * 0.05;
 
   return {
     picks, canopy: picks.filter((p) => p.layer === 'canopy'),
     cashflow, paybackYear, profit10: Math.round(cum), annualAvg: Math.round(cum / HORIZON),
-    suitability, carbonPerYear: Math.round(carbonPerYear * 10) / 10, carbon10: Math.round(carbon10),
+    suitability,
     productProfit10: Math.round(cum),
-    ecosystemValue10: Math.round(carbon10 * CARBON_VALUE_THB),
     transitionCost: transition.cost,
     transitionNotes: transition.notes,
     score, scoreParts, agroforestryParts: agro.parts, badge: '', reasons: reasonsFor(picks, paybackYear, scoreParts, soil, transition.notes), warnings: warningsFor(picks, canopyShadeMature, agro.parts, soil, transition),

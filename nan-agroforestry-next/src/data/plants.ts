@@ -49,17 +49,32 @@ export const PLANTS: Plant[] = [
   P('galangal', 'ข่า', 'Galangal', 'root', 'พืชหัว/เครื่องเทศ', 100, 1200, true, 1, 2, 25, 2000, 0.6, 0, false, 'med', 3000, 2000, 1, 'galangal', 'ทนร่ม ปลูกครั้งเดียวเก็บได้นาน เหมาะต่ำ-กลางถึงพื้นที่สูงไม่หนาวจัด'),
 ];
 
-// aboveground + soil carbon sequestration during the productive phase
-// (tCO2e / rai / yr). Literature-based estimate: tropical agroforestry ≈ 3–8
-// tCO2e/ha/yr; ×0.16 ha/rai. Woody perennials store carbon; annuals ≈ soil only.
-export const CO2_PER_RAI_YR: Record<string, number> = {
-  bamboo: 1.3, teak: 1.1, macadamia: 0.85, avocado: 0.85, longan: 0.8, mango: 0.8,
-  cashew: 0.7, maikhwaen: 0.65, banana: 0.35,
-  coffee: 0.35, tea: 0.35, chili: 0.06, lemongrass: 0.06,
-  peanut: 0.08, pumpkin: 0.05, sweetpotato: 0.05, pineapple: 0.05,
-  ginger: 0.05, turmeric: 0.05, taro: 0.05, galangal: 0.07,
+/**
+ * Relative woody-structure index, 0..1. How much permanent woody biomass a species builds —
+ * which is what makes an agroforestry system durable rather than a rotation crop.
+ *
+ * This REPLACES a table of absolute tCO2e/rai/yr figures. Those figures were uncited (the
+ * comment said only "literature-based estimate: 3-8 tCO2e/ha/yr") and, checked against the
+ * one verified Thai smallholder number available — TGO's own Green Carbon Bank case in Khon
+ * Kaen, 401 tCO2e over 3 years across 365.30 rai, i.e. ~0.366 tCO2e/rai/yr actually credited
+ * — the canopy values here were roughly 2-4x too high. They were also monetised at an
+ * unsourced 220 THB/tCO2e and printed next to the farmer's real product income.
+ *
+ * The absolute quantities are gone because they could not be defended. The ORDERING is kept,
+ * because it is uncontroversial: bamboo and teak accumulate far more woody biomass per rai
+ * than coffee, which accumulates far more than ginger. The engine only ever used this
+ * ordinally (normalised against the maximum), so nothing of value is lost.
+ *
+ * See Methodology.tsx for why carbon credits are not offered to farmers here at all.
+ */
+export const WOODY_STRUCTURE_INDEX: Record<string, number> = {
+  bamboo: 1.00, teak: 0.85, macadamia: 0.65, avocado: 0.65, longan: 0.62, mango: 0.62,
+  cashew: 0.54, maikhwaen: 0.50, banana: 0.27,
+  coffee: 0.27, tea: 0.27, chili: 0.05, lemongrass: 0.05,
+  peanut: 0.06, pumpkin: 0.04, sweetpotato: 0.04, pineapple: 0.04,
+  ginger: 0.04, turmeric: 0.04, taro: 0.04, galangal: 0.05,
 };
-export const co2Of = (id: string) => CO2_PER_RAI_YR[id] ?? 0.05;
+export const woodyOf = (id: string) => WOODY_STRUCTURE_INDEX[id] ?? 0.04;
 
 export const byLayer = (layer: Layer) => PLANTS.filter((p) => p.layer === layer);
 export const plantById = (id: string) => PLANTS.find((p) => p.id === id)!;

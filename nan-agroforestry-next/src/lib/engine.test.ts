@@ -35,7 +35,8 @@ describe('buildSystems', () => {
       expect(s.canopy.length).toBeGreaterThanOrEqual(2); // canopy is forced to >= 2
       expect(s.cashflow).toHaveLength(10);
       expect(s.sensitivity).toHaveLength(3);
-      expect(s.carbon10).toBeGreaterThanOrEqual(0);
+      expect(s.scoreParts.woodyStructure).toBeGreaterThanOrEqual(0);
+      expect(s.scoreParts.woodyStructure).toBeLessThanOrEqual(1);
       expect(s.scoreParts.agroforestry).toBeGreaterThanOrEqual(0);
       expect(s.scoreParts.agroforestry).toBeLessThanOrEqual(1);
       expect(s.soilHealth.score).toBeGreaterThanOrEqual(0);

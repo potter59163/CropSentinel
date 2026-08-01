@@ -27,9 +27,8 @@ const plan = (ids: string[], over: Partial<SystemPlan> = {}): SystemPlan => ({
   annualAvg: 100_000,
   paybackYear: 5,
   suitability: 0.7,
-  carbon10: 40,
   transitionCost: 50_000,
-  scoreParts: { agroforestry: 0.8 },
+  scoreParts: { agroforestry: 0.8, woodyStructure: 0.5 },
   ...over,
 } as unknown as SystemPlan);
 
@@ -131,16 +130,16 @@ describe('metric deltas', () => {
   // Observed live: two plans whose agroforestry score differed by 0.0004 printed a red
   // "−0%" beside two identical 92% values — a decline reported where none is visible.
   it('calls a difference too small to display flat, not a decline', () => {
-    const a = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.9204 } } as Partial<SystemPlan>));
-    const b = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.9200 } } as Partial<SystemPlan>));
+    const a = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.9204, woodyStructure: 0.5 } } as Partial<SystemPlan>));
+    const b = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.9200, woodyStructure: 0.5 } } as Partial<SystemPlan>));
     const d = metricDeltas(a, b).find((x) => x.key === 'agroforestry')!;
     expect(d.delta).toBeLessThan(0);           // the raw delta is still honest
     expect(deltaDirection(d)).toBe('flat');    // but it must not be painted as worse
   });
 
   it('still reports a difference large enough to show', () => {
-    const a = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.92 } } as Partial<SystemPlan>));
-    const b = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.89 } } as Partial<SystemPlan>));
+    const a = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.92, woodyStructure: 0.5 } } as Partial<SystemPlan>));
+    const b = metricsOf(plan(['a'], { scoreParts: { agroforestry: 0.89, woodyStructure: 0.5 } } as Partial<SystemPlan>));
     expect(deltaDirection(metricDeltas(a, b).find((x) => x.key === 'agroforestry')!)).toBe('down');
   });
 
@@ -153,7 +152,7 @@ describe('metric deltas', () => {
     const keys = metricDeltas(metricsOf(plan(['a'])), metricsOf(plan(['a']))).map((d) => d.key);
     expect(keys).toEqual([
       'profit10', 'annualAvg', 'paybackYear', 'transitionCost',
-      'suitability', 'agroforestry', 'carbon10',
+      'suitability', 'agroforestry', 'woodyStructure',
     ]);
   });
 });

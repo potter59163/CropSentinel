@@ -11,8 +11,7 @@ const fmt = (v: number | null, f: MetricDelta['format']) => {
   if (v === null || !Number.isFinite(v)) return f === 'year' ? 'ไม่คืนทุนใน 10 ปี' : '—';
   if (f === 'baht') return baht(v);
   if (f === 'year') return `ปีที่ ${v}`;
-  if (f === 'pct') return pct(v);
-  return `${v.toFixed(1)} tCO₂e`;
+  return pct(v);
 };
 
 /** Unsigned magnitude, for prose like "กำไรเพิ่ม ฿478k" where the word carries the sign. */
@@ -20,8 +19,7 @@ const mag = (d: number, f: MetricDelta['format']) => {
   const a = Math.abs(d);
   if (f === 'baht') return bahtK(a);
   if (f === 'year') return `${a} ปี`;
-  if (f === 'pct') return `${Math.round(a * 100)}%`;
-  return `${a.toFixed(1)} tCO₂e`;
+  return `${Math.round(a * 100)}%`;
 };
 
 const fmtDelta = (d: number, f: MetricDelta['format']) => (d > 0 ? '+' : '−') + mag(d, f);
@@ -34,7 +32,7 @@ const SHORT_LABEL: Record<string, string> = {
   transitionCost: 'ต้นทุนเริ่มต้น',
   suitability: 'ความเหมาะสม',
   agroforestry: 'คะแนนวนเกษตร',
-  carbon10: 'คาร์บอน',
+  woodyStructure: 'ความเป็นไม้ยืนยาว',
 };
 
 /** "ได้กำไร 10 ปี เพิ่ม ฿478k" / "เสียความเหมาะสม ลด 1%" — direction in words, not just colour. */

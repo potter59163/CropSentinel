@@ -16,13 +16,13 @@ const FLOW: Array<{ icon: IconName; title: string; body: string }> = [
   {
     icon: 'sprout',
     title: 'ออกแบบแผนที่ใช้คุยต่อได้',
-    body: 'เสนอ 3 แผนวนเกษตร พร้อม cashflow, ROI, ความเสี่ยง, คาร์บอน และเหตุผลว่าแผนไหนเหมาะกว่า',
+    body: 'เสนอ 3 แผนวนเกษตร พร้อม cashflow, ROI, ความเสี่ยง และเหตุผลว่าแผนไหนเหมาะกว่า',
   },
 ];
 
 const OUTPUTS: Array<{ icon: IconName; title: string; body: string }> = [
-  { icon: 'target', title: 'อันดับแผน', body: 'จัดอันดับจากกำไร ความเหมาะสมพืช ความเสี่ยง GISTDA โครงสร้างวนเกษตร และคาร์บอน' },
-  { icon: 'carbon', title: 'ตัวเลขเศรษฐกิจ', body: 'แยกกำไรจากสินค้าเกษตรออกจากมูลค่าระบบนิเวศ และดูกรณีราคาลด/เพิ่มได้' },
+  { icon: 'target', title: 'อันดับแผน', body: 'จัดอันดับจากกำไร ความเหมาะสมพืช ความเสี่ยง GISTDA โครงสร้างวนเกษตร และความเป็นไม้ยืนยาว' },
+  { icon: 'target', title: 'ตัวเลขเศรษฐกิจ', body: 'กำไรจากผลผลิตที่ขายได้จริง และดูกรณีราคาลด/เพิ่มได้ — ไม่รวมมูลค่าที่ขายไม่ได้' },
   { icon: 'edit', title: 'ปรับสมมติฐานได้', body: 'ราคา ผลผลิต ต้นทุน และอัตรารอดควรแก้ตามข้อมูลจริงของ RECOFTC หรือเกษตรกรในพื้นที่' },
 ];
 
@@ -196,6 +196,68 @@ export function Methodology() {
           </p>
         </div>
         <div className="method-hero-mark"><Icon name="satellite" size={42} strokeWidth={1.5} /></div>
+      </div>
+
+      {/* Why carbon is absent. This section exists because the metric WAS here and was
+          removed on evidence, and a reviewer who remembers seeing it deserves the reasoning
+          rather than silence. Every figure below is sourced; the arithmetic is shown so it
+          can be checked. */}
+      <div className="method-section">
+        <div className="method-section-head">
+          <span className="agro-impact-k">ที่ตัดออก</span>
+          <h3 className="thai">ทำไมไม่แสดงตัวเลขคาร์บอน</h3>
+        </div>
+        <p className="thai method-reliability-lead">
+          ระบบนี้<b>เคยแสดง</b>คาร์บอนเป็น tCO₂e ต่อปีและมูลค่าคาร์บอนเป็นเงินบาท ตอนนี้เอาออกทั้งหมด
+          เพราะตรวจแล้วพบว่า<b>เกษตรกรแปลง 5–15 ไร่ ในน่านขายคาร์บอนเครดิตไม่ได้จริง</b>
+          และตัวเลขที่แสดงก็ไม่มีที่มารองรับ
+        </p>
+        <div className="method-cutlist">
+          <div className="method-cut">
+            <b className="thai">T-VER ต้องมีพื้นที่ตั้งแต่ 10 ไร่ขึ้นไป</b>
+            <span className="thai">
+              ผู้ใช้ที่มี 5–9 ไร่ ไม่เข้าเกณฑ์ตั้งแต่ต้น (รวมหลายแปลงได้ แต่ต้องรวมกลุ่ม)
+              · ระเบียบวิธี T-VER-P-METH-13-01 และบทความของ อบก. เอง
+            </span>
+          </div>
+          <div className="method-cut">
+            <b className="thai">ต้องมีเอกสารสิทธิ์ที่ดินตามกฎหมาย</b>
+            <span className="thai">
+              ที่ดินในพื้นที่ทำงานของ RECOFTC ในน่านส่วนมากเป็น คทช. ซึ่งยังนับเป็นพื้นที่ป่า
+              และน่านมีปัญหาความไม่มั่นคงในสิทธิที่ดิน<b>สูงเป็นอันดับ 3 ของประเทศ</b>
+            </span>
+          </div>
+          <div className="method-cut">
+            <b className="thai">ค่าใช้จ่ายปีแรกสูงกว่ารายได้คาร์บอนสิบปี</b>
+            <span className="thai">
+              ค่าขึ้นทะเบียน 5,000 + ค่ารับรอง 5,000 + ผู้ตรวจสอบภายนอก ~40,000–65,000 บาท
+              · เทียบกับกรณีจริงของ อบก. เอง (Green Carbon Bank ขอนแก่น) ที่ได้ 0.366 tCO₂e/ไร่/ปี
+              แปลง 10 ไร่ จึงได้ราว 3.7 tCO₂e/ปี หรือ<b>ประมาณ 460 บาท/ปี</b> ที่ราคาเฉลี่ย 125 บาท/tCO₂e
+            </span>
+          </div>
+          <div className="method-cut">
+            <b className="thai">RECOFTC ซึ่งเป็นพาร์ตเนอร์ของโครงการนี้ ประกาศเองว่าไม่ทำคาร์บอนเครดิต</b>
+            <span className="thai">
+              เพราะ “การรับรองและตรวจสอบแพงเกินไป” และ “คาร์บอนเครดิตเอื้อพื้นที่ใหญ่ที่ต่อเนื่องกัน
+              และผลักเกษตรกรรายย่อยออกไป” — เป็นจุดยืนของเขาในอำเภอสันติสุข จ.น่าน พื้นที่เดียวกันนี้
+            </span>
+          </div>
+        </div>
+        {/* One <span>, not bare text + <b> siblings: .method-reliability-note is a flex row
+            built for "icon + paragraph", so multiple top-level children get laid out as
+            separate columns and the sentence reads across gaps. */}
+        <div className="method-reliability-note thai">
+          <span>
+            <b>สิ่งที่ยังเหลืออยู่:</b> ระบบยังให้คะแนน “ความเป็นไม้ยืนยาว” ซึ่งวัดว่าแผนสร้างเนื้อไม้ถาวรมากน้อยแค่ไหน
+            ใช้<b>เปรียบเทียบระหว่างแผนเท่านั้น ไม่ใช่ปริมาณคาร์บอน</b> และไม่มีการตีเป็นเงิน
+            · ประโยชน์ด้านฟื้นดินและยึดหน้าดินของไม้ยืนต้นยังจริงอยู่ แค่ไม่ใช่สิ่งที่ขายได้ตอนนี้
+          </span>
+        </div>
+        <span className="method-reliability-src">
+          ที่มา: อบก. (TGO) ระเบียบวิธี T-VER-P-METH-13-01 · บทความ “มีพื้นที่ไม่ถึง 10 ไร่…” ของ อบก.
+          · กรมป่าไม้ คู่มือการขอเข้าร่วมโครงการ T-VER (2564) · Thai PBS Policy Watch
+          · RECOFTC, Trees4All Thailand
+        </span>
       </div>
 
       <div className="method-section">
