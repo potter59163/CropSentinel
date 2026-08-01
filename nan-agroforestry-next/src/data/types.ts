@@ -4,11 +4,33 @@ export type Goal = 'balanced' | 'fast' | 'profit';
 export type Layer = 'canopy' | 'shrub' | 'groundcover' | 'root';
 export type ValidationStatus = 'model_suggested' | 'expert_confirmed' | 'needs_review' | 'not_recommended';
 
+/**
+ * วิสัย — what the plant actually IS, botanically. Separate from `layer`, which is only
+ * where it sits in the canopy.
+ *
+ * The two were conflated before: the top layer was labelled "ไม้ยืนต้น" (perennial tree)
+ * while holding ไผ่ (a grass) and กล้วย (a giant herb). Thai agroforestry references name
+ * strata by HEIGHT/POSITION precisely so that a bamboo clump, a banana and a palm can share
+ * a height band without anyone claiming they are trees — so the layer axis is now positional
+ * and the botany lives here, per species, where it is true.
+ */
+export type Habit =
+  | 'ไม้ต้น'            // true woody tree, single main trunk
+  | 'ไม้พุ่ม'           // woody shrub, multi-stemmed
+  | 'ไผ่'               // bamboo — woody clumping GRASS (Poaceae)
+  | 'ไม้ล้มลุก'         // herbaceous, no wood
+  | 'ไม้ล้มลุกขนาดใหญ่' // giant herb — banana's pseudostem is leaf sheaths, not wood
+  | 'ไม้เถา'            // vine / climber
+  | 'หญ้า'              // true grass
+  | 'เฟิร์น';           // pteridophyte — not a flowering plant at all
+
 export interface Plant {
   id: string;
   nameTh: string;
   nameEn: string;
   layer: Layer;
+  /** วิสัย — see Habit. Shown to the farmer as a chip so the layer never has to imply it. */
+  habit: Habit;
   category: string;
   elevMin: number;
   elevMax: number;

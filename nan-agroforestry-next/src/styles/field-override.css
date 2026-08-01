@@ -1728,3 +1728,19 @@ a:hover { color: var(--sugar-0); }
 .agro-eco-note > div { display: grid; gap: 3px; min-width: 0; }
 .agro-eco-note b { font-size: 14px; line-height: 1.55; color: var(--ok-ink); }
 .agro-eco-note span { font-size: 12.5px; line-height: 1.7; color: var(--fg-2); }
+
+/* วิสัย (growth-form) chips. The layer axis became positional — "ไม้เรือนยอดชั้นบน" rather
+   than "ไม้ยืนต้น" — so these are what now carry the botany, per species, where it is
+   actually true. A farmer seeing ไผ่ among the tall plants can read that it is หญ้า. */
+.agro-plant-habit {
+  display: inline-block; margin-left: 8px; vertical-align: middle;
+  padding: 2px 8px; border-radius: 999px;
+  font-family: var(--font-thai); font-size: 11px; font-weight: 600; line-height: 1.5;
+  color: var(--fg-2); background: var(--surface-soft); border: 1px solid var(--line-soft);
+}
+.agro-pick-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.agro-pick-habit {
+  margin-top: 1px; font-size: 10.5px; font-weight: 500; line-height: 1.4;
+  color: var(--fg-3); white-space: nowrap;
+}
+.agro-pick-chip.on .agro-pick-habit { color: rgba(255, 255, 255, .82); }

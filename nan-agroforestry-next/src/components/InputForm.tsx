@@ -282,7 +282,13 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
                             onClick={() => togglePlant(layer, p.id)}
                           >
                             <span className="agro-pick-icon"><PlantGlyph plantId={p.id} layer={layer} size={22} /></span>
-                            <span className="thai">{p.nameTh}</span>
+                            {/* Name and วิสัย stack in their own column. Putting the habit
+                                directly in the chip's flex row made it a third sibling and
+                                squeezed the name into a one-letter-per-line column. */}
+                            <span className="agro-pick-text">
+                              <span className="thai">{p.nameTh}</span>
+                              <span className="agro-pick-habit thai">{p.habit}</span>
+                            </span>
                           </button>
                         );
                       })}

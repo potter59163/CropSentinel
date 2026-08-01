@@ -223,7 +223,14 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
                   <div key={p.plant.id} className="agro-plant-row">
                     <span className="agro-plant-icon"><PlantGlyph plantId={p.plant.id} layer={p.layer} size={30} /></span>
                     <div className="agro-plant-main">
-                      <div className="agro-plant-name thai">{p.plant.nameTh}</div>
+                      {/* วิสัย beside the name. The layer is positional now, so this is the
+                          only place that says what the plant actually IS — and it is exactly
+                          where a farmer who wonders why ไผ่ sits with the tall plants finds
+                          out that it is a grass. */}
+                      <div className="agro-plant-name thai">
+                        {p.plant.nameTh}
+                        <span className="agro-plant-habit">{p.plant.habit}</span>
+                      </div>
                       {/* shareRai is computed for every pick by the engine but was never
                           rendered, so a farmer was told to plant 4 layers on 10 rai with no
                           idea how much land each one gets. */}
