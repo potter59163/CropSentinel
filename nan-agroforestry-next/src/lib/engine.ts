@@ -1,5 +1,6 @@
 import type { Plant, Layer, FarmInput, SystemPlan, LayerPick, CashflowPoint, Goal, CropAssumption, SoilHealthProxy, ExistingZone } from '../data/types';
 import { PLANTS, woodyOf } from '../data/plants';
+import { transitionBreakdown } from './landHistory';
 import { disasterFeatureContext, plantSuitability } from './suitability';
 import type { Climate } from './climate';
 import type { ProtectedArea } from './gistda';
@@ -26,18 +27,6 @@ function realizedHorizonFraction(p: Plant): number {
 const realizedValue = (p: Plant) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear * realizedHorizonFraction(p);
 const MAX_VALUE = Math.max(...PLANTS.map(realizedValue));
 const MAX_WOODY = Math.max(...PLANTS.map((p) => woodyOf(p.id)));
-const TRANSITION_COST_PER_RAI: Record<string, number> = {
-  'ข้าวโพดเลี้ยงสัตว์': 2400,
-  'ข้าวไร่': 1900,
-  'มันสำปะหลัง': 2100,
-  'ยางพารา': 6800,
-  'ไม้ผลผสม': 1500,
-  'สวนผสม': 1200,
-  'ป่า/ไม้ยืนต้นเดิม': 800,
-  'พื้นที่ว่าง/เพิ่งถาง': 1400,
-  'พื้นที่เสื่อมโทรม': 2600,
-  'อื่นๆ': 1800,
-};
 
 interface Scored {
   plant: Plant;
@@ -221,30 +210,33 @@ function normalizedExistingZones(input: FarmInput): ExistingZone[] {
   return [];
 }
 
+/**
+ * Land history now drives species and advice, not just a cost line — see lib/landHistory.ts.
+ * The old version mapped each prior use to ONE unsourced number and did nothing else, so a
+ * plot coming off fifteen years of maize and a freshly cleared one produced identical advice.
+ */
 function transitionContext(input: FarmInput) {
   const zones = normalizedExistingZones(input);
   const zoneArea = zones.reduce((sum, z) => sum + z.areaRai, 0);
-  // Object.hasOwn, not `??`: TRANSITION_COST_PER_RAI is a plain object literal, so a key
-  // like "constructor" or "toString" resolves up the prototype chain to a Function, the
-  // `??` fallback never fires, and `areaRai * Function` NaN-poisons the entire 10-year
-  // cashflow while every other section still renders confidently. planSchema now also
-  // constrains cropId to a known enum; this is the second line of defence.
-  const costOf = (cropId: string) => {
-    const v = Object.hasOwn(TRANSITION_COST_PER_RAI, cropId)
-      ? TRANSITION_COST_PER_RAI[cropId]
-      : TRANSITION_COST_PER_RAI['อื่นๆ'];
-    return typeof v === 'number' && Number.isFinite(v) ? v : TRANSITION_COST_PER_RAI['อื่นๆ'];
-  };
-  const cost = zones.reduce((sum, z) => sum + z.areaRai * costOf(z.cropId), 0);
-  const notes = zones.length
-    ? [
-      `ใช้โซนเดิม ${zones.map((z) => `${z.cropId} ${z.areaRai.toLocaleString('en-US')} ไร่`).join(' · ')} เพื่อคิดต้นทุนเตรียมพื้นที่/เปลี่ยนผ่านปีแรกประมาณ ${cost.toLocaleString('en-US')} บาท`,
-    ]
-    : ['ยังไม่ได้ระบุการใช้พื้นที่เดิม จึงยังไม่บวกต้นทุนเปลี่ยนผ่านเฉพาะแปลง'];
+  const breakdown = transitionBreakdown(zones);
+
+  const notes: string[] = [];
+  if (zones.length) {
+    // "ถางพื้นที่ 0 บาท" would read as free. A null clearing cost means we could find no
+    // published Thai figure for it, which is a different statement entirely.
+    const parts = [breakdown.clearingNeedsQuote
+      ? `ถางพื้นที่ ${breakdown.clearing > 0 ? `${breakdown.clearing.toLocaleString('en-US')} บาท + ` : ''}ค่าโค่นยางยังประเมินไม่ได้ (ต้องให้ผู้รับเหมาตีราคา)`
+      : `ถางพื้นที่ ${breakdown.clearing.toLocaleString('en-US')} บาท`];
+    parts.push(`ปรับปรุงดิน ${breakdown.soilRepair.toLocaleString('en-US')} บาท`);
+    notes.push(`พื้นที่เดิม ${zones.map((z) => `${z.cropId} ${z.areaRai.toLocaleString('en-US')} ไร่`).join(' · ')} — ${parts.join(' · ')}`);
+  } else {
+    notes.push('ยังไม่ได้ระบุการใช้พื้นที่เดิม จึงยังไม่บวกต้นทุนเปลี่ยนผ่านเฉพาะแปลง');
+  }
+  notes.push(...breakdown.year0Actions.map((a) => `ปีที่ 0: ${a}`));
   if (zones.length && Math.abs(zoneArea - input.sizeRai) > Math.max(0.5, input.sizeRai * 0.15)) {
     notes.push(`พื้นที่รวมของโซนเดิม ${zoneArea.toLocaleString('en-US')} ไร่ ไม่เท่ากับขนาดแปลง ${input.sizeRai.toLocaleString('en-US')} ไร่ ควรตรวจตัวเลขก่อนใช้จริง`);
   }
-  return { zones, zoneArea, cost: Math.round(cost), notes };
+  return { zones, zoneArea, cost: breakdown.total, breakdown, notes };
 }
 
 function applyAssumption(p: Plant, assumption?: CropAssumption): Plant {
@@ -338,7 +330,20 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
 
 function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Goal, forcedPrimary: Scored, climate: Climate | null, risk: ProtectedArea | null, soil: SoilContext | null): SystemPlan {
   const sizeRai = input.sizeRai;
-  const rank = (arr: Scored[]) => [...arr].sort((a, b) => goalRank(goal, b) - goalRank(goal, a));
+  const transition = transitionContext(input);
+  /**
+   * Land history demotes species the soil cannot yet carry — an avocado into freshly cleared
+   * or degraded ground is a plausible-looking recommendation with a high chance of dying in
+   * year one. Demote, do not delete: a farmer who explicitly picks a gated species still gets
+   * it (selectedIds bypasses this ranking entirely), they just are not steered into it.
+   */
+  const gated = new Set(transition.breakdown.gatedSpecies);
+  const rank = (arr: Scored[]) => [...arr].sort((a, b) => {
+    const pa = gated.has(a.plant.id) ? 1 : 0;
+    const pb = gated.has(b.plant.id) ? 1 : 0;
+    if (pa !== pb) return pa - pb;
+    return goalRank(goal, b) - goalRank(goal, a);
+  });
   const canopyRanked = rank(scored.canopy);
   const primary = forcedPrimary;
   const selectedCanopy = selectedIds(input, 'canopy')
@@ -404,7 +409,6 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   grounds.forEach((s) => addPick(s, 'groundcover', grounds.length, true));
   roots.forEach((s) => addPick(s, 'root', roots.length, true));
 
-  const transition = transitionContext(input);
   const cashflow = cashflowFromPicks(picks, canopyShadeMature, canopyMatureYears, 1, transition.cost);
   const paybackYear = payback(cashflow);
   const cum = cashflow.at(-1)?.cumulative ?? 0;
@@ -495,6 +499,21 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: System
   if (agro.strata < 0.9) w.push('โครงสร้างวนเกษตรยังไม่ครบชั้น ควรมีไม้ยืนต้นอย่างน้อย 2 ชนิดและพืชคลุมดิน/พืชหัวช่วยปิดหน้าดิน');
   if (agro.shade < 0.62) w.push('ความเข้ากันของร่มเงายังปานกลาง ควรจัดพืชชอบแดดไว้ขอบแปลงหรือใช้ชนิดทนร่มกว่าในระยะเรือนยอดปิด');
   if (agro.soilCover < 0.6) w.push('คะแนนคลุมดิน/บำรุงดินยังต่ำ ควรเพิ่มพืชคลุมดินหรือตระกูลถั่วเพื่อลดการชะล้าง');
+
+  // Land-history warnings. At most one per prior use by construction (landHistory.ts keeps
+  // a single `warning` per profile), because the meeting asked not to pile on complexity.
+  const b = transition?.breakdown;
+  if (b) {
+    w.push(...b.warnings);
+    if (b.flags.herbicideWatch) {
+      w.push('ถ้าปีนี้ยังพ่นยาคุมหญ้าข้าวโพดอยู่ ให้เลื่อนพืชคลุมดินใบกว้างและถั่วออกไป 1 ฤดูฝน '
+        + '· ไม้ยืนต้นและพืชหัวที่ปลูกลงหลุมไม่ได้รับผลกระทบ');
+    }
+    if (b.flags.standingRubber) {
+      w.push('ยังไม่ต้องโค่นยางก็ได้ — ขิง ข่า ขมิ้น กล้วย สับปะรด ถั่วลิสง ปลูกแซมใต้สวนยางได้ '
+        + '(กรมวิชาการเกษตร) · ตัวเลขต้นทุน/รายได้ในเอกสารนั้นเป็นของภาคใต้ ควรปรับตามราคาน่าน');
+    }
+  }
   return w;
 }
 
