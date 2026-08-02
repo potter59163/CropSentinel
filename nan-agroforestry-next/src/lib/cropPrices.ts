@@ -39,3 +39,19 @@ export async function setCropPriceOverride(plantId: string, pricePerKg: number, 
     VALUES (${plantId}, 'admin_price_update', ${pricePerKg}, 'expert_confirmed', ${asOf ?? new Date().toISOString()})
   `;
 }
+
+/**
+ * Remove the admin override for one species, so the researched price in data/plants.ts wins
+ * again.
+ *
+ * Deletes rather than writing a new row equal to the default: with the default written as a
+ * row, a later correction to plants.ts would be silently shadowed by a stale copy of the OLD
+ * default — which is exactly the failure this whole change exists to make visible.
+ */
+export async function clearCropPriceOverride(plantId: string): Promise<void> {
+  const db = sql();
+  await db`
+    DELETE FROM crop_assumptions
+    WHERE plant_id = ${plantId} AND source = 'admin_price_update'
+  `;
+}

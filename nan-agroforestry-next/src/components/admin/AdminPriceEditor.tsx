@@ -12,7 +12,18 @@ interface PriceRow {
   defaultPricePerKg: number;
   currentPricePerKg: number;
   updatedAt: string | null;
+  isOverridden: boolean;
+  tier: 'official' | 'research' | 'estimated';
+  tierLabel: string;
+  tierNote: string | null;
+  deviationPct: number;
 }
+
+/**
+ * Past this, an override is not a refresh of a stale figure — it is a different claim about
+ * what the crop is worth, and it deserves to be looked at.
+ */
+const LARGE_DEVIATION_PCT = 25;
 
 const LAYERS = Object.keys(LAYER_META) as Layer[];
 
@@ -23,6 +34,7 @@ export function AdminPriceEditor() {
   const [asOfDrafts, setAsOfDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [onlyOverridden, setOnlyOverridden] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/prices')
@@ -54,11 +66,22 @@ export function AdminPriceEditor() {
         setMessage(data.error ?? 'บันทึกไม่สำเร็จ');
         return;
       }
-      setRows((prev) =>
-        prev
-          ? prev.map((r) => (r.plantId === plantId ? { ...r, currentPricePerKg: price, updatedAt: asOf ?? new Date().toISOString() } : r))
-          : prev,
-      );
+      // Recompute the override flag and deviation locally too — without this the new badge
+      // and the "ทับไว้ N ชนิด" summary only appeared after a reload, which is precisely the
+      // kind of invisible override this screen now exists to prevent.
+      setRows((prev) => prev
+        ? prev.map((r) => (r.plantId === plantId
+          ? {
+            ...r,
+            currentPricePerKg: price,
+            updatedAt: asOf ?? new Date().toISOString(),
+            isOverridden: true,
+            deviationPct: r.defaultPricePerKg > 0
+              ? Math.round(((price / r.defaultPricePerKg) - 1) * 100)
+              : 0,
+          }
+          : r))
+        : prev);
       setDrafts((d) => {
         const next = { ...d };
         delete next[plantId];
@@ -69,6 +92,31 @@ export function AdminPriceEditor() {
         delete next[plantId];
         return next;
       });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  /** Drop the override so the researched price in the code wins again. */
+  async function revert(plantId: string) {
+    setSavingId(plantId);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/prices', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ plantId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(data.error ?? 'คืนค่าไม่สำเร็จ');
+        return;
+      }
+      setRows((prev) => prev
+        ? prev.map((r) => (r.plantId === plantId
+          ? { ...r, currentPricePerKg: r.defaultPricePerKg, updatedAt: null, isOverridden: false, deviationPct: 0 }
+          : r))
+        : prev);
     } finally {
       setSavingId(null);
     }
@@ -101,8 +149,33 @@ export function AdminPriceEditor() {
         </p>
       )}
       {message && <p className="admin-error">{message}</p>}
+
+      {/* The whole point of this screen after the production audit: an override silently
+          replaces a researched price, and until now nothing said so. */}
+      {(() => {
+        const overridden = rows.filter((r) => r.isOverridden);
+        const big = overridden.filter((r) => Math.abs(r.deviationPct) >= LARGE_DEVIATION_PCT);
+        if (!overridden.length) {
+          return <p className="admin-note">ยังไม่มีการตั้งราคาทับ · ระบบใช้ราคาอ้างอิงในโค้ดทั้งหมด</p>;
+        }
+        return (
+          <div className="admin-override-summary">
+            <b>ราคาที่ตั้งทับไว้ {overridden.length} ชนิด</b> — ราคาเหล่านี้ถูกใช้แทนราคาอ้างอิงในระบบ
+            {big.length > 0 && (
+              <span className="admin-override-big">
+                {' '}· <b>{big.length} ชนิดต่างจากค่าอ้างอิงเกิน {LARGE_DEVIATION_PCT}%</b>{' '}
+                ({big.map((r) => `${r.nameTh} ${r.deviationPct > 0 ? '+' : ''}${r.deviationPct}%`).join(' · ')})
+              </span>
+            )}
+            <label className="admin-filter">
+              <input type="checkbox" checked={onlyOverridden} onChange={(e) => setOnlyOverridden(e.target.checked)} />
+              แสดงเฉพาะที่ตั้งทับไว้
+            </label>
+          </div>
+        );
+      })()}
       {LAYERS.map((layer) => {
-        const layerRows = rows.filter((r) => r.layer === layer);
+        const layerRows = rows.filter((r) => r.layer === layer && (!onlyOverridden || r.isOverridden));
         if (!layerRows.length) return null;
         return (
           <section key={layer} className="admin-layer-group">
@@ -112,8 +185,8 @@ export function AdminPriceEditor() {
                 <thead>
                   <tr>
                     <th>พืช</th>
-                    <th>ราคาตั้งต้น (บาท/กก.)</th>
-                    <th>ราคาปัจจุบัน</th>
+                    <th>ราคาอ้างอิงในระบบ</th>
+                    <th>ราคาที่ใช้จริง</th>
                     <th>ข้อมูล ณ วันที่</th>
                     <th>แก้ไข</th>
                     <th>วันที่ของราคา</th>
@@ -125,8 +198,22 @@ export function AdminPriceEditor() {
                       <td>
                         {r.nameTh} <span className="admin-name-en">{r.nameEn}</span>
                       </td>
-                      <td>{r.defaultPricePerKg}</td>
-                      <td>{r.currentPricePerKg}</td>
+                      <td>
+                        {r.defaultPricePerKg}
+                        {/* Overriding a local estimate is routine; overriding a figure
+                            traceable to a named OAE series should be a deliberate act. */}
+                        <span className={`admin-tier is-${r.tier}`} title={r.tierNote ?? undefined}>
+                          {r.tierLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <b>{r.currentPricePerKg}</b>
+                        {r.isOverridden && (
+                          <span className={`admin-dev ${Math.abs(r.deviationPct) >= LARGE_DEVIATION_PCT ? 'is-big' : ''}`}>
+                            {r.deviationPct > 0 ? '+' : ''}{r.deviationPct}%
+                          </span>
+                        )}
+                      </td>
                       <td>{r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('th-TH') : '— (ค่าตั้งต้น)'}</td>
                       <td>
                         <div className="admin-edit-cell">
@@ -141,6 +228,17 @@ export function AdminPriceEditor() {
                           <button type="button" disabled={savingId === r.plantId} onClick={() => save(r.plantId)}>
                             {savingId === r.plantId ? '…' : 'บันทึก'}
                           </button>
+                          {r.isOverridden && (
+                            <button
+                              type="button"
+                              className="admin-revert-btn"
+                              disabled={savingId === r.plantId}
+                              title={`คืนไปใช้ราคาอ้างอิงในระบบ ${r.defaultPricePerKg} บาท/กก.`}
+                              onClick={() => revert(r.plantId)}
+                            >
+                              คืนค่า
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td>

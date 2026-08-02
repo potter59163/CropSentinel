@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { PLANTS } from '@/data/plants';
 import { adminCookieName, isValidAdminToken } from '@/lib/adminAuth';
 import { dbConfigured } from '@/lib/db';
-import { getCropPriceOverrides, setCropPriceOverride } from '@/lib/cropPrices';
+import { getCropPriceOverrides, setCropPriceOverride, clearCropPriceOverride } from '@/lib/cropPrices';
 import { rateLimited } from '@/lib/rateLimit';
+import { provenanceOf, provenanceNote, TIER_META } from '@/lib/provenance';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,15 +21,30 @@ export async function GET() {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   const overrides = await getCropPriceOverrides();
-  const rows = PLANTS.map((p) => ({
-    plantId: p.id,
-    nameTh: p.nameTh,
-    nameEn: p.nameEn,
-    layer: p.layer,
-    defaultPricePerKg: p.pricePerKg,
-    currentPricePerKg: overrides[p.id]?.pricePerKg ?? p.pricePerKg,
-    updatedAt: overrides[p.id]?.updatedAt ?? null,
-  }));
+  const rows = PLANTS.map((p) => {
+    const override = overrides[p.id];
+    const tier = provenanceOf(p.id);
+    return {
+      plantId: p.id,
+      nameTh: p.nameTh,
+      nameEn: p.nameEn,
+      layer: p.layer,
+      defaultPricePerKg: p.pricePerKg,
+      currentPricePerKg: override?.pricePerKg ?? p.pricePerKg,
+      updatedAt: override?.updatedAt ?? null,
+      // What is being overridden, so an officer can see whether they are replacing a figure
+      // traceable to a named OAE series or a local estimate. Overriding an estimate is
+      // routine; overriding a government series should be a deliberate act.
+      isOverridden: override != null,
+      tier,
+      tierLabel: TIER_META[tier].labelTh,
+      tierNote: provenanceNote(p.id) ?? null,
+      // Signed % the live price departs from the researched default.
+      deviationPct: override && p.pricePerKg > 0
+        ? Math.round(((override.pricePerKg / p.pricePerKg) - 1) * 100)
+        : 0,
+    };
+  });
   return NextResponse.json({ rows, dbConfigured: dbConfigured() }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -58,4 +74,29 @@ export async function POST(request: Request) {
   }
   await setCropPriceOverride(parsed.data.plantId, parsed.data.pricePerKg, parsed.data.asOf);
   return NextResponse.json({ status: 'saved' });
+}
+
+const deleteSchema = z.object({ plantId: z.string().min(1) });
+
+/** Drop an override and fall back to the researched price in data/plants.ts. */
+export async function DELETE(request: Request) {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+  const limited = rateLimited(request, 'admin-prices-update', 60, 60_000);
+  if (limited) return limited;
+
+  const body = await request.json().catch(() => null);
+  const parsed = deleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+  }
+  if (!PLANTS.some((p) => p.id === parsed.data.plantId)) {
+    return NextResponse.json({ error: 'unknown plantId' }, { status: 400 });
+  }
+  if (!dbConfigured()) {
+    return NextResponse.json({ error: 'DATABASE_URL ยังไม่ได้ตั้งค่า' }, { status: 503 });
+  }
+  await clearCropPriceOverride(parsed.data.plantId);
+  return NextResponse.json({ status: 'cleared' });
 }
