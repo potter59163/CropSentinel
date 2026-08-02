@@ -27,7 +27,7 @@ vi.mock('./db', () => ({
   dbConfigured: () => process.env.DATABASE_URL != null,
 }));
 
-const { getCropPriceOverrides, setCropPriceOverride, clearCropPriceOverride } = await import('./cropPrices');
+const { getCropPriceOverrides, setCropPriceOverride, clearCropPriceOverride, clearAllCropPriceOverrides } = await import('./cropPrices');
 
 beforeEach(() => {
   calls.length = 0;
@@ -90,6 +90,25 @@ describe('setCropPriceOverride', () => {
     await setCropPriceOverride('ginger', 42.5);
     const stamped = calls[1].values.find((v) => typeof v === 'string' && v.includes('T'));
     expect(stamped).toBeTruthy();
+  });
+});
+
+describe('clearAllCropPriceOverrides', () => {
+  it('only ever deletes admin rows, never the rest of the review log', async () => {
+    // crop_assumptions is shared with expert review and a future RECOFTC import. An unscoped
+    // DELETE here would wipe those too, from a button labelled "คืนค่าราคา".
+    await clearAllCropPriceOverrides();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].text).toContain('DELETE FROM crop_assumptions');
+    expect(calls[0].text).toContain("source = 'admin_price_update'");
+  });
+
+  it('is scoped by source and nothing else', async () => {
+    await clearAllCropPriceOverrides();
+    // No plant_id filter — that is the point — but the WHERE clause must not be dropped
+    // entirely, which is the difference between "clear the overrides" and "empty the table".
+    expect(calls[0].text).toMatch(/DELETE FROM crop_assumptions WHERE source = 'admin_price_update'/);
+    expect(calls[0].text).not.toContain('plant_id');
   });
 });
 

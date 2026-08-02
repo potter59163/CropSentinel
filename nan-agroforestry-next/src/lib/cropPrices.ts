@@ -72,3 +72,15 @@ export async function clearCropPriceOverride(plantId: string): Promise<void> {
     WHERE plant_id = ${plantId} AND source = 'admin_price_update'
   `;
 }
+
+/**
+ * Drop every admin override so the whole dataset falls back to the researched prices.
+ *
+ * Scoped to source='admin_price_update' like every other query here, so a RECOFTC CSV import or
+ * an expert-review row in the same table is untouched. Without that scope this would be a
+ * DELETE across an append-only review log.
+ */
+export async function clearAllCropPriceOverrides(): Promise<void> {
+  const db = sql();
+  await db`DELETE FROM crop_assumptions WHERE source = 'admin_price_update'`;
+}

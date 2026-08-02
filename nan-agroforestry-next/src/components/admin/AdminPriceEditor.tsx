@@ -35,6 +35,7 @@ export function AdminPriceEditor() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [onlyOverridden, setOnlyOverridden] = useState(false);
+  const [confirmAll, setConfirmAll] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/prices')
@@ -92,6 +93,39 @@ export function AdminPriceEditor() {
         delete next[plantId];
         return next;
       });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  /**
+   * Drop every override at once.
+   *
+   * Behind a confirm step that lists what is about to go, because this is the one control here
+   * that can destroy information: an override may be a real local price an officer collected in
+   * a village, and once the row is gone the only record of it is whatever they wrote down.
+   */
+  async function revertAll() {
+    setSavingId('__all__');
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/prices', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(data.error ?? 'คืนค่าไม่สำเร็จ');
+        return;
+      }
+      setRows((prev) => prev
+        ? prev.map((r) => (r.isOverridden
+          ? { ...r, currentPricePerKg: r.defaultPricePerKg, updatedAt: null, isOverridden: false, deviationPct: 0 }
+          : r))
+        : prev);
+      setConfirmAll(false);
+      setMessage(`คืนค่าแล้ว ${data.count ?? 0} ชนิด · ระบบกลับไปใช้ราคาอ้างอิงในโค้ดทั้งหมด`);
     } finally {
       setSavingId(null);
     }
@@ -167,10 +201,50 @@ export function AdminPriceEditor() {
                 ({big.map((r) => `${r.nameTh} ${r.deviationPct > 0 ? '+' : ''}${r.deviationPct}%`).join(' · ')})
               </span>
             )}
-            <label className="admin-filter">
-              <input type="checkbox" checked={onlyOverridden} onChange={(e) => setOnlyOverridden(e.target.checked)} />
-              แสดงเฉพาะที่ตั้งทับไว้
-            </label>
+            <div className="admin-override-actions">
+              <label className="admin-filter">
+                <input type="checkbox" checked={onlyOverridden} onChange={(e) => setOnlyOverridden(e.target.checked)} />
+                แสดงเฉพาะที่ตั้งทับไว้
+              </label>
+              {!confirmAll ? (
+                <button type="button" className="admin-revert-all-btn" onClick={() => setConfirmAll(true)}>
+                  คืนค่าทั้งหมด ({overridden.length} ชนิด)
+                </button>
+              ) : (
+                <span className="admin-confirm-inline">
+                  <button
+                    type="button"
+                    className="admin-revert-all-btn is-armed"
+                    disabled={savingId === '__all__'}
+                    onClick={revertAll}
+                  >
+                    {savingId === '__all__' ? 'กำลังคืนค่า…' : `ยืนยัน · ลบราคาที่ตั้งทับ ${overridden.length} ชนิด`}
+                  </button>
+                  <button type="button" className="admin-cancel-btn" onClick={() => setConfirmAll(false)}>ยกเลิก</button>
+                </span>
+              )}
+            </div>
+
+            {/* Everything about to be deleted, listed before it goes. An override may be a real
+                price an officer collected in a village; once the row is dropped, the only
+                record left is whatever they wrote down. */}
+            {confirmAll && (
+              <div className="admin-confirm-list" role="alert">
+                <b>ราคาต่อไปนี้จะถูกลบ และระบบจะกลับไปใช้ราคาอ้างอิงในโค้ด — ย้อนกลับไม่ได้</b>
+                <ul>
+                  {overridden.map((r) => (
+                    <li key={r.plantId}>
+                      {r.nameTh} · <b>{r.currentPricePerKg}</b> → {r.defaultPricePerKg} บาท/กก.
+                      {' '}<span className={Math.abs(r.deviationPct) >= LARGE_DEVIATION_PCT ? 'is-big' : ''}>
+                        ({r.deviationPct > 0 ? '+' : ''}{r.deviationPct}%)
+                      </span>
+                      {' '}<span className={`admin-tier is-${r.tier}`}>{r.tierLabel}</span>
+                    </li>
+                  ))}
+                </ul>
+                <span>ถ้ามีตัวไหนเป็นราคาจริงที่เก็บมาจากพื้นที่ ให้จดไว้ก่อนกดยืนยัน</span>
+              </div>
+            )}
           </div>
         );
       })()}

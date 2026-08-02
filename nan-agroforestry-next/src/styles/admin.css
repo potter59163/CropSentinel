@@ -196,9 +196,33 @@
 }
 .admin-override-big { color: #9c3327; }
 .admin-filter {
-  display: flex; align-items: center; gap: 7px; margin-top: 8px;
+  display: flex; align-items: center; gap: 7px;
   font-size: 13px; color: #4a5a54; cursor: pointer;
 }
+.admin-override-actions {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 10px;
+}
+.admin-confirm-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.admin-revert-all-btn,
+.admin-cancel-btn {
+  padding: 8px 14px; min-height: 40px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; background: #fff; border: 1.5px solid #d5e1db; color: #5f716b;
+}
+.admin-revert-all-btn:hover:not(:disabled) { border-color: #c35345; color: #9c3327; }
+/* Armed state reads as destructive rather than as another neutral button — this one is the
+   irreversible click, and it should not look like the "แสดงเฉพาะ" checkbox beside it. */
+.admin-revert-all-btn.is-armed { background: #9c3327; border-color: #9c3327; color: #fff; }
+.admin-revert-all-btn.is-armed:hover:not(:disabled) { background: #7f291f; color: #fff; }
+.admin-revert-all-btn:disabled { opacity: .6; cursor: wait; }
+
+.admin-confirm-list {
+  margin-top: 10px; padding: 12px 15px; border-radius: 10px; line-height: 1.65;
+  background: #fdeeea; border: 1.5px solid #e8b4a9; color: #7a2c20; font-size: 13px;
+}
+.admin-confirm-list ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 3px; }
+.admin-confirm-list .is-big { font-weight: 700; }
+.admin-confirm-list > span { display: block; margin-top: 6px; color: #9c5548; font-size: 12.5px; }
 
 /* Which kind of figure is being replaced. */
 .admin-tier {
