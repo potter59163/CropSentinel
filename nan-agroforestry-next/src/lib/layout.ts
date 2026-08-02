@@ -130,8 +130,17 @@ export function firebreakPlan(sizeRai: number, neighbour: NeighbourFuel = 'unkno
 
   // Perimeter of a square plot of this size, times the break width. Approximate on purpose —
   // real plots are not square, and the point is the order of magnitude a farmer gives up.
+  //
+  // Capped at 90% of the plot because the perimeter formula stops making sense on small ones:
+  // a 10 m break around a 1 rai plot is 4 x 40 x 10 = 400 sq m of border drawn on a 1,600 sq m
+  // square, and the raw figure came out at 4 rai — more than the whole holding. The break also
+  // double-counts its own corners. The cap is a floor under the absurdity, not a correction;
+  // below about 3 rai the honest reading is that a full-width break is not viable alone, which
+  // is what the advice below says.
   const sideM = Math.sqrt(Math.max(0, sizeRai) * M2_PER_RAI);
-  const areaCostRai = Math.max(0, (4 * sideM * widthM) / M2_PER_RAI);
+  const rawAreaRai = Math.max(0, (4 * sideM * widthM) / M2_PER_RAI);
+  const areaCostRai = Math.min(rawAreaRai, Math.max(0, sizeRai) * 0.9);
+  const breakDominatesPlot = rawAreaRai > Math.max(0, sizeRai) * 0.5;
 
   const advice: string[] = [
     `ทำแนวกันไฟรอบแปลง กว้าง ${widthM} เมตร ถางใบไม้กิ่งไม้ออกให้เห็นดิน ไม่ใช่แค่ตัดหญ้า`,
@@ -146,6 +155,13 @@ export function firebreakPlan(sizeRai: number, neighbour: NeighbourFuel = 'unkno
   }
   if (neighbour === 'unknown') {
     advice.push('ยังไม่ได้ระบุว่าที่ติดแปลงเป็นอะไร — ความเสี่ยงไฟขึ้นกับที่ข้างเคียงมากกว่าแปลงเราเอง');
+  }
+  if (breakDominatesPlot) {
+    advice.push(
+      `แปลงเล็ก (${sizeRai} ไร่) แนวกันไฟเต็มความกว้างจะกินพื้นที่เกินครึ่งแปลง `
+      + '· ทางที่ทำได้จริงคือทำแนวร่วมกับแปลงข้างเคียงเป็นแนวเดียว หรือทำเฉพาะด้านล่างเนินซึ่งไฟวิ่งเข้ามา '
+      + 'แล้วใช้การจัดการเชื้อเพลิง (เก็บใบแห้ง ตัดหญ้า) แทนด้านที่เหลือ',
+    );
   }
 
   return {

@@ -31,7 +31,7 @@ const HORIZON = 10;
  * Still not calibrated against measured Nan yields — see docs/METHODOLOGY.md §7.2 and §15.1.
  * A per-species mixture penalty is the remaining known gap.
  */
-const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.25, groundcover: 0.25, root: 0.25 };
+export const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.25, groundcover: 0.25, root: 0.25 };
 
 // Fraction of the HORIZON a crop actually produces income over, using the same
 // ramp-up curve as the cashflow model. A slow crop like teak (first yield at
@@ -295,7 +295,7 @@ function applyAssumption(p: Plant, assumption?: CropAssumption): Plant {
  * not return one — see docs/METHODOLOGY.md §16 for what was found and §17 for what was not.
  * It should be replaced with a calibrated figure as soon as field data exists.
  */
-const MIXTURE_YIELD_FACTOR = 0.7;
+export const MIXTURE_YIELD_FACTOR = 0.7;
 
 // per-plant 10-year net cashflow contribution
 function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean, canopyShadeMature: number, canopyMatureYears: number, priceMultiplier = 1): number[] {

@@ -32,8 +32,25 @@ export async function getCropPriceOverrides(): Promise<Record<string, PriceOverr
 // asOf lets the admin date the price to when the source report was published
 // (e.g. an OAE bulletin from last month) instead of the moment it was typed
 // in — "อัปเดตล่าสุด" should mean the data's age, not the edit's age.
+//
+// Which is exactly why the read above must not use updated_at to decide which row wins, and why
+// this replaces instead of appending. Back-dating a correction to an OAE bulletin from June,
+// over an override entered in August, wrote a row that lost the DISTINCT ON ... ORDER BY
+// updated_at DESC race — so the admin saw "บันทึกแล้ว" and the old price stayed live, with
+// nothing on screen to reveal it. Correcting a price to an older, better-sourced figure is the
+// normal case for this button, not an edge case.
+//
+// One admin row per species makes "the latest edit wins" true by construction rather than by an
+// ordering a legitimate back-date breaks. It costs the edit history, which was already lost
+// anyway — clearCropPriceOverride deletes every admin row for the species. Restoring an audit
+// trail means adding a created_at column and a migration, which is a deliberate change, not
+// something to smuggle in behind a bug fix.
 export async function setCropPriceOverride(plantId: string, pricePerKg: number, asOf?: string): Promise<void> {
   const db = sql();
+  await db`
+    DELETE FROM crop_assumptions
+    WHERE plant_id = ${plantId} AND source = 'admin_price_update'
+  `;
   await db`
     INSERT INTO crop_assumptions (plant_id, source, price_per_kg, validation_status, updated_at)
     VALUES (${plantId}, 'admin_price_update', ${pricePerKg}, 'expert_confirmed', ${asOf ?? new Date().toISOString()})

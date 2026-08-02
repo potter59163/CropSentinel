@@ -17,7 +17,22 @@ const feedbackSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
+/**
+ * The farmer-facing feedback form is deferred until a field visit, so this endpoint has no
+ * caller — which left an unauthenticated DB write open in production for a feature nobody could
+ * reach. Off unless FIELD_FEEDBACK_ENABLED is set.
+ *
+ * A flag rather than an auth check on purpose. The eventual form is for farmers and officers
+ * standing in a plot, so bolting the admin cookie on now would only have to be undone, and
+ * whatever scheme it ends up with should be a decision made when the form is designed — not a
+ * placeholder that quietly becomes permanent.
+ */
+const enabled = () => process.env.FIELD_FEEDBACK_ENABLED === '1';
+
 export async function POST(request: Request) {
+  if (!enabled()) {
+    return NextResponse.json({ error: 'field feedback is not enabled on this deployment' }, { status: 404 });
+  }
   // Writes to the DB — cap per-IP to prevent feedback-table spam.
   const limited = rateLimited(request, 'field-feedback', 12, 60_000);
   if (limited) return limited;

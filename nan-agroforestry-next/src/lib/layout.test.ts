@@ -87,6 +87,26 @@ describe('firebreak — sized by the neighbour, not by the plot', () => {
   it('always tells the farmer to clear to bare soil, not just cut grass', () => {
     expect(firebreakPlan(5, 'maize').advice[0]).toMatch(/เห็นดิน/);
   });
+
+  it('never claims the break costs more land than the plot has', () => {
+    // The perimeter formula falls apart on small holdings: a 10 m break around 1 rai works out
+    // at 4 rai of border on a 1,600 m² square, which the app printed as "กินพื้นที่ราว 4 ไร่
+    // จาก 1 ไร่". The form's minimum is 0.5 rai, so a farmer could reach it.
+    for (const size of [0.5, 1, 2, 3, 5]) {
+      const f = firebreakPlan(size, 'fallow');
+      expect(f.areaCostRai, `${size} rai`).toBeLessThanOrEqual(size);
+    }
+  });
+
+  it('offers a way out when a full break would eat the plot', () => {
+    // Capping the number without changing the advice would just replace an absurd figure with a
+    // merely impossible one. A 1 rai holder needs the shared-break and downslope-only options.
+    const advice = firebreakPlan(1, 'fallow').advice.join(' ');
+    expect(advice).toMatch(/แนวร่วมกับแปลงข้างเคียง/);
+    expect(advice).toMatch(/ด้านล่างเนิน/);
+    // And a 10 rai plot, where the break IS viable, must not be told to skip it.
+    expect(firebreakPlan(10, 'fallow').advice.join(' ')).not.toMatch(/แนวร่วมกับแปลงข้างเคียง/);
+  });
 });
 
 describe('bamboo is fuel, not a firebreak', () => {
