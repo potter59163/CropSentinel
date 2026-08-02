@@ -907,8 +907,15 @@ export function App() {
             </div>
           )}
 
+          {/* The old version of this was one dense paragraph naming SDM, GBIF, LDD and
+              SoilGrids in muted 11px at the bottom of the page. It was accurate and nobody
+              read it. The technical provenance now lives in the "วิธีการ" tab and in
+              docs/METHODOLOGY.md, and the honest-uncertainty message a farmer actually needs
+              is up beside the headline figure (PlanConfidence). What remains here is the
+              scope statement, in one sentence. */}
           <div className="agro-disclaimer thai">
-            * ความเหมาะสมพืชมาจาก SDM (GBIF + NASA POWER + GISTDA features) และถูกคุมด้วยเกณฑ์ agronomic ทั้งความสูง (เช่น กาแฟ/มะแขว่นต้องเป็นพื้นที่สูง) และดินจาก GIS: LDD กลุ่มชุดดิน จ.น่าน + SoilGrids (การระบายน้ำ/ความเป็นกรด/ความอุดมสมบูรณ์) ส่วนผลผลิต/ราคา/ต้นทุนเป็นค่าประมาณการ ควรปรึกษาเกษตรอำเภอและตรวจดินจริงก่อนลงมือ
+            เครื่องมือนี้ช่วย<b>ตั้งต้นการตัดสินใจ</b> ไม่ใช่การรับประกันรายได้ ไม่ใช่คำแนะนำการลงทุน
+            และไม่ใช่การยืนยันสิทธิ์ที่ดิน · ที่มาของข้อมูลและสูตรคำนวณทั้งหมดดูได้ในแท็บ “วิธีการ”
           </div>
         </section>
       )}

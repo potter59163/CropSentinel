@@ -4,6 +4,7 @@ import { Card } from './ui';
 import { PlantGlyph } from './PlantGlyph';
 import { CashflowChart } from './CashflowChart';
 import { Icon, type IconName } from './Icon';
+import { PlanConfidence } from './PlanConfidence';
 import { bahtK, pct, nf0 } from '../lib/format';
 import { incomeGoalStatus } from '../lib/incomeGoal';
 
@@ -238,7 +239,18 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
                         <Icon name="plot" size={13} /> ปลูกประมาณ <b>{p.shareRai.toFixed(1)} ไร่</b>
                         {p.totalPlants ? ` · ~${nf0(p.totalPlants)} ต้น` : p.plantsPerRai ? ` · ~${nf0(p.plantsPerRai)} ต้น/ไร่` : ''}
                       </div>
-                      <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
+                      {/* Service plants (nitrogen fixers, mulch, vetiver) are priced at 0
+                          because they genuinely have no market — inventing a price to fill
+                          this line would be the fabricated-income error the species rebuild
+                          exists to remove. But "ผลผลิต 0 กก./ไร่ · ฿0/กก." reads as a broken
+                          field, so say what the plant is actually for instead. */}
+                      {p.plant.pricePerKg > 0 ? (
+                        <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
+                      ) : (
+                        <div className="agro-plant-yp is-service thai">
+                          ไม่ได้ปลูกเพื่อขาย · {p.plant.nFixing ? 'บำรุงดินและตรึงไนโตรเจนให้พืชข้างเคียง' : 'คลุมดินและยึดหน้าดิน'}
+                        </div>
+                      )}
                       {/* plants.ts carries real Thai agronomy notes that rendered nowhere. */}
                       {p.plant.note && <div className="agro-plant-note thai">{p.plant.note}</div>}
                     </div>
@@ -279,6 +291,11 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
       </div>
 
       <IncomeGoalNote sys={sys} targetAnnualIncome={targetAnnualIncome} />
+
+      {/* Immediately under the headline KPIs, not at the bottom of the page: the -30% price
+          case is what turns that big number from a promise into a range, and it only works
+          if the farmer reads the two together. */}
+      <PlanConfidence sys={sys} />
 
       {/* Thai labels: an older farmer reading this on a phone cannot be expected to parse
           "Water fit" or "GISTDA risk". */}

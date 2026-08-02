@@ -1744,3 +1744,59 @@ a:hover { color: var(--sugar-0); }
   color: var(--fg-3); white-space: nowrap;
 }
 .agro-pick-chip.on .agro-pick-habit { color: rgba(255, 255, 255, .82); }
+
+/* ── Plan confidence ─────────────────────────────────────────────────────────
+   Sits directly under the headline KPIs. The point is that a farmer reads the big profit
+   figure and this together, so the number registers as one end of a range rather than a
+   promise — which is both the honest framing and the one that protects a farmer who would
+   otherwise plant on a single optimistic figure. */
+.agro-confidence {
+  margin-top: 14px; padding: 15px 18px 16px;
+  background: var(--surface); border: 1.5px solid var(--line-soft);
+  border-left: 4px solid var(--honey);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+  break-inside: avoid;
+}
+.agro-confidence-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; }
+.agro-confidence-head b { font-size: 15.5px; line-height: 1.5; }
+.agro-confidence-em { color: var(--warn-ink); }
+
+.agro-confidence-range {
+  margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px;
+}
+.agro-confidence-cell {
+  display: grid; gap: 3px; padding: 11px 12px; border-radius: 11px;
+  background: var(--surface-soft); border: 1.5px solid var(--line-soft);
+}
+.agro-confidence-cell span { font-size: 12px; line-height: 1.5; color: var(--fg-3); }
+.agro-confidence-cell b { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--fg-0); }
+.agro-confidence-cell b.is-neg { color: var(--risk-ink); }
+.agro-confidence-cell.base { background: var(--ok-bg); border-color: #bfe0c9; }
+.agro-confidence-cell.base b { color: var(--ok-ink); }
+.agro-confidence-cell.down { border-color: #f0c9bd; }
+
+.agro-confidence-flip {
+  margin-top: 11px; display: flex; gap: 9px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.7;
+  background: var(--risk-bg); border: 1.5px solid #f0c9bd; color: var(--risk-ink);
+}
+.agro-confidence-flip svg { flex-shrink: 0; margin-top: 3px; }
+
+.agro-confidence-what { margin: 12px 0 0; font-size: 13px; line-height: 1.75; color: var(--fg-2); }
+
+.agro-confidence-check {
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+}
+.agro-confidence-check b { display: block; font-size: 14px; line-height: 1.55; margin-bottom: 6px; }
+.agro-confidence-check ol { margin: 0; padding-left: 20px; display: grid; gap: 5px; }
+.agro-confidence-check li { font-size: 13px; line-height: 1.7; color: var(--fg-2); }
+
+@media (max-width: 560px) {
+  .agro-confidence { padding: 13px 14px 14px; }
+  /* Three baht figures cannot share a 360px row. Stacked, the down/base/up order still
+     reads as a range top to bottom. */
+  .agro-confidence-range { grid-template-columns: 1fr; gap: 7px; }
+  .agro-confidence-cell { grid-template-columns: 1fr auto; align-items: baseline; }
+}
+/* Service plants have no yield line — they have a purpose line instead. */
+.agro-plant-yp.is-service { color: var(--ok-ink); font-weight: 600; }
