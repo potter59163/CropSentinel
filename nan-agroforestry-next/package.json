@@ -11,7 +11,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "batch": "vitest run src/lib/batch.test.ts"
+    "batch": "vitest run src/lib/batch.test.ts",
+    "nabc:refresh": "node scripts/fetch-nabc.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

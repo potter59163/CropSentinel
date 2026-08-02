@@ -12,11 +12,13 @@ import { baht, bahtK, nf0 } from '../lib/format';
  * province-level series, against a national ~790, so a national figure would overstate a Nan
  * harvest by about 14%.
  *
- * It also does something uncomfortable and necessary: it shows that the agroforestry figure is
- * roughly twenty times the maize figure. That gap is too wide to be believed as-is, and the
- * honest response is to say so on the same screen rather than let a farmer — or a reviewer —
- * discover it themselves. The maize side is the better-grounded of the two numbers; the plan
- * side rests on assumptions listed in the caveat and in docs/METHODOLOGY.md §7.
+ * It also does something uncomfortable and necessary: it shows the agroforestry figure as a
+ * multiple of the maize one. Successive corrections have brought that from 24x down to about
+ * 8x, but the measured range for real Thai agroforestry plots is 64-7,665 THB/rai/yr (กรมป่าไม้
+ * 2558), so the plan side is still high. The honest response is to say so on the same screen
+ * rather than let a farmer — or a reviewer — discover it. The maize side is the
+ * better-grounded of the two; the plan side rests on assumptions set out in
+ * docs/METHODOLOGY.md §7, §16 and §17.
  */
 export function MaizeBaseline({ baseline, sizeRai, planProfit10 }: {
   baseline: Baseline | null;
@@ -68,9 +70,9 @@ export function MaizeBaseline({ baseline, sizeRai, planProfit10 }: {
         <div className="agro-baseline-warn thai" role="alert">
           <Icon name="warning" size={16} />
           <span>
-            <b>ช่องว่างนี้กว้างเกินกว่าจะเชื่อได้ทั้งหมด</b> — ตัวเลขข้าวโพดมีที่มาชัดกว่าตัวเลขแผน
-            {' '}· ฝั่งแผนตั้งอยู่บนสมมติฐานว่าปลูกซ้อนชั้นได้ถึง 160% ของพื้นที่ และแต่ละชนิดให้ผลผลิตเท่ากับปลูกเชิงเดี่ยว
-            {' '}ซึ่งในแปลงจริงมักได้น้อยกว่านั้น · <b>ใช้เป็นการเปรียบเทียบทิศทาง ไม่ใช่ตัวเลขที่จะเอาไปกู้เงิน</b>
+            <b>ช่องว่างนี้กว้างเกินกว่าจะเชื่อได้ทั้งหมด</b> — ตัวเลขข้าวโพดมีที่มาชัดกว่าตัวเลขแผนมาก
+            {' '}· แปลงวนเกษตรที่วัดจริงในไทยได้ราว <b>64–7,665 บาท/ไร่/ปี</b> (กรมป่าไม้ 2558)
+            {' '}· <b>ใช้เป็นการเปรียบเทียบทิศทาง ไม่ใช่ตัวเลขที่จะเอาไปกู้เงิน</b>
           </span>
         </div>
       )}
@@ -83,9 +85,13 @@ export function MaizeBaseline({ baseline, sizeRai, planProfit10 }: {
         </p>
       )}
 
+      {/* The snapshot date matters: yield is published annually so it ages slowly, but the
+          price is a monthly series frozen at the moment the snapshot was taken. A visibly
+          dated number is honest; a silently stale one is not. */}
       <div className="agro-gistda-src">
         ผลผลิต: NABC AgriAPI ระดับจังหวัด (น่าน TH55) · ราคา: สศก. รายเดือน <b>ระดับประเทศ</b> — ราคาที่จุดรับซื้อในหมู่บ้านมักต่ำกว่า
         {' '}· ต้นทุน: สศก. ธันวาคม 2563
+        {baseline.fetchedAt ? ` · ดึงข้อมูลเมื่อ ${baseline.fetchedAt}` : ''}
       </div>
     </section>
   );
