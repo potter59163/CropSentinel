@@ -41,6 +41,57 @@ export const LAYER_META: Record<Layer, { th: string; en: string; desc: string }>
   },
 };
 
+/**
+ * How each วิสัย is shown to a farmer, and what it means.
+ *
+ * `chip` exists because two habits are surprising enough that the bare term misleads. ไผ่ is a
+ * grass — Bambusoideae is a subfamily of Poaceae, the same family as ข้าว and ตะไคร้ — so it is
+ * listed here as "ไผ่ (หญ้า)". Keeping ไผ่ as its own habit alongside หญ้า is not a competing
+ * taxonomic claim: วิสัย describes GROWTH FORM, and a woody clumping culm that lives decades
+ * behaves nothing like ข้าวไร่ in a planting plan even though the two are relatives.
+ *
+ * This is also the fix for a promise the layer rewrite made but did not keep. Naming the layers
+ * positionally means nothing on screen says what a plant IS, so a farmer seeing ไผ่ grouped with
+ * สัก and มะม่วง had no way to learn it is not a tree — the exact confusion the advisory meeting
+ * raised. `note` is what a farmer gets when they ask why.
+ */
+export const HABIT_META: Record<Habit, { chip: string; note: string }> = {
+  'ไม้ต้น': {
+    chip: 'ไม้ต้น',
+    note: 'ไม้เนื้อแข็ง ลำต้นหลักต้นเดียว มีแก่นและวงปี โตทางความสูงและความหนาไปเรื่อย ๆ',
+  },
+  'ไม้พุ่ม': {
+    chip: 'ไม้พุ่ม',
+    note: 'ไม้เนื้อแข็งเหมือนกัน แต่แตกหลายลำจากโคน ไม่มีลำต้นหลักต้นเดียว และเตี้ยกว่าไม้ต้น',
+  },
+  'ไผ่': {
+    chip: 'ไผ่ (หญ้า)',
+    note: 'ไผ่อยู่ในวงศ์หญ้า (Poaceae) วงศ์เดียวกับข้าวและตะไคร้ ลำแข็งแต่เป็นลำกลวงมีข้อ ไม่ใช่เนื้อไม้ '
+      + 'และไม่มีวงปี จึงไม่ใช่ไม้ยืนต้น แม้จะสูงพอ ๆ กัน · โตเต็มลำภายในฤดูเดียว แล้วแตกหน่อใหม่ทุกปีจากเหง้าเดิม',
+  },
+  'ไม้ล้มลุก': {
+    chip: 'ไม้ล้มลุก',
+    note: 'ลำต้นอวบน้ำ ไม่มีเนื้อไม้ ส่วนใหญ่ตายลงหลังให้ผลผลิตแล้วปลูกใหม่',
+  },
+  'ไม้ล้มลุกขนาดใหญ่': {
+    chip: 'ไม้ล้มลุกขนาดใหญ่',
+    note: 'สูงเท่าต้นไม้แต่ไม่ใช่ต้นไม้ — เช่นกล้วย ที่ "ลำต้น" จริง ๆ คือกาบใบซ้อนกันแน่น ไม่มีเนื้อไม้ '
+      + 'ตัดด้วยมีดพร้าได้ และตายทั้งต้นหลังตกเครือ แล้วหน่อข้างขึ้นแทน',
+  },
+  'ไม้เถา': {
+    chip: 'ไม้เถา',
+    note: 'ทอดเลื้อยหรือพันหลัก ต้องมีค้างหรือไม้ใหญ่ให้เกาะ จึงเบียดพื้นที่น้อยแต่แย่งแสงชั้นบนได้',
+  },
+  'หญ้า': {
+    chip: 'หญ้า',
+    note: 'วงศ์หญ้า (Poaceae) ใบยาวแคบ แตกกอจากเหง้าหรือไหล รากฝอยหนาแน่นจึงยึดหน้าดินได้ดี',
+  },
+  'เฟิร์น': {
+    chip: 'เฟิร์น',
+    note: 'ไม่ใช่พืชดอก ขยายพันธุ์ด้วยสปอร์ไม่ใช่เมล็ด ชอบร่มและความชื้นสูง',
+  },
+};
+
 // id, nameTh, nameEn, layer, habit, category, elevMin, elevMax, perennial,
 // yToYield, yToMature, price/kg, yield kg/rai, shadeTol, canopyShade, nFix, water,
 // estCost, annCost, cyclesPerYear, sdmId, note

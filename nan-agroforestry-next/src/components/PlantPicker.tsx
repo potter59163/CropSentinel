@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { FarmInput, Layer, Plant } from '../data/types';
-import { byLayer, LAYER_META, PLANTS } from '../data/plants';
+import { byLayer, HABIT_META, LAYER_META, PLANTS } from '../data/plants';
 import { PlantGlyph } from './PlantGlyph';
 import { Icon } from './Icon';
 import { provenanceOf } from '../lib/provenance';
@@ -214,7 +214,7 @@ export function PlantPicker({ value, onChange }: {
                         <span className="agro-pick-text">
                           <span className="thai">{p.nameTh}</span>
                           <span className="agro-pick-habit thai">
-                            {p.habit}
+                            {HABIT_META[p.habit].chip}
                             {p.nFixing ? ' · บำรุงดิน' : ''}
                             {p.pricePerKg === 0 && p.yearsToYield <= 10 ? ' · ไม่ได้ขาย' : ''}
                           </span>

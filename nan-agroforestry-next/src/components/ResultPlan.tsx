@@ -1,5 +1,5 @@
 import type { SystemPlan, Layer } from '../data/types';
-import { LAYER_META } from '../data/plants';
+import { HABIT_META, LAYER_META } from '../data/plants';
 import { Card } from './ui';
 import { PlantGlyph } from './PlantGlyph';
 import { CashflowChart } from './CashflowChart';
@@ -228,10 +228,13 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
                       {/* วิสัย beside the name. The layer is positional now, so this is the
                           only place that says what the plant actually IS — and it is exactly
                           where a farmer who wonders why ไผ่ sits with the tall plants finds
-                          out that it is a grass. */}
+                          out that it is a grass. It has to SAY that, though: the bare word
+                          "ไผ่" answers nothing, which is why the label carries the family. */}
                       <div className="agro-plant-name thai">
                         {p.plant.nameTh}
-                        <span className="agro-plant-habit">{p.plant.habit}</span>
+                        <span className="agro-plant-habit" title={HABIT_META[p.plant.habit].note}>
+                          {HABIT_META[p.plant.habit].chip}
+                        </span>
                         {/* Where this species' money numbers came from. A longan price traceable
                             to a named OAE series and a ผักหวานป่า price inferred from scattered
                             local reports must not look identical on screen. */}
