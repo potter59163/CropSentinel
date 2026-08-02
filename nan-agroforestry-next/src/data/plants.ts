@@ -52,6 +52,22 @@ const P = (
   cyclesPerYear: number, sdmId: string | undefined, note: string,
 ): Plant => ({ id, nameTh, nameEn, layer, habit, category, elevMin, elevMax, perennial, yearsToYield: yToYield, yearsToMature: yToMature, pricePerKg, yieldKgPerRai, shadeTol, canopyShade, nFixing, water, establishCostPerRai, annualCostPerRai, cyclesPerYear, sdmId, note });
 
+/**
+ * ECONOMIC CORRECTIONS, checked against กรมวิชาการเกษตร field trials and OAE statistics after
+ * the maize baseline exposed the plan totals as implausible:
+ *
+ *   พริก   price 45 -> 20 THB/kg, yield 1,200 -> 900 kg/rai.
+ *          DOA multi-year, multi-site trials measured 819-1,044 kg/rai and sold at 11-20
+ *          THB/kg (the 20 is taken, i.e. the generous end). The old pair implied 54,000
+ *          THB/rai per cycle against a measured ~18,000 — a 3x overstatement on the single
+ *          species contributing 46% of the plan's income.
+ *   สับปะรด yield 4,000 -> 3,362 kg/rai, price 14 -> 13.5 THB/kg (OAE 2563: 3,362 kg/rai,
+ *          13.07 factory / 13.81 fresh).
+ *
+ * ขมิ้น was NOT changed: the DOA turmeric monograph is a scanned document and no usable Thai
+ * yield or price figure could be extracted, so its numbers remain unverified rather than
+ * being adjusted on a guess.
+ */
 export const PLANTS: Plant[] = [
   // ── ไม้เรือนยอดชั้นบน (canopy) — positional layer: holds a grass (ไผ่) and a giant herb (กล้วย) ──
   P('banana', 'กล้วยน้ำว้า', 'Banana', 'canopy', 'ไม้ล้มลุกขนาดใหญ่', 'พืชพี่เลี้ยง', 0, 1200, true, 1, 2, 12, 2500, 0.4, 0.4, false, 'high', 4000, 2000, 1, 'banana', 'พี่เลี้ยงให้ร่มเงาไม้ใหญ่ + รายได้ปีแรก เหมาะพื้นที่ร้อนชื้นต่ำ-กลาง'),
@@ -66,7 +82,7 @@ export const PLANTS: Plant[] = [
 
   // ── ไม้ชั้นรอง/ไม้พุ่ม (shrub) ──
   P('coffee', 'กาแฟอาราบิก้า', 'Arabica coffee', 'shrub', 'ไม้พุ่ม', 'กาแฟ', 800, 1600, true, 3, 5, 150, 220, 0.7, 0.35, false, 'med', 9000, 4000, 1, 'coffee', 'อาราบิก้าควรอยู่พื้นที่สูงเย็น 800-1000+ ม. ชอบร่มเงาและน้ำสม่ำเสมอ'),
-  P('chili', 'พริก', 'Chili', 'shrub', 'ไม้ล้มลุก', 'พืชผัก', 0, 1200, false, 1, 1, 45, 1200, 0.3, 0.2, false, 'med', 3000, 3500, 2, 'chili', 'รายได้ดี เก็บได้หลายรอบ พื้นที่สูงเกินไปจะช้าลงและต้องการแดดพอควร'),
+  P('chili', 'พริก', 'Chili', 'shrub', 'ไม้ล้มลุก', 'พืชผัก', 0, 1200, false, 1, 1, 20, 900, 0.3, 0.2, false, 'med', 3000, 3500, 2, 'chili', 'รายได้ดี เก็บได้หลายรอบ พื้นที่สูงเกินไปจะช้าลงและต้องการแดดพอควร'),
   P('tea', 'ชาเมี่ยง', 'Assam tea', 'shrub', 'ไม้ต้น', 'เครื่องดื่ม', 800, 1600, true, 4, 6, 60, 350, 0.6, 0.3, false, 'med', 7000, 2500, 2, 'tea', 'พืชใต้ร่มดั้งเดิมภาคเหนือ เหมาะภูเขาเย็นชื้น เก็บได้หลายรอบ'),
   P('lemongrass', 'ตะไคร้', 'Lemongrass', 'shrub', 'หญ้า', 'สมุนไพร', 0, 1200, false, 1, 1, 15, 2000, 0.4, 0.15, false, 'low', 2500, 1500, 1, 'lemongrass', 'ปลูกง่าย ทนแล้ง ไล่แมลง เหมาะพื้นที่แดดดีต่ำ-กลาง'),
 
@@ -74,7 +90,7 @@ export const PLANTS: Plant[] = [
   P('peanut', 'ถั่วลิสง', 'Peanut', 'groundcover', 'ไม้ล้มลุก', 'พืชตระกูลถั่ว', 0, 1500, false, 1, 1, 35, 250, 0.35, 0, true, 'low', 1200, 1500, 2, 'peanut', 'ตรึงไนโตรเจนบำรุงดิน คลุมหน้าดิน เหมาะอากาศอุ่นและดินไม่แฉะ'),
   P('pumpkin', 'ฟักทอง', 'Pumpkin', 'groundcover', 'ไม้เถา', 'พืชเลื้อย', 0, 1200, false, 1, 1, 14, 1800, 0.25, 0, false, 'med', 2500, 2000, 1, 'pumpkin', 'เลื้อยคลุมดิน เก็บง่าย ต้องการแดดและพื้นที่โปร่ง'),
   P('sweetpotato', 'มันเทศ', 'Sweet potato', 'groundcover', 'ไม้เถา', 'พืชเลื้อย/หัว', 0, 1600, false, 1, 1, 18, 2200, 0.35, 0, false, 'low', 2500, 2000, 1, 'sweetpotato', 'คลุมดินดี หัวขายได้ ทนแล้ง ปรับตัวได้กว้าง'),
-  P('pineapple', 'สับปะรด', 'Pineapple', 'groundcover', 'ไม้ล้มลุก', 'ไม้ผลล้มลุก', 0, 1000, false, 2, 2, 14, 4000, 0.25, 0, false, 'low', 5000, 1500, 1, 'pineapple', 'คลุมดินกันวัชพืช ทนแล้ง เหมาะพื้นที่ร้อนและดินระบายน้ำดี'),
+  P('pineapple', 'สับปะรด', 'Pineapple', 'groundcover', 'ไม้ล้มลุก', 'ไม้ผลล้มลุก', 0, 1000, false, 2, 2, 13.5, 3362, 0.25, 0, false, 'low', 5000, 1500, 1, 'pineapple', 'คลุมดินกันวัชพืช ทนแล้ง เหมาะพื้นที่ร้อนและดินระบายน้ำดี'),
 
   // ── พืชหัวใต้ดิน (root) ──
   P('ginger', 'ขิง', 'Ginger', 'root', 'ไม้ล้มลุก', 'พืชหัว', 300, 1200, false, 1, 1, 30, 2000, 0.6, 0, false, 'high', 6000, 4000, 1, 'ginger', 'ชอบร่มรำไร รายได้ต่อไร่สูง ต้องการความชื้นสม่ำเสมอ'),

@@ -274,6 +274,29 @@ function applyAssumption(p: Plant, assumption?: CropAssumption): Plant {
   };
 }
 
+/**
+ * Yield an understory species achieves in mixture, as a fraction of its monoculture yield
+ * per unit area — the competition the model otherwise has no term for at all.
+ *
+ * yieldKgPerRai is a MONOCULTURE figure. Applying it in full to a species' share of a mixed
+ * plot assumes a plant between and beneath trees performs exactly as it would in a pure
+ * stand, which it does not: it competes for water, nutrients and rooting volume, the trees
+ * physically occupy part of its ground, and a farmer managing four layers cannot give any one
+ * of them the attention a monocrop gets. None of that is light, so none of it is captured by
+ * `fade` — which in any case only bites once the canopy starts closing, leaving the first
+ * years entirely unpenalised.
+ *
+ * Applied only to non-canopy layers. The canopy is the dominant stratum and is not the one
+ * being suppressed.
+ *
+ * 0.7 IS A JUDGEMENT, NOT A MEASURED VALUE, and it is the weakest number in this file. It
+ * sits inside the 0.5-0.8 range typically reported for the partial LER of an intercrop
+ * component, but the search for a Thai measurement specific to shaded highland systems did
+ * not return one — see docs/METHODOLOGY.md §16 for what was found and §17 for what was not.
+ * It should be replaced with a calibrated figure as soon as field data exists.
+ */
+const MIXTURE_YIELD_FACTOR = 0.7;
+
 // per-plant 10-year net cashflow contribution
 function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean, canopyShadeMature: number, canopyMatureYears: number, priceMultiplier = 1): number[] {
   const net: number[] = [];
@@ -285,7 +308,10 @@ function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean
       const canopyNow = clamp(y / Math.max(1, canopyMatureYears), 0, 1) * canopyShadeMature;
       fade = clamp(1 - Math.max(0, canopyNow - p.shadeTol) * 1.3, 0, 1);
     }
-    const active = ramp * fade;
+    // Competition that is not light, and that applies from year 1 rather than at canopy
+    // closure. See MIXTURE_YIELD_FACTOR.
+    const mixture = understory ? MIXTURE_YIELD_FACTOR : 1;
+    const active = ramp * fade * mixture;
     const revenue = p.yieldKgPerRai * (p.pricePerKg * priceMultiplier) * p.cyclesPerYear * shareRai * active * (0.4 + 0.6 * suit);
     let cost = 0;
     if (p.perennial) cost = (p.establishCostPerRai * (y === 1 ? 1 : 0) + p.annualCostPerRai) * shareRai;
