@@ -21,6 +21,7 @@ import { Tour, type TourStep } from './components/Tour';
 import { PlanLoading } from './components/PlanLoading';
 import { PlantingSeason } from './components/PlantingSeason';
 import { PlantingLayout } from './components/PlantingLayout';
+import { BeeCard } from './components/BeeCard';
 import { LocalCultivation } from './components/LocalCultivation';
 import { PlanCompare } from './components/PlanCompare';
 import { snapshotPlan, type PinnedPlan } from './lib/comparison';
@@ -795,6 +796,10 @@ export function App() {
           {/* Where each species goes, and how to keep fire out. Sits after the season card
               because the order a farmer acts in is: what to plant -> when -> where. */}
           <PlantingLayout sys={activeSystem} sizeRai={input.sizeRai} />
+
+          {/* Optional, collapsed by default. The one animal component — see lib/bees.ts for
+              why it is ชันโรง and not a livestock planner. */}
+          <BeeCard sys={activeSystem} sizeRai={input.sizeRai} />
 
           {/* Market/feasibility signal, deliberately after the plan and visually distinct from
               the suitability badges — it is a count from government statistics, not a score. */}
