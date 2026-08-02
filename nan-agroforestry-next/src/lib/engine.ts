@@ -9,7 +9,29 @@ import { clamp, pct } from './format';
 
 const HORIZON = 10;
 // vertical land-share per layer (rai-equivalent of monoculture yield in the mixed stand)
-const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.3, groundcover: 0.4, root: 0.4 };
+/**
+ * Fraction of the plot each LAYER occupies, before splitting across the species in it.
+ *
+ * These sum to 1.25, not 1.0, and that is deliberate: strata stack vertically, so ground
+ * cover grows UNDER the canopy rather than competing for the same ground. The sum is the
+ * land equivalent ratio (LER) the model assumes — a plot producing 125% of what the same
+ * area would yield as single-species blocks.
+ *
+ * It used to sum to 1.6, which was too generous and showed up the moment a real baseline
+ * existed to check it against: a 10 rai plan came out at roughly 24x what the same land
+ * earns growing maize, using Nan's own measured maize yield. Published LER for tropical
+ * agroforestry generally lands between 1.1 and 1.5, and 1.6 sat above that range while the
+ * model ALSO gives every species its full monoculture yield on its share — the two
+ * optimisms compounding.
+ *
+ * The canopy keeps its full 0.5 because canopy trees genuinely occupy the whole plot
+ * footprint; the reduction falls on the three understory layers, which is where the overlap
+ * assumption was doing the most work.
+ *
+ * Still not calibrated against measured Nan yields — see docs/METHODOLOGY.md §7.2 and §15.1.
+ * A per-species mixture penalty is the remaining known gap.
+ */
+const LAYER_SHARE: Record<Layer, number> = { canopy: 0.5, shrub: 0.25, groundcover: 0.25, root: 0.25 };
 
 // Fraction of the HORIZON a crop actually produces income over, using the same
 // ramp-up curve as the cashflow model. A slow crop like teak (first yield at
