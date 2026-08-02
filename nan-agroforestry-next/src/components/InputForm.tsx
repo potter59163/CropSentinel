@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
 import { GoogleMapPicker } from './GoogleMapPicker';
 import { PlantPicker } from './PlantPicker';
+import { CURRENT_CROPS, resolveExistingZones } from '../lib/existingZones';
 
 const goals: Array<{ id: Goal; label: string; desc: string }> = [
   { id: 'balanced', label: 'สมดุล', desc: 'เห็นผลไว + กำไรดี' },
@@ -15,11 +16,18 @@ const goals: Array<{ id: Goal; label: string; desc: string }> = [
   { id: 'profit', label: 'กำไรสูงสุด', desc: 'มองยาว 10 ปี' },
 ];
 
-const CURRENT_CROPS = [
-  'ข้าวโพดเลี้ยงสัตว์', 'ข้าวไร่', 'มันสำปะหลัง', 'ยางพารา',
-  'ไม้ผลผสม', 'สวนผสม', 'ป่า/ไม้ยืนต้นเดิม', 'พื้นที่ว่าง/เพิ่งถาง', 'พื้นที่เสื่อมโทรม', 'อื่นๆ',
-];
 const LAYERS: Layer[] = ['canopy', 'shrub', 'groundcover', 'root'];
+
+/**
+ * The note on each option is the measured flame length, because that is what makes the answer
+ * worth giving. "ไร่เหล่า" reads harmless until a farmer sees 13 metres beside it.
+ */
+const NEIGHBOUR_OPTIONS: Array<{ id: NonNullable<FarmInput['neighbourFuel']>; label: string; note: string }> = [
+  { id: 'maize', label: 'ไร่ข้าวโพด/ไร่หมุนเวียน', note: 'เปลวไฟ ~1.4 ม.' },
+  { id: 'forest', label: 'ป่า/สวนไม้ยืนต้น', note: 'เปลวไฟ ~1.3 ม.' },
+  { id: 'fallow', label: 'ไร่ร้าง/ไร่เหล่า หญ้าสูง', note: 'เปลวไฟ 7–13 ม. · เสี่ยงสุด' },
+  { id: 'unknown', label: 'ยังไม่แน่ใจ', note: 'ระบบจะแนะแนวกันไฟแบบกว้างไว้ก่อน' },
+];
 
 export function InputForm({ value, onChange, step, invalidFields = [] }: {
   value: FarmInput; onChange: (v: FarmInput) => void; step: number; invalidFields?: string[];
@@ -30,9 +38,13 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
   const set = (patch: Partial<FarmInput>) => onChange({ ...value, ...patch });
   const invalid = (field: string) => invalidFields.includes(field);
   const numberValue = (n: number) => Number.isFinite(n) ? n : '';
-  const existingZones = value.existingZones?.length
-    ? value.existingZones
-    : [{ id: 'zone-1', cropId: value.currentCropId ?? 'ข้าวโพดเลี้ยงสัตว์', areaRai: Number.isFinite(value.sizeRai) ? value.sizeRai : 1 }];
+  // Same resolver the plan request uses, so the pre-filled maize zone a farmer sees here is
+  // the one that actually gets planned. It used to be a local display-only default, and
+  // agreeing with it silently sent no previous land use at all.
+  const resolved = resolveExistingZones(value);
+  const existingZones = resolved.length
+    ? resolved
+    : [{ id: 'zone-1', cropId: value.currentCropId ?? CURRENT_CROPS[0], areaRai: 1 }];
   const zoneTotal = existingZones.reduce((sum, z) => sum + (Number.isFinite(z.areaRai) ? z.areaRai : 0), 0);
   const zoneGap = Number.isFinite(value.sizeRai) ? zoneTotal - value.sizeRai : 0;
   const setZones = (zones: ExistingZone[]) => {
@@ -163,6 +175,33 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
             <div className={`agro-zone-total thai ${Math.abs(zoneGap) > 0.2 ? 'warn' : 'ok'}`}>
               รวมโซน {zoneTotal.toLocaleString('en-US')} / {Number.isFinite(value.sizeRai) ? value.sizeRai.toLocaleString('en-US') : '-'} ไร่
               {Math.abs(zoneGap) > 0.2 ? ` · ${zoneGap > 0 ? 'เกินขนาดแปลง' : 'ยังไม่ครบขนาดแปลง'} ${Math.abs(zoneGap).toFixed(1)} ไร่` : ' · สอดคล้องกับขนาดแปลง'}
+            </div>
+          </div>
+
+          {/* Fire risk on a Nan plot is set by the NEIGHBOUR, not the plot. Wanthongchai et al.
+              (2021) measured 1.34 m flames off standing forest and 12.82 m off ไร่เหล่า — no
+              firebreak a smallholder can cut out-reaches the second. The app carried those
+              measurements for months without asking the one question that unlocks them. */}
+          <div className="agro-zone-panel">
+            <div className="agro-zone-head">
+              <div>
+                <b className="thai">ที่ติดกับแปลง (รอบนอก) เป็นอะไร</b>
+                <span className="thai">ความเสี่ยงไฟขึ้นกับที่ข้างเคียงมากกว่าแปลงเราเอง · เลือกอันที่ใกล้ที่สุด</span>
+              </div>
+            </div>
+            <div className="agro-chips agro-neighbour-chips">
+              {NEIGHBOUR_OPTIONS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  aria-pressed={(value.neighbourFuel ?? 'unknown') === o.id}
+                  className={`agro-chip ${(value.neighbourFuel ?? 'unknown') === o.id ? 'on' : ''}`}
+                  onClick={() => set({ neighbourFuel: o.id })}
+                >
+                  <span className="thai">{o.label}</span>
+                  <span className="agro-neighbour-note thai">{o.note}</span>
+                </button>
+              ))}
             </div>
           </div>
           <div className="agro-step-hint thai">ข้อมูลนี้จะถูกใช้เป็นต้นทุนเตรียมพื้นที่/เปลี่ยนผ่าน ไม่ใช่แค่ข้อความประกอบผลลัพธ์</div>

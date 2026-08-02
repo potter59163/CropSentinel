@@ -198,6 +198,12 @@ select.agro-input { cursor: pointer; }
 .agro-chip:hover { border-color: var(--ok); transform: translateY(-1px); }
 .agro-chip.on { background: linear-gradient(135deg, oklch(0.42 0.1 154), oklch(0.36 0.09 160)); border-color: var(--ok); color: #fff; font-weight: 600; }
 
+/* Two-line chips: the label, and the measured flame length under it. The number is the
+   reason to answer honestly, so it has to be visible at choosing time, not afterwards. */
+.agro-neighbour-chips .agro-chip { display: grid; gap: 1px; text-align: left; padding: 8px 14px; }
+.agro-neighbour-note { font-size: 11px; color: var(--fg-3); line-height: 1.4; }
+.agro-neighbour-chips .agro-chip.on .agro-neighbour-note { color: oklch(0.92 0.03 154); }
+
 /* goals */
 .agro-goals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .agro-goal { background: var(--bg-2); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; min-height: 78px; cursor: pointer; text-align: left; transition: all .12s; }
@@ -379,6 +385,15 @@ select.agro-input { cursor: pointer; }
   display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 12px;
   border: 1px solid oklch(0.72 0.13 222 / 0.34); background: var(--data-bg);
   color: var(--fg-1); font-family: var(--font-thai); font-size: 12.5px;
+}
+/* Several year-0 actions, each its own line — these are things a farmer does before planting,
+   so they have to be scannable as steps rather than run together as a sentence. */
+.agro-transition-notes { margin: 3px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+.agro-transition-notes li {
+  color: var(--fg-3); line-height: 1.45; padding-left: 11px; position: relative;
+}
+.agro-transition-notes li::before {
+  content: '·'; position: absolute; left: 2px; color: var(--fg-3);
 }
 
 .agro-sensitivity,

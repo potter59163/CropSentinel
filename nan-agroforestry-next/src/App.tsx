@@ -28,6 +28,7 @@ import { LocalCultivation } from './components/LocalCultivation';
 import { PlanCompare } from './components/PlanCompare';
 import { snapshotPlan, type PinnedPlan } from './lib/comparison';
 import { farmInputSchema, sanitizeAssumptions } from './lib/planSchema';
+import { resolveExistingZones } from './lib/existingZones';
 
 const TOUR_KEY = 'nan-agro-tour-v1';
 const PIN_KEY = 'nan-agro-pinned-v1';
@@ -169,13 +170,10 @@ function goalLabel(goal: FarmInput['goal']) {
   return 'สมดุล';
 }
 
-function existingZoneRows(input: FarmInput) {
-  const zones = (input.existingZones ?? [])
-    .filter((z) => z.cropId && Number.isFinite(z.areaRai) && z.areaRai > 0);
-  if (zones.length) return zones;
-  if (input.currentCropId) return [{ id: 'legacy-current-crop', cropId: input.currentCropId, areaRai: input.sizeRai }];
-  return [];
-}
+// Was a third copy of the previous-land-use fallback, alongside the form's and the engine's,
+// and the three had drifted apart. One resolver now, so the summary chip, the result panel
+// and the plan itself cannot disagree about what the plot used to be.
+const existingZoneRows = resolveExistingZones;
 
 export function App() {
   const [input, setInput] = useState<FarmInput>(freshInput);
@@ -242,7 +240,10 @@ export function App() {
     {
       icon: 'sprout',
       title: 'กดเพื่อดูแผน',
-      body: 'พร้อมแล้วกด “ออกแบบระบบ” ได้ 3 แผนวนเกษตรพร้อมกราฟรายได้ 10 ปี จุดคืนทุน คาร์บอน และความเสี่ยง · อยากดูคำแนะนำนี้อีกครั้ง กดปุ่ม “? คู่มือ” มุมขวาบนได้เสมอ',
+      // Promised a carbon figure long after meeting item 3.1 removed it — and the app now
+      // devotes a section to explaining why there ISN'T one, so the tour was selling the
+      // opposite of what the product says.
+      body: 'พร้อมแล้วกด “ออกแบบระบบ” ได้ 3 แผนวนเกษตรพร้อมกราฟรายได้ 10 ปี จุดคืนทุน ผังปลูก แนวกันไฟ และเทียบกับการปลูกข้าวโพดต่อ · อยากดูคำแนะนำนี้อีกครั้ง กดปุ่ม “? คู่มือ” มุมขวาบนได้เสมอ',
       target: '[data-tour="submit"]',
       onEnter: () => gotoStep(3),
     },
@@ -293,6 +294,8 @@ export function App() {
   const [step, setStep] = useState(0);
   const [attemptedSteps, setAttemptedSteps] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
+  /** Set when a ?plan= link was read, so the plan runs itself once the input has landed. */
+  const [autoRun, setAutoRun] = useState(false);
   const activeSystem = systems?.[Math.min(activePlan, Math.max(systems.length - 1, 0))] ?? null;
   const formIssues = validateInput(input);
   const currentIssues = formIssues.filter((issue) => issue.step === step);
@@ -334,6 +337,12 @@ export function App() {
         return;
       }
       setInput(sanitizeAssumptions(parsed.data as FarmInput));
+      // The button is called "คัดลอกลิงก์แผน", so the recipient expects a plan. They got the
+      // form silently pre-filled on step 1 instead, with nothing saying a link had been read —
+      // which reads as a broken link rather than a restored one. The plan itself cannot ride
+      // in the URL (it is derived, and depends on live GISTDA/soil/climate calls), so the
+      // honest equivalent is to re-run it on arrival.
+      setAutoRun(true);
     } catch {
       setApiWarnings(['อ่าน share URL ไม่สำเร็จ']);
     }
@@ -430,10 +439,15 @@ export function App() {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 25000);
     try {
+      // Send the previous land use the FORM SHOWED, not just what the farmer retyped. The
+      // maize zone is pre-filled, so agreeing with it means touching nothing — which used to
+      // send existingZones: [] and plan the plot as bare land, dropping the clearing cost,
+      // the herbicide carry-over and the rubber replanting grant without a word on screen.
+      const payload: FarmInput = { ...input, existingZones: resolveExistingZones(input) };
       const response = await fetch('/api/plan', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(input),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`plan API ${response.status}`);
@@ -488,6 +502,19 @@ export function App() {
       setBusy(false);
     }
   };
+
+  // Runs the shared plan once the restored input has settled into state. If the link carries
+  // an incomplete form it falls through to the wizard, which already explains what is missing —
+  // better than a silent failure on someone else's data.
+  useEffect(() => {
+    if (!autoRun) return;
+    setAutoRun(false);
+    if (validateInput(input).length > 0) return;
+    void run();
+    // run() and input are read at fire time; the flag is the trigger, and re-running on every
+    // input keystroke is exactly what must not happen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun]);
 
   return (
     <div className="agro-app">
@@ -806,7 +833,7 @@ export function App() {
 
           {/* Where each species goes, and how to keep fire out. Sits after the season card
               because the order a farmer acts in is: what to plant -> when -> where. */}
-          <PlantingLayout sys={activeSystem} sizeRai={input.sizeRai} />
+          <PlantingLayout sys={activeSystem} sizeRai={input.sizeRai} neighbour={input.neighbourFuel ?? 'unknown'} />
 
           {/* Optional, collapsed by default. The one animal component — see lib/bees.ts for
               why it is ชันโรง and not a livestock planner. */}

@@ -62,6 +62,15 @@ export interface FarmInput {
   goal: Goal;
   targetAnnualIncome?: number;
   cropAssumptions?: CropAssumption[];
+  /**
+   * What sits on the other side of the boundary — see NeighbourFuel in lib/layout.ts.
+   *
+   * Fire risk on a Nan plot depends more on the NEIGHBOUR than on the plot itself: measured
+   * flame lengths run 1.34 m off standing forest but 12.82 m off ไร่เหล่า, which no achievable
+   * firebreak width out-reaches. The app carried those measurements for a while without ever
+   * asking the question, so every farmer got the generic answer.
+   */
+  neighbourFuel?: 'maize' | 'forest' | 'fallow' | 'unknown';
 }
 
 export interface CashflowPoint { year: number; income: number; cost: number; net: number; cumulative: number }

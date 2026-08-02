@@ -40,6 +40,7 @@ export const farmInputSchema = z.object({
   lng: z.number().min(TH_LNG_MIN).max(TH_LNG_MAX).optional(),
   selectedByLayer: layerSelection,
   goal: z.enum(['balanced', 'fast', 'profit']),
+  neighbourFuel: z.enum(['maize', 'forest', 'fallow', 'unknown']).optional(),
   targetAnnualIncome: z.number().positive().max(20_000_000).optional(),
   cropAssumptions: z.array(z.object({
     plantId: z.string(),

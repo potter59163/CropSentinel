@@ -358,12 +358,22 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
         </div>
       </div>
 
-      {sys.transitionCost > 0 && (
+      {/* Notes can matter with no cost attached — a maize plot needs no clearing but still
+          carries a herbicide window, and standing rubber is cash-POSITIVE once the กยท.
+          replanting grant lands. Gating this on cost > 0 hid exactly those cases. */}
+      {(sys.transitionCost > 0 || sys.transitionNotes.length > 0) && (
         <div className="agro-transition-strip">
           <span className="agro-transition-ic"><Icon name="plot" size={23} /></span>
           <div className="agro-transition-copy thai">
-            <div>ต้นทุนเปลี่ยนผ่านแปลงเดิม ~<b>{bahtK(sys.transitionCost)}</b> หักในปีที่ 1</div>
-            <span>{sys.transitionNotes[0]}</span>
+            {sys.transitionCost > 0 && (
+              <div>ต้นทุนเปลี่ยนผ่านแปลงเดิม ~<b>{bahtK(sys.transitionCost)}</b> หักในปีที่ 1</div>
+            )}
+            {/* Every note, not only the first. The engine works out the year-0 actions —
+                burn window, herbicide carry-over, acid correction, the กยท. grant — and all
+                but one were dropped between the model and the screen. */}
+            <ul className="agro-transition-notes">
+              {sys.transitionNotes.map((note, i) => <li key={i}>{note}</li>)}
+            </ul>
           </div>
         </div>
       )}
