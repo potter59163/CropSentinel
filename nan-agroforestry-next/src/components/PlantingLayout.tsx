@@ -84,9 +84,14 @@ export function PlantingLayout({ sys, sizeRai, neighbour = 'unknown' }: {
         <ul className="thai agro-firebreak-list">
           {fire.advice.map((a) => <li key={a}>{a}</li>)}
         </ul>
+        {/* The last clause is the point. This panel used to declare the break unplantable while
+            the cashflow above booked income on the whole plot — two answers about the same
+            ground, on one screen, erring the profitable way. Saying the deduction happened is
+            what makes the two panels one story instead of two. */}
         <p className="thai agro-firebreak-cost">
           แนวกันไฟกินพื้นที่ราว <b>{fire.areaCostRai.toFixed(1)} ไร่</b> จาก {sizeRai} ไร่
           {' '}· เป็นพื้นที่ที่เสียไปเพื่อกันไฟ ไม่ใช่พื้นที่ปลูก
+          {' '}· <b>ตัวเลขรายได้ในแผนคิดจาก {Math.max(0, sizeRai - fire.areaCostRai).toFixed(1)} ไร่ที่เหลือแล้ว</b>
         </p>
         {bamboo && (
           <div className="agro-layout-warn thai" role="alert">

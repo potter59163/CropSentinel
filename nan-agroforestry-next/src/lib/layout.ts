@@ -140,7 +140,11 @@ export function firebreakPlan(sizeRai: number, neighbour: NeighbourFuel = 'unkno
   const sideM = Math.sqrt(Math.max(0, sizeRai) * M2_PER_RAI);
   const rawAreaRai = Math.max(0, (4 * sideM * widthM) / M2_PER_RAI);
   const areaCostRai = Math.min(rawAreaRai, Math.max(0, sizeRai) * 0.9);
-  const breakDominatesPlot = rawAreaRai > Math.max(0, sizeRai) * 0.5;
+  // 0.35, not 0.5: at 5 rai — inside the 5-15 rai band this tool is built for — a 10 m break
+  // around a square plot takes 2.24 rai, 45% of the holding. That is arithmetically right and
+  // practically absurd as a default, and now that the plan actually deducts the area it costs
+  // real projected income. Anyone in that position needs the shared-break option said out loud.
+  const breakDominatesPlot = rawAreaRai > Math.max(0, sizeRai) * 0.35;
 
   const advice: string[] = [
     `ทำแนวกันไฟรอบแปลง กว้าง ${widthM} เมตร ถางใบไม้กิ่งไม้ออกให้เห็นดิน ไม่ใช่แค่ตัดหญ้า`,

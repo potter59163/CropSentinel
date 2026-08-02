@@ -27,8 +27,28 @@ import snapshot from '../data/nabc_maize.json';
  *   cost  — OAE cost workbook, stamped ธันวาคม 2563, so about five and a half years old.
  */
 
-/** สศก. cost workbook (article/487), ข้าวโพดเลี้ยงสัตว์, ธันวาคม 2563. ฿/rai/yr. */
-export const MAIZE_COST_PER_RAI_OAE = 4351.8;
+/**
+ * สศก. ต้นทุนการผลิตข้าวโพดเลี้ยงสัตว์, ปีเพาะปลูก 2567/68. ฿/rai/yr.
+ *
+ * From "สารสนเทศเศรษฐกิจการเกษตรรายสินค้า ปี 2567" p.17: 7,280 ฿/tonne against a national
+ * 737 kg/rai. Replaces the ธันวาคม 2563 workbook figure of 4,351.80, which was five and a half
+ * years old and 23% lower.
+ *
+ * Deliberately NOT computed as ฿/tonne x the Nan yield (7,280 x 0.693 = 5,045). Per-rai spend
+ * is the transferable quantity; a per-tonne cost already has national yield baked into it, so
+ * that multiplication would quietly claim a Nan farmer spends less per rai because they harvest
+ * less — the opposite of what a below-average yield means.
+ *
+ * This is a FULL ECONOMIC COST in OAE's sense: it prices family labour at the local wage and
+ * imputes land rent. It has to be, because the agroforestry side is now on the same basis, and
+ * the whole point of this card is a like-for-like comparison. A Nan-specific alternative exists
+ * — 6,850.96 ฿/rai measured across 78 maize households in บ้านปางปุก อ.สองแคว (CRRU 2564), 57%
+ * above the national figure — but it is one village, so it is cited on screen as a local upper
+ * reference rather than used as the default.
+ */
+export const MAIZE_COST_PER_RAI_OAE = 5365;
+/** The measured Nan figure, shown beside the national one rather than replacing it. */
+export const MAIZE_COST_PER_RAI_NAN_STUDY = 6851;
 
 export interface MaizeBaseline {
   /** kg/rai, Nan province. */

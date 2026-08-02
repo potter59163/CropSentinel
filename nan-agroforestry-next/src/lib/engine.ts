@@ -6,6 +6,7 @@ import type { Climate } from './climate';
 import type { ProtectedArea } from './gistda';
 import type { SoilContext } from './soil';
 import { clamp, pct } from './format';
+import { firebreakPlan } from './layout';
 
 const HORIZON = 10;
 // vertical land-share per layer (rai-equivalent of monoculture yield in the mixed stand)
@@ -45,9 +46,38 @@ function realizedHorizonFraction(p: Plant): number {
   }
   return sum / HORIZON;
 }
-// realised (not peak-potential) revenue per rai over the horizon
-const realizedValue = (p: Plant) => p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear * realizedHorizonFraction(p);
-const MAX_VALUE = Math.max(...PLANTS.map(realizedValue));
+/**
+ * What a species costs to grow for one year on one rai, on the same basis plantFlow charges it.
+ *
+ * An annual pays its establishment every single year — it is replanted — and pays it once per
+ * CYCLE, because a second crop in the same year means a second round of land prep, seed and
+ * planting labour. Revenue was already multiplied by cyclesPerYear while cost was not, so a
+ * two-cycle crop like ถั่วลิสง or พริก booked two harvests against one crop's expenses.
+ */
+const annualCostOf = (p: Plant) => (p.perennial
+  ? p.annualCostPerRai + p.establishCostPerRai / HORIZON
+  : (p.establishCostPerRai + p.annualCostPerRai) * Math.max(1, p.cyclesPerYear));
+
+/**
+ * Realised NET value per rai per year — revenue minus cost, not revenue alone.
+ *
+ * This was gross revenue, which made the ranking blind to what a crop costs to grow. It only
+ * stayed invisible because the cost data was uniformly too low: correcting ginger to its real
+ * ~45,700 ฿/rai/yr turned it loss-making at every site while the ranking went on selecting it
+ * into the root layer of every plan, and at 1,200 m the top recommendation flipped to
+ * ทองหลางป่า — a service tree with no market at all — because losing its revenue edge cost the
+ * avocado plan more than a zero-income species loses by earning nothing.
+ *
+ * A ranking that cannot see cost will recommend a crop that loses money, and this tool exists
+ * to stop a farmer losing a season.
+ */
+const realizedValue = (p: Plant) =>
+  (p.pricePerKg * p.yieldKgPerRai * p.cyclesPerYear - annualCostOf(p)) * realizedHorizonFraction(p);
+// Min-max rather than divide-by-max, because net value goes negative — service species have a
+// cost and no market by design, and a raw ratio would flip the sign of their whole score term.
+const VALUE_HI = Math.max(...PLANTS.map(realizedValue));
+const VALUE_LO = Math.min(...PLANTS.map(realizedValue));
+const valueScore = (p: Plant) => clamp((realizedValue(p) - VALUE_LO) / Math.max(1, VALUE_HI - VALUE_LO), 0, 1);
 const MAX_WOODY = Math.max(...PLANTS.map((p) => woodyOf(p.id)));
 
 interface Scored {
@@ -192,7 +222,7 @@ function scoreAll(climate: Climate | null, risk: ProtectedArea | null, soil: Soi
       source: s.source,
       auc: s.auc,
       confidence: s.confidence,
-      value: realizedValue(p) / MAX_VALUE,
+      value: valueScore(p),
       waterFit: water,
       riskFit: riskScore,
       woodyFit: woodyOf(p.id) / MAX_WOODY,
@@ -315,7 +345,10 @@ function plantFlow(p: Plant, shareRai: number, suit: number, understory: boolean
     const revenue = p.yieldKgPerRai * (p.pricePerKg * priceMultiplier) * p.cyclesPerYear * shareRai * active * (0.4 + 0.6 * suit);
     let cost = 0;
     if (p.perennial) cost = (p.establishCostPerRai * (y === 1 ? 1 : 0) + p.annualCostPerRai) * shareRai;
-    else if (active > 0.05) cost = (p.establishCostPerRai + p.annualCostPerRai) * shareRai;
+    // An annual is replanted every year, and a second cycle in the same year is a second round
+    // of land prep, seed and planting labour. Revenue above is already multiplied by
+    // cyclesPerYear; leaving cost at one cycle booked two harvests against one crop's expenses.
+    else if (active > 0.05) cost = (p.establishCostPerRai + p.annualCostPerRai) * Math.max(1, p.cyclesPerYear) * shareRai;
     net.push(revenue - cost);
   }
   return net;
@@ -376,8 +409,34 @@ function soilHealthProxy(picks: LayerPick[], climate: Climate | null, risk: Prot
   };
 }
 
+/**
+ * Rai a farmer can actually plant, after the firebreak takes its cut.
+ *
+ * Exported so the result screen can show the deduction rather than leave the totals looking
+ * unexplained — a plan that silently plans 6.8 of 10 rai is as confusing as one that plans 10.
+ */
+export function plantableRai(input: FarmInput): number {
+  const size = Number.isFinite(input.sizeRai) ? input.sizeRai : 0;
+  if (size <= 0) return 0;
+  const fire = firebreakPlan(size, input.neighbourFuel ?? 'unknown');
+  // firebreakPlan already caps its own area at 90% of the plot, so this cannot reach zero.
+  return Math.max(0, size - fire.areaCostRai);
+}
+
 function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Goal, forcedPrimary: Scored, climate: Climate | null, risk: ProtectedArea | null, soil: SoilContext | null): SystemPlan {
-  const sizeRai = input.sizeRai;
+  /**
+   * Plant the land that is left after the firebreak, not the whole title deed.
+   *
+   * The result screen told a farmer, in one panel, that the break "กินพื้นที่ราว 3.2 ไร่ จาก
+   * 10 ไร่ · เป็นพื้นที่ที่เสียไปเพื่อกันไฟ ไม่ใช่พื้นที่ปลูก" — and in the panel above it,
+   * booked income on all 10. Two answers about the same ground, on one screen, and the error
+   * ran the profitable way. Anyone checking could multiply the break area by the plan's
+   * baht-per-rai and show the ten-year figure was overstated for every plot in the 5-15 rai
+   * band this tool is built for.
+   *
+   * Same firebreakPlan the layout panel renders, so the two cannot drift apart again.
+   */
+  const sizeRai = plantableRai(input);
   const transition = transitionContext(input);
   /**
    * Land history demotes species the soil cannot yet carry — an avocado into freshly cleared
@@ -624,6 +683,19 @@ export function buildSystems(input: FarmInput, climate: Climate | null, risk: Pr
     if (chosen.length >= 3) break;
     if (!chosen.some((x) => sig(x) === sig(c))) chosen.push(c);
   }
+
+  // Put the farmer's stated goal at the top. Until now input.goal was read nowhere in this
+  // file — the wizard asked สมดุล / เห็นผลไว / กำไรสูงสุด in step 4 and the three plans came
+  // back byte-identical whichever was chosen. The goal does not change WHICH plans are built
+  // (they are still the three strongest, labelled by their real measured outcomes), only
+  // which one leads and carries "แนะนำ" — so the answer stays honest while the question
+  // stops being decorative.
+  const goalKey = (s: SystemPlan): number => {
+    if (input.goal === 'fast') return -(s.paybackYear ?? 99);
+    if (input.goal === 'profit') return s.profit10;
+    return s.score;
+  };
+  chosen.sort((a, b) => goalKey(b) - goalKey(a));
 
   // truthful comparative tags *among the 3 shown* (a plan may earn several)
   if (chosen.length) {

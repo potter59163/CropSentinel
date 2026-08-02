@@ -38,9 +38,12 @@ describe('maize baseline snapshot', () => {
 
   it('leaves maize profitable, or the comparison is meaningless', async () => {
     const baseline = await fetchMaizeBaseline();
-    // Not a given — at 4,351.8 THB/rai/yr of cost, a price drop below about 6.3 THB/kg makes
-    // maize a loss and the "X times better" framing stops being the right one to show.
+    // Not a given, and the margin is thin: at the 2567 cost of 5,365 THB/rai/yr a farmgate
+    // price below about 7.7 THB/kg puts Nan maize under water outright. That thinness is the
+    // real finding — after paying yourself a wage, continuing to grow maize nets a few hundred
+    // baht per rai — and it is why the card no longer leads with a multiple of this number.
     expect(baseline!.netPerRaiYear).toBeGreaterThan(0);
+    expect(baseline!.netPerRaiYear).toBeLessThan(2_000);
   });
 
   it('carries the date it was taken', async () => {

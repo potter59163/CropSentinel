@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSystems, LAYER_SHARE, MIXTURE_YIELD_FACTOR } from './engine';
+import { buildSystems, plantableRai, LAYER_SHARE, MIXTURE_YIELD_FACTOR } from './engine';
 import type { Climate } from './climate';
 import type { FarmInput } from '../data/types';
 
@@ -40,7 +40,11 @@ const everyPlan = (sizeRai = 10) =>
  * that stops being a projection and becomes a claim. See docs/METHODOLOGY.md §16 and §17.
  */
 const HIGHEST_MEASURED_THB_PER_RAI_YEAR = 7_665;
-const MAX_DEFENSIBLE_MULTIPLE = 4;
+// Was 4 while the cost data was uniformly too low. After putting the crop costs on OAE's full
+// economic basis, correcting the root crops against DOAE cost studies, and deducting the
+// firebreak from plantable area, the worst projection sits at about 1.8x. Tightened so the
+// suite defends the position actually reached rather than the one it started from.
+const MAX_DEFENSIBLE_MULTIPLE = 2.5;
 
 describe('model calibration', () => {
   it('allocates 1.25 rai of planting per rai of ground, not 1.6', () => {
@@ -85,16 +89,29 @@ describe('model calibration', () => {
     ).toBeLessThan(ceiling);
   });
 
-  it('scales with plot size instead of rewarding a bigger number', () => {
-    // Per-rai return should be roughly flat across plot sizes; if it climbs with area, some
-    // cost is being treated as fixed when a farmer pays it per rai.
-    const perRai = [5, 10, 15].map((size) => {
+  it('scales with the land actually planted, not with the size of the number', () => {
+    // Per-PLANTABLE-rai must stay flat. If it climbs with area, some cost is being treated as
+    // fixed when a farmer pays it per rai, and every big-plot projection is inflated.
+    const sizes = [5, 10, 15];
+    const perPlantableRai = sizes.map((size) => {
       const best = buildSystems(input(600, 'balanced', size), climate(600), null, null)[0];
-      return best.profit10 / size;
+      return best.profit10 / plantableRai(input(600, 'balanced', size));
     });
-    for (const value of perRai) {
-      expect(value / perRai[0]).toBeGreaterThan(0.9);
-      expect(value / perRai[0]).toBeLessThan(1.1);
+    for (const value of perPlantableRai) {
+      expect(value / perPlantableRai[0]).toBeGreaterThan(0.9);
+      expect(value / perPlantableRai[0]).toBeLessThan(1.1);
     }
+  });
+
+  it('returns less per rai of TITLE on a small plot, because the firebreak takes more of it', () => {
+    // Not a defect — the opposite. A perimeter break costs a 5 rai holding 45% of its ground
+    // and a 15 rai holding 26%, so the same plan genuinely earns less per deeded rai on the
+    // smaller plot. Pinned because the previous version of the test asserted flatness here and
+    // would have been "fixed" by removing the firebreak deduction.
+    const perTitleRai = [5, 15].map((size) =>
+      buildSystems(input(600, 'balanced', size), climate(600), null, null)[0].profit10 / size);
+    expect(perTitleRai[1]).toBeGreaterThan(perTitleRai[0]);
+    // But not by so much that plot size becomes the dominant driver of the recommendation.
+    expect(perTitleRai[1] / perTitleRai[0]).toBeLessThan(1.5);
   });
 });
