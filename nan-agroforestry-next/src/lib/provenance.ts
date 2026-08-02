@@ -83,7 +83,6 @@ const OFFICIAL = new Set([
   'mungbean',    // ถั่วเขียว — monthly price + cost XLSX
   'rambutan',    // เงาะ — monthly price (เงาะโรงเรียน)
   'longkong',    // ลองกอง — cost XLSX
-  'tea',         // ชาเมี่ยง — cost XLSX carries ชาอัสสัม (8,559.13 ฿/rai/yr, est. 652.73)
 ]);
 
 /**
@@ -92,6 +91,14 @@ const OFFICIAL = new Set([
  */
 const RESEARCH: Record<string, string> = {
   coffee: 'สศก. เผยแพร่ราคากาแฟ "โรบัสต้า" ซึ่งเป็นพันธุ์พื้นที่ต่ำภาคใต้ · น่านปลูกอาราบิก้าบนที่สูง ราคาต่างกันจริง',
+  // Demoted from official for the same reason coffee is here. The cost workbook entry is
+  // ชาอัสสัม — the same species, Camellia sinensis var. assamica — but a different PRODUCT:
+  // ชาเมี่ยง is fermented leaf for chewing, harvested and priced on its own local market,
+  // often from old shade-grown stands rather than a managed tea garden. Claiming the tea
+  // series covers it while the plan uses a cost 71% below that series is the kind of gap a
+  // reviewer opens two files to find. The app also has no SDM for it, despite the file
+  // having claimed one that was never in the model.
+  tea: 'สศก. มีต้นทุน "ชาอัสสัม" ซึ่งเป็นพืชชนิดเดียวกันแต่คนละผลิตภัณฑ์ · ชาเมี่ยงเป็นใบหมักขายตลาดท้องถิ่น ราคาและต้นทุนต่างกัน',
   banana: 'สศก. มีต้นทุนกล้วยหอม/กล้วยไข่ แต่ไม่มีกล้วยน้ำว้า ซึ่งเป็นพันธุ์ที่ใช้ในแผนนี้',
   uplandrice: 'สศก. มีข้าวนาปี/นาปรัง แต่ข้าวไร่บนที่สูงให้ผลผลิตต่างจากนาลุ่มมาก',
   chili: 'ราคาพริกผันผวนสูงมากตามฤดูและชนิดพริก ตัวเลขกลางใช้ได้แค่เป็นจุดตั้งต้น',

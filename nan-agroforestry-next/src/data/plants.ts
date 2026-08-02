@@ -134,7 +134,10 @@ export const PLANTS: Plant[] = [
   // ── ไม้ชั้นรอง/ไม้พุ่ม (shrub) ──
   P('coffee', 'กาแฟอาราบิก้า', 'Arabica coffee', 'shrub', 'ไม้พุ่ม', 'กาแฟ', 800, 1600, true, 3, 5, 150, 220, 0.7, 0.35, false, 'med', 9000, 4000, 1, 'coffee', 'อาราบิก้าควรอยู่พื้นที่สูงเย็น 800-1000+ ม. ชอบร่มเงาและน้ำสม่ำเสมอ'),
   P('chili', 'พริก', 'Chili', 'shrub', 'ไม้ล้มลุก', 'พืชผัก', 0, 1200, false, 1, 1, 20, 900, 0.3, 0.2, false, 'med', 3000, 3500, 2, 'chili', 'รายได้ดี เก็บได้หลายรอบ พื้นที่สูงเกินไปจะช้าลงและต้องการแดดพอควร'),
-  P('tea', 'ชาเมี่ยง', 'Assam tea', 'shrub', 'ไม้ต้น', 'เครื่องดื่ม', 800, 1600, true, 4, 6, 60, 350, 0.6, 0.3, false, 'med', 7000, 2500, 2, 'tea', 'พืชใต้ร่มดั้งเดิมภาคเหนือ เหมาะภูเขาเย็นชื้น เก็บได้หลายรอบ'),
+  // sdmId was 'tea', which is not a key in sdm_model.json — a dangling reference that made the
+  // species claim a distribution model it never had while silently falling back to the
+  // elevation envelope. Set to undefined so the fallback is declared, not accidental.
+  P('tea', 'ชาเมี่ยง', 'Assam tea', 'shrub', 'ไม้ต้น', 'เครื่องดื่ม', 800, 1600, true, 4, 6, 60, 350, 0.6, 0.3, false, 'med', 7000, 2500, 2, undefined,'พืชใต้ร่มดั้งเดิมภาคเหนือ เหมาะภูเขาเย็นชื้น เก็บได้หลายรอบ'),
   P('lemongrass', 'ตะไคร้', 'Lemongrass', 'shrub', 'หญ้า', 'สมุนไพร', 0, 1200, false, 1, 1, 15, 2000, 0.4, 0.15, false, 'low', 2500, 1500, 1, 'lemongrass', 'ปลูกง่าย ทนแล้ง ไล่แมลง เหมาะพื้นที่แดดดีต่ำ-กลาง'),
 
   // ── พืชคลุมดิน (groundcover) ──
