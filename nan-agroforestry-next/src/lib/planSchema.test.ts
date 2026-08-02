@@ -82,21 +82,27 @@ describe('sanitizeAssumptions — an override may only touch a plant the user se
   });
 
   it('neutralises the measured share-link injection end to end', () => {
-    // The exact payload shape from the live exploit: overrides on plants the victim
-    // never picked, delivered through a link.
+    // The exploit's bite came from overriding plants the SYSTEM picks, so the attacker's
+    // prices are presented as the model's own recommendation. Target whatever the system
+    // actually chooses for this plot rather than naming species: the catalogue has grown
+    // from 21 to 52 and hard-coding mango/teak silently made this assertion vacuous once
+    // neither was auto-picked any more.
+    const baseline = buildSystems(farmInputSchema.parse(base) as unknown as FarmInput, null, null, null)[0];
+    const pickedIds = baseline.picks.map((p) => p.plant.id);
+    expect(pickedIds.length).toBeGreaterThan(0);
+
     const hostile = farmInputSchema.parse({
       ...base,
-      cropAssumptions: [
-        { plantId: 'mango', pricePerKg: 300, yieldKgPerRai: 8000, annualCostPerRai: 0 },
-        { plantId: 'teak', pricePerKg: 400, yieldKgPerRai: 9000, establishCostPerRai: 0 },
-      ],
+      cropAssumptions: pickedIds.map((plantId) => ({
+        plantId, pricePerKg: 5000, yieldKgPerRai: 9000, establishCostPerRai: 0, annualCostPerRai: 0,
+      })),
     });
     const clean = sanitizeAssumptions(hostile);
+    // The victim selected nothing, so every injected override must be stripped.
     expect(clean.cropAssumptions).toEqual([]);
 
     const dirtyPlan = buildSystems(hostile as unknown as FarmInput, null, null, null)[0];
     const cleanPlan = buildSystems(clean as unknown as FarmInput, null, null, null)[0];
-    // The injected economics must no longer be able to inflate the headline figure.
     expect(cleanPlan.profit10).toBeLessThan(dirtyPlan.profit10);
   });
 });

@@ -36,14 +36,42 @@ const AUC_MIN = 0.65; // below this the SDM is too weak for production ranking
 // that looked 50-95% MORE profitable than the same plot computed with live data
 // (suitability feeds revenue directly in engine.plantFlow). A farmer must never be shown
 // a more attractive plan because the network failed.
+// Applied as a SCALE, not a hard cap. Math.min() flattened every in-range species to exactly
+// 0.72 and destroyed the gradient envelope() computes — which mattered little at 21 species
+// but is fatal at 51, where 30 have no trained SDM and rank purely on this number. Scaling
+// keeps the same ceiling (a perfect envelope fit still tops out at 0.72, so an offline plan
+// can never outshine a modelled one) while preserving the ordering within it.
 const ENVELOPE_CEILING = 0.72;
 const READY = Array.isArray(M.base) && Array.isArray(M.median) && !!M.species; // guards schema transitions
 type SuitConfidence = 'high' | 'medium' | 'low' | 'expert';
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
 
+/**
+ * Elevation fit, 0..1.
+ *
+ * This used to return a flat 1 anywhere inside [elevMin, elevMax]. That was tolerable when
+ * only a handful of species lacked a trained SDM, but the catalogue grew from 21 to 51 and
+ * 30 of those have no GBIF-trained model, so they all fell back to the envelope — and every
+ * one of them scored an identical ENVELOPE_CEILING (0.72). Suitability stopped discriminating
+ * entirely for most of the list, ranking collapsed onto the remaining terms, and ties were
+ * settled by array order: a fodder tree came out ahead of ส้มสีทอง on a 400 m plot purely
+ * because it was declared first.
+ *
+ * Inside the band the score now peaks at the middle of the species' range and eases toward
+ * the edges, bottoming at 0.82 exactly at elevMin/elevMax. That is a deliberately gentle
+ * gradient — the band edges are real agronomic limits, not a preference — but it is enough
+ * to order species by how well the plot actually sits within their range instead of by
+ * declaration order. Outside the band the original linear decay is unchanged.
+ */
 function envelope(plant: Plant, elev: number): number {
-  if (elev >= plant.elevMin && elev <= plant.elevMax) return 1;
+  if (elev >= plant.elevMin && elev <= plant.elevMax) {
+    const span = plant.elevMax - plant.elevMin;
+    if (span <= 0) return 1;
+    // 0 at the centre of the band, 1 at either edge
+    const offCentre = Math.abs(elev - (plant.elevMin + plant.elevMax) / 2) / (span / 2);
+    return clamp(1 - 0.18 * offCentre * offCentre, 0.82, 1);
+  }
   const d = elev < plant.elevMin ? plant.elevMin - elev : elev - plant.elevMax;
   return clamp(1 - d / 450, 0.05, 1);
 }
@@ -184,7 +212,7 @@ export function plantSuitability(plant: Plant, c: Climate | null, risk: Protecte
   // climate object carrying the plot's real elevation (see planRunner) — this default is a
   // last resort only, and the ceiling below keeps it from masquerading as a strong result.
   return {
-    score: Math.min(envelope(plant, c?.elev ?? plant.elevMin), ENVELOPE_CEILING),
+    score: envelope(plant, c?.elev ?? plant.elevMin) * ENVELOPE_CEILING,
     source: 'envelope',
     auc: sp?.auc,
     confidence: sp ? 'low' : 'expert',

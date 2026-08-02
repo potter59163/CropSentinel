@@ -352,27 +352,57 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   const canopyPicks = [...selectedCanopy];
   if (!canopyPicks.some((s) => s.plant.id === primary.plant.id)) canopyPicks.unshift(primary);
   const notPicked = (s: Scored) => !canopyPicks.some((p) => p.plant.id === s.plant.id);
+  /**
+   * A nurse / soil-service tree is a legitimate part of the canopy but must not BE the
+   * canopy. Expanding to 51 species added several — กระถินยักษ์ (fodder, ~6,600 ฿/rai/yr),
+   * แคบ้าน (~2,400), ทองหลางป่า (0, no market at all) — and because they are drought-hardy
+   * with wide elevation bands they score well on suitability and water fit, which is most of
+   * goalRank. On a 400 m plot the top two canopy slots both went to fodder trees while
+   * ส้มสีทอง (~30,600) and ขนุน (~24,000) sat unused. Rather than re-weight goalRank and
+   * disturb behaviour that was validated for the original 21, cap it structurally: at most
+   * ONE low-income species in the canopy, so the farmer always gets a earning tree up top.
+   * A species the farmer picks explicitly bypasses this entirely.
+   */
+  const LOW_INCOME_PER_RAI_YR = 10_000;
+  const lowIncome = (s: Scored) =>
+    s.plant.pricePerKg * s.plant.yieldKgPerRai * s.plant.cyclesPerYear < LOW_INCOME_PER_RAI_YR;
+  const canopyLowIncomeCount = () => canopyPicks.filter(lowIncome).length;
   while (canopyPicks.length < 2) {
+    const room = canopyLowIncomeCount() < 1;
+    const ok = (s: Scored) => notPicked(s) && (room || !lowIncome(s));
     // prefer a productive, suitable second canopy; fall back progressively so we
     // always reach 2, but never reach for a non-yielding timber tree first.
-    const next = canopyRanked.find((s) => notPicked(s) && s.suit >= 0.38 && s.realized >= 0.2)
-      ?? canopyRanked.find((s) => notPicked(s) && s.realized >= 0.2)
-      ?? canopyRanked.find((s) => notPicked(s) && s.suit >= 0.38)
+    const next = canopyRanked.find((s) => ok(s) && s.suit >= 0.38 && s.realized >= 0.2)
+      ?? canopyRanked.find((s) => ok(s) && s.realized >= 0.2)
+      ?? canopyRanked.find((s) => ok(s) && s.suit >= 0.38)
+      ?? canopyRanked.find(ok)
       ?? canopyRanked.find(notPicked);
     if (!next) break;
     canopyPicks.push(next);
   }
 
-  const pickLayer = (layer: Layer) => {
+  const pickLayer = (layer: Layer, preferNFix = false) => {
     const farmer = selectedIds(input, layer)
       .map((id) => scored[layer].find((s) => s.plant.id === id))
       .filter(Boolean) as Scored[];
     if (farmer.length) return farmer;
     const r = rank(scored[layer]).filter((s) => s.suit > 0.2);
-    return [(r.length ? r : rank(scored[layer]))[0]].filter(Boolean);
+    const pool = r.length ? r : rank(scored[layer]);
+    // Every agroforestry system should carry at least one nitrogen fixer — that is most of
+    // why multi-strata rebuilds soil without bought fertiliser. But goalRank is driven by
+    // realised revenue, and the strongest fixers (ทองหลางป่า, ถั่วพร้า, ถั่วฮามาต้า, หญ้าแฝก)
+    // are SERVICE plants priced at 0 because they have no market, so they sort last and
+    // could never be reached. Rather than invent a price to game the ranking, give the
+    // ground-cover slot an explicit preference when nothing else in the plan fixes nitrogen.
+    if (preferNFix) {
+      const fixer = pool.find((s) => s.plant.nFixing && s.suit > 0.2);
+      if (fixer) return [fixer];
+    }
+    return [pool[0]].filter(Boolean);
   };
   const shrubs = pickLayer('shrub');
-  const grounds = pickLayer('groundcover');
+  const planHasNFix = [...canopyPicks, ...shrubs].some((s) => s.plant.nFixing);
+  const grounds = pickLayer('groundcover', !planHasNFix);
   const roots = pickLayer('root');
 
   // the canopy that casts the most shade governs when the understory gets shaded
