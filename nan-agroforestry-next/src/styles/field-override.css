@@ -1945,3 +1945,60 @@ a:hover { color: var(--sugar-0); }
 .method-src-caveat { color: var(--warn-ink) !important; }
 
 @media (max-width: 760px) { .method-tiers { grid-template-columns: 1fr; } }
+
+/* ── Plant picker at 55 species ──────────────────────────────────────────────
+   Search + filters + a live summary. At 21 species a flat chip grid was fine; at 55 the
+   farmer needs to find things and see what a mix does before running the plan. */
+.agro-picker { display: grid; gap: 12px; }
+.agro-picker-tools { display: grid; gap: 9px; }
+
+.agro-picker-search { display: flex; align-items: center; gap: 8px; position: relative; }
+.agro-picker-search > svg { position: absolute; left: 12px; color: var(--fg-3); pointer-events: none; }
+.agro-picker-search .agro-input { padding-left: 36px; }
+
+.agro-picker-filters { display: flex; flex-wrap: wrap; gap: 7px; }
+.agro-picker-filter {
+  min-height: 40px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-thai); font-size: 13px; font-weight: 600;
+  color: var(--fg-2); background: var(--surface); border: 1.5px solid var(--line);
+  transition: all .16s ease;
+}
+.agro-picker-filter:hover { border-color: var(--sugar-0); color: var(--sugar-1); }
+.agro-picker-filter.on {
+  color: #fff; border-color: var(--sugar-2);
+  background: linear-gradient(135deg, var(--sugar-0), var(--sugar-2));
+}
+
+.agro-picker-count {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px;
+  font-size: 12.5px; color: var(--fg-3);
+}
+.agro-picker-clear {
+  min-height: 34px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  background: none; border: 1.5px solid var(--line-soft);
+  font-family: var(--font-thai); font-size: 12.5px; color: var(--fg-3);
+}
+.agro-picker-clear:hover { border-color: var(--risk); color: var(--risk-ink); }
+
+/* Live consequence of the current mix, so trying a combination is cheap. */
+.agro-picker-summary {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+  padding: 11px 14px; border-radius: 11px;
+  background: var(--surface-soft); border: 1.5px solid var(--line-soft);
+}
+.agro-picker-summary span { font-size: 12.5px; line-height: 1.6; }
+.agro-picker-summary .ok { color: var(--ok-ink); font-weight: 600; }
+.agro-picker-summary .warn { color: var(--warn-ink); }
+.agro-picker-summary .bad { color: var(--risk-ink); font-weight: 600; flex-basis: 100%; }
+
+.agro-pick-empty { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--fg-3); }
+/* Out-of-range species stay visible but read as unsuitable rather than being hidden — a
+   farmer may have a reason, and silently removing options is its own kind of wrong. */
+.agro-pick-chip.off-elev { opacity: .5; }
+.agro-pick-chip.off-elev:not(.on) { border-style: dashed; }
+
+@media (max-width: 560px) {
+  .agro-picker-filter { flex: 1 1 calc(50% - 7px); justify-content: center; padding-inline: 10px; }
+  /* Sits on its own line here, so it gets the full touch target. */
+  .agro-picker-clear { min-height: 44px; width: 100%; }
+}

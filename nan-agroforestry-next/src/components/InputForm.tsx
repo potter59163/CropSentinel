@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { CropAssumption, ExistingZone, FarmInput, Goal, Layer } from '../data/types';
-import { byLayer, LAYER_META, PLANTS } from '../data/plants';
+import { PLANTS } from '../data/plants';
 import { NAN_AMPHOE, NAN_CENTER } from '../data/nan';
 import { Card, Field } from './ui';
 import { PlantGlyph } from './PlantGlyph';
 import { Icon } from './Icon';
 import { getGeolocation, fetchElevation } from '../lib/elevation';
 import { GoogleMapPicker } from './GoogleMapPicker';
+import { PlantPicker } from './PlantPicker';
 
 const goals: Array<{ id: Goal; label: string; desc: string }> = [
   { id: 'balanced', label: 'สมดุล', desc: 'เห็นผลไว + กำไรดี' },
@@ -65,16 +66,6 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
         : [...current, { plantId, ...patch }],
     });
   };
-  const togglePlant = (layer: Layer, id: string) => {
-    const a = selectedByLayer[layer] ?? [];
-    set({
-      selectedByLayer: {
-        ...selectedByLayer,
-        [layer]: a.includes(id) ? a.filter((x) => x !== id) : [...a, id],
-      },
-    });
-  };
-
   const useGps = async () => {
     setGps('loading');
     // Two separate try blocks on purpose. Previously both awaits shared one try and the
@@ -260,43 +251,9 @@ export function InputForm({ value, onChange, step, invalidFields = [] }: {
 
         {step === 2 && (
           <Field label="พืชที่อยากให้ระบบนำไปออกแบบ" hint="เลือกได้ทุกชั้น · เว้นว่างชั้นไหน ระบบจะเติมชนิดที่เหมาะกับพื้นที่ให้">
-            <div className="agro-pick">
-              {LAYERS.map((layer) => {
-                const m = LAYER_META[layer];
-                const selected = selectedByLayer[layer] ?? [];
-                return (
-                  <div key={layer} className={`agro-pick-layer layer-${layer}`}>
-                    <div className="agro-pick-head">
-                      <b className="thai"><span className="agro-pick-headglyph"><PlantGlyph plantId="" layer={layer} size={20} /></span> {m.th}</b>
-                      <span className="thai">{selected.length ? `เลือก ${selected.length}` : 'อัตโนมัติ'}</span>
-                    </div>
-                    <div className="agro-chips">
-                      {byLayer(layer).map((p) => {
-                        const on = selected.includes(p.id);
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            aria-pressed={on}
-                            className={`agro-chip agro-pick-chip ${on ? 'on' : ''}`}
-                            onClick={() => togglePlant(layer, p.id)}
-                          >
-                            <span className="agro-pick-icon"><PlantGlyph plantId={p.id} layer={layer} size={22} /></span>
-                            {/* Name and วิสัย stack in their own column. Putting the habit
-                                directly in the chip's flex row made it a third sibling and
-                                squeezed the name into a one-letter-per-line column. */}
-                            <span className="agro-pick-text">
-                              <span className="thai">{p.nameTh}</span>
-                              <span className="agro-pick-habit thai">{p.habit}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Extracted to PlantPicker: at 55 species a flat chip grid became a wall with no
+                way to search, filter or see what a mix does. See that file for the reasoning. */}
+            <PlantPicker value={value} onChange={onChange} />
           </Field>
         )}
 
