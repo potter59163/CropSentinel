@@ -1,4 +1,5 @@
 import { Icon, type IconName } from './Icon';
+import { TIER_META, ECONOMIC_SOURCES, NO_NATIONAL_SERIES, NAN_YIELD_CAVEAT } from '../lib/provenance';
 import { modelMeta, speciesReliability } from '../lib/suitability';
 import { PLANTS } from '../data/plants';
 
@@ -202,6 +203,46 @@ export function Methodology() {
           removed on evidence, and a reviewer who remembers seeing it deserves the reasoning
           rather than silence. Every figure below is sourced; the arithmetic is shown so it
           can be checked. */}
+      {/* Answers the meeting's first question — "ตัวเลขนี้เอามาจากไหน" — with the actual
+          series, the actual caveats, and the honest size of the blind spot. */}
+      <div className="method-section">
+        <div className="method-section-head">
+          <span className="agro-impact-k">ที่มาตัวเลขเงิน</span>
+          <h3 className="thai">ราคาและต้นทุนมาจากไหน</h3>
+        </div>
+
+        <div className="method-tiers">
+          {(['official', 'research', 'estimated'] as const).map((t) => (
+            <div key={t} className={`method-tier-card is-${t}`}>
+              <b className="thai">{TIER_META[t].labelTh}</b>
+              <span className="thai">{TIER_META[t].descTh}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="method-reliability-limits thai">
+          <b>ข้อจำกัดที่ต้องรู้</b>
+          ราคาที่เผยแพร่ทั้งหมด<b>เป็นระดับประเทศ ไม่มีรายจังหวัด</b> · ราคาที่จุดรับซื้อในหมู่บ้านมักต่ำกว่าค่าเฉลี่ยประเทศ
+          {' '}เพราะค่าขนส่งและส่วนต่างพ่อค้าคนกลาง
+          <br />
+          {NAN_YIELD_CAVEAT}
+          <br />
+          <b>พืชที่ไม่มีในสถิติระดับชาติเลย:</b> {NO_NATIONAL_SERIES.join(' · ')}
+          {' '}— ซึ่งเป็นพืชกลุ่มที่ทำให้ระบบวนเกษตรทำงานได้พอดี
+        </div>
+
+        <div className="method-srclist">
+          {ECONOMIC_SOURCES.map((src) => (
+            <div key={src.url} className="method-src-row">
+              <b className="thai">{src.org}</b>
+              <span className="thai">{src.what}</span>
+              <a href={src.url} target="_blank" rel="noopener noreferrer">{src.url}</a>
+              <span className="thai method-src-caveat">{src.caveat}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="method-section">
         <div className="method-section-head">
           <span className="agro-impact-k">ที่ตัดออก</span>

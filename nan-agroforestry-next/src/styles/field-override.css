@@ -1908,3 +1908,40 @@ a:hover { color: var(--sugar-0); }
   .agro-bees { padding: 2px 14px 6px; }
   .agro-bees-start { grid-template-columns: 1fr; }
 }
+/* Provenance tier per species — see lib/provenance.ts. */
+.agro-plant-prov {
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+  padding: 2px 8px; border-radius: 999px; cursor: help;
+  font-family: var(--font-thai); font-size: 10.5px; font-weight: 600; line-height: 1.5;
+}
+.agro-plant-prov.is-official { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid #bfe0c9; }
+.agro-plant-prov.is-research { background: var(--data-bg); color: var(--data-ink); border: 1px solid #bcdcea; }
+.agro-plant-prov.is-estimated { background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #edd49a; }
+
+/* ── Economic provenance (Methodology) ───────────────────────────────────── */
+.method-tiers { margin-top: 13px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.method-tier-card {
+  display: grid; gap: 4px; padding: 12px 14px; border-radius: 11px;
+  background: var(--surface-soft); border: 1.5px solid var(--line-soft);
+}
+.method-tier-card b { font-size: 14px; }
+.method-tier-card span { font-size: 12.5px; line-height: 1.65; color: var(--fg-2); }
+.method-tier-card.is-official { background: var(--ok-bg); border-color: #bfe0c9; }
+.method-tier-card.is-official b { color: var(--ok-ink); }
+.method-tier-card.is-research { background: var(--data-bg); border-color: #bcdcea; }
+.method-tier-card.is-research b { color: var(--data-ink); }
+.method-tier-card.is-estimated { background: var(--warn-bg); border-color: #edd49a; }
+.method-tier-card.is-estimated b { color: var(--warn-ink); }
+
+.method-srclist { margin-top: 13px; display: grid; gap: 9px; }
+.method-src-row {
+  display: grid; gap: 3px; padding: 12px 14px; border-radius: 11px;
+  background: var(--surface); border: 1.5px solid var(--line-soft);
+  border-left: 3px solid var(--taro);
+}
+.method-src-row b { font-size: 13.5px; }
+.method-src-row span { font-size: 12.5px; line-height: 1.65; color: var(--fg-2); }
+.method-src-row a { font-size: 12px; color: var(--data-ink); overflow-wrap: anywhere; }
+.method-src-caveat { color: var(--warn-ink) !important; }
+
+@media (max-width: 760px) { .method-tiers { grid-template-columns: 1fr; } }

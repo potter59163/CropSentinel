@@ -5,6 +5,7 @@ import { PlantGlyph } from './PlantGlyph';
 import { CashflowChart } from './CashflowChart';
 import { Icon, type IconName } from './Icon';
 import { PlanConfidence } from './PlanConfidence';
+import { provenanceOf, provenanceNote, TIER_META } from '../lib/provenance';
 import { bahtK, pct, nf0 } from '../lib/format';
 import { incomeGoalStatus } from '../lib/incomeGoal';
 
@@ -231,6 +232,15 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
                       <div className="agro-plant-name thai">
                         {p.plant.nameTh}
                         <span className="agro-plant-habit">{p.plant.habit}</span>
+                        {/* Where this species' money numbers came from. A longan price traceable
+                            to a named OAE series and a ผักหวานป่า price inferred from scattered
+                            local reports must not look identical on screen. */}
+                        <span
+                          className={`agro-plant-prov is-${provenanceOf(p.plant.id)}`}
+                          title={provenanceNote(p.plant.id) ?? TIER_META[provenanceOf(p.plant.id)].descTh}
+                        >
+                          {TIER_META[provenanceOf(p.plant.id)].shortTh}
+                        </span>
                       </div>
                       {/* shareRai is computed for every pick by the engine but was never
                           rendered, so a farmer was told to plant 4 layers on 10 rai with no
