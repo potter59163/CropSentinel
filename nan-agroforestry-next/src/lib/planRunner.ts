@@ -54,11 +54,23 @@ export async function runPlan(rawInput: FarmInput) {
     }),
     getCropPriceOverrides(),
     // Real Nan maize yield, so the plan has a grounded reference point instead of being read
-    // against nothing. fetchMaizeBaseline already swallows its own failures and returns null
-    // — a missing baseline is a missing section, never a guessed one. See lib/nabc.ts.
+    // against nothing. fetchMaizeBaseline swallows its own failures and returns null — a
+    // missing baseline is a missing section, never a guessed one. See lib/nabc.ts.
     fetchMaizeBaseline(),
   ]);
   const soil = mergeLddSoil(soilGrids, lddSoilGroup);
+  // The baseline failing used to be completely silent: the comparison section simply did not
+  // render and nothing said why. It works from a laptop but returns null on Vercel, which
+  // took a production diff to notice. Silence is the wrong default for a data source that
+  // either works or is invisible.
+  if (!maizeBaseline) warnings.push('ดึงผลผลิตข้าวโพดระดับจังหวัดจาก NABC ไม่สำเร็จ · ไม่แสดงส่วนเปรียบเทียบกับการปลูกข้าวโพดต่อ');
+  // Admin price overrides silently replace the researched prices in data/plants.ts. That is
+  // the intended design — an officer can update a price without a deploy — but it means the
+  // number a farmer sees may not be the number in the code, with nothing on screen saying so.
+  const overriddenIds = Object.keys(priceOverrides);
+  if (overriddenIds.length) {
+    warnings.push(`ใช้ราคาที่ผู้ดูแลระบบตั้งไว้ ${overriddenIds.length} ชนิด แทนราคาอ้างอิงในระบบ`);
+  }
   if (!lddSoilGroup) warnings.push('ไม่พบ polygon กลุ่มชุดดิน LDD สำหรับพิกัดนี้ · ระบบใช้ SoilGrids/คะแนนกลางแทน');
   if (!soilGrids) warnings.push('ไม่พบข้อมูลดิน SoilGrids สำหรับพิกัดนี้ · ระบบใช้ LDD หรือคะแนนดินกลางแทน');
   const satellite = satContext(lat, lng);
