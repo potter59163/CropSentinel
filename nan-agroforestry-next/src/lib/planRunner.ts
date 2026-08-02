@@ -8,6 +8,7 @@ import { fetchSoil, mergeLddSoil } from './soil';
 import { getCropPriceOverrides } from './cropPrices';
 import { sanitizeAssumptions } from './planSchema';
 import { cultivationNear } from './cultivation';
+import { fetchMaizeBaseline } from './nabc';
 
 // Layers admin-set prices under the farmer's own advanced overrides (if any),
 // which still win field-by-field — an explicit per-plan number a farmer typed
@@ -35,7 +36,7 @@ export async function runPlan(rawInput: FarmInput) {
   const lng = input.lng ?? 100.78;
   const warnings: string[] = [];
   const lddSoilGroup = lookupLddSoilGroup(lat, lng);
-  const [climate, protectedArea, soilGrids, priceOverrides] = await Promise.all([
+  const [climate, protectedArea, soilGrids, priceOverrides, maizeBaseline] = await Promise.all([
     fetchClimate(lat, lng, input.elevationM).catch((error) => {
       warnings.push(`NASA POWER/Open-Meteo climate unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
       // Keep the plot's REAL elevation so elevation-based filtering still works;
@@ -52,6 +53,10 @@ export async function runPlan(rawInput: FarmInput) {
       return null;
     }),
     getCropPriceOverrides(),
+    // Real Nan maize yield, so the plan has a grounded reference point instead of being read
+    // against nothing. fetchMaizeBaseline already swallows its own failures and returns null
+    // — a missing baseline is a missing section, never a guessed one. See lib/nabc.ts.
+    fetchMaizeBaseline(),
   ]);
   const soil = mergeLddSoil(soilGrids, lddSoilGroup);
   if (!lddSoilGroup) warnings.push('ไม่พบ polygon กลุ่มชุดดิน LDD สำหรับพิกัดนี้ · ระบบใช้ SoilGrids/คะแนนกลางแทน');
@@ -63,5 +68,5 @@ export async function runPlan(rawInput: FarmInput) {
   // suitability score and the cashflow — see the header of lib/cultivation.ts for why
   // blending it in would turn the tool into "grow what your neighbours grow".
   const cultivation = cultivationNear(lat, lng);
-  return { systems, climate, protectedArea, satellite, soil, lddSoilGroup, cultivation, warnings };
+  return { systems, climate, protectedArea, satellite, soil, lddSoilGroup, cultivation, maizeBaseline, warnings };
 }

@@ -22,6 +22,8 @@ import { PlanLoading } from './components/PlanLoading';
 import { PlantingSeason } from './components/PlantingSeason';
 import { PlantingLayout } from './components/PlantingLayout';
 import { BeeCard } from './components/BeeCard';
+import { MaizeBaseline } from './components/MaizeBaseline';
+import type { MaizeBaseline as MaizeBaselineData } from './lib/nabc';
 import { LocalCultivation } from './components/LocalCultivation';
 import { PlanCompare } from './components/PlanCompare';
 import { snapshotPlan, type PinnedPlan } from './lib/comparison';
@@ -184,6 +186,7 @@ export function App() {
   const [sat, setSat] = useState<SatContext | null>(null);
   const [soil, setSoil] = useState<SoilContext | null>(null);
   const [cultivation, setCultivation] = useState<CultivationContext | null>(null);
+  const [maizeBaseline, setMaizeBaseline] = useState<MaizeBaselineData | null>(null);
   const [apiWarnings, setApiWarnings] = useState<string[]>([]);
   const [runFailed, setRunFailed] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
@@ -384,6 +387,7 @@ export function App() {
     setSat(null);
     setSoil(null);
     setCultivation(null);
+    setMaizeBaseline(null);
     // A pinned plan belongs to the farmer who pinned it. Carrying it into the next farmer
     // would offer to compare their plot against someone else's.
     unpinPlan();
@@ -440,6 +444,7 @@ export function App() {
         satellite: SatContext | null;
         soil: SoilContext | null;
         cultivation: CultivationContext | null;
+        maizeBaseline: MaizeBaselineData | null;
         warnings: string[];
       };
       setClimate(data.climate);
@@ -447,6 +452,7 @@ export function App() {
       setSat(data.satellite);
       setSoil(data.soil);
       setCultivation(data.cultivation ?? null);
+      setMaizeBaseline(data.maizeBaseline ?? null);
       setApiWarnings(data.warnings ?? []);
       setActivePlan(0);
       setSystems(data.systems);
@@ -791,6 +797,11 @@ export function App() {
           {/* When to plant. Sits directly under the plan because it is the first thing a
               farmer has to act on, and the 10-yr cashflow above it is meaningless if the
               seedlings go in at the wrong end of the year. */}
+          {/* The reference point the tool never had: what the maize this plot is converting
+              FROM actually earns, using real Nan yield. Placed straight after the plan so the
+              two numbers are read together. */}
+          <MaizeBaseline baseline={maizeBaseline} sizeRai={input.sizeRai} planProfit10={activeSystem.profit10} />
+
           <PlantingSeason climate={climate} />
 
           {/* Where each species goes, and how to keep fire out. Sits after the season card

@@ -2002,3 +2002,48 @@ a:hover { color: var(--sugar-0); }
   /* Sits on its own line here, so it gets the full touch target. */
   .agro-picker-clear { min-height: 44px; width: 100%; }
 }
+
+/* ── Maize baseline ──────────────────────────────────────────────────────────
+   What the land currently earns, from real Nan yield. Read together with the plan figure,
+   which is why it sits directly under the plan rather than in a data appendix. */
+.agro-baseline {
+  margin-top: 16px; padding: 16px 18px;
+  background: var(--surface); border: 1.5px solid var(--line-soft);
+  border-left: 4px solid var(--data);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+  break-inside: avoid;
+}
+.agro-baseline-grid {
+  margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px;
+}
+.agro-baseline-cell {
+  display: grid; gap: 3px; padding: 12px 14px; border-radius: 11px;
+  border: 1.5px solid var(--line-soft); background: var(--surface-soft);
+}
+.agro-baseline-cell span { font-size: 12px; line-height: 1.55; color: var(--fg-3); }
+.agro-baseline-cell b { font-size: 19px; font-variant-numeric: tabular-nums; color: var(--fg-0); }
+.agro-baseline-cell.maize { background: var(--data-bg); border-color: #bcdcea; }
+.agro-baseline-cell.maize b { color: var(--data-ink); }
+.agro-baseline-cell.plan { background: var(--ok-bg); border-color: #bfe0c9; }
+.agro-baseline-cell.plan b { color: var(--ok-ink); }
+
+.agro-baseline-calc {
+  margin-top: 11px; padding: 11px 13px; border-radius: 10px;
+  background: var(--surface-soft); border: 1.5px solid var(--line-soft);
+  font-size: 12.5px; line-height: 1.75; color: var(--fg-2);
+}
+.agro-baseline-calc b:first-child { display: block; margin-bottom: 3px; color: var(--fg-0); font-size: 13px; }
+
+.agro-baseline-warn {
+  margin-top: 11px; display: flex; gap: 9px; align-items: flex-start;
+  padding: 11px 13px; border-radius: 10px; font-size: 13px; line-height: 1.72;
+  background: var(--warn-bg); border: 1.5px solid #edd49a; color: var(--warn-ink);
+}
+.agro-baseline-warn svg { flex-shrink: 0; margin-top: 3px; }
+.agro-baseline-trend { margin: 11px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--fg-2); }
+.agro-baseline .agro-gistda-src { margin-top: 11px; }
+
+@media (max-width: 560px) {
+  .agro-baseline { padding: 14px; }
+  .agro-baseline-grid { grid-template-columns: 1fr; }
+}
