@@ -1800,3 +1800,57 @@ a:hover { color: var(--sugar-0); }
 }
 /* Service plants have no yield line — they have a purpose line instead. */
 .agro-plant-yp.is-service { color: var(--ok-ink); font-weight: 600; }
+/* Long-rotation timber: a felling in year 20+ is not annual income. */
+.agro-plant-yp.is-longrot { color: var(--warn-ink); }
+
+/* ── Planting layout + firebreak ─────────────────────────────────────────────
+   One repeating strip (tree row + alley) rather than a plot map — the unit กรมป่าไม้'s own
+   farmer handbook uses, which tiles to any plot and needs no extra input. */
+.agro-layout {
+  margin-top: 16px; padding: 16px 18px;
+  background: var(--surface); border: 1.5px solid var(--line-soft);
+  border-left: 4px solid var(--matcha, var(--ok));
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+  break-inside: avoid;
+}
+.agro-layout-lead { margin: 10px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); }
+
+.agro-strip { margin-top: 13px; display: grid; gap: 8px; }
+.agro-strip-row, .agro-strip-alley {
+  padding: 12px 14px; border-radius: 11px; border: 1.5px solid var(--line-soft);
+}
+.agro-strip-row { background: var(--ok-bg); border-color: #bfe0c9; }
+.agro-strip-alley { background: var(--surface-soft); }
+.agro-strip-tag {
+  display: inline-block; margin-bottom: 6px; padding: 3px 10px; border-radius: 999px;
+  font-family: var(--font-thai); font-size: 11px; font-weight: 700; letter-spacing: .02em;
+}
+.agro-strip-tag.row { background: var(--ok); color: #06231a; }
+.agro-strip-tag.alley { background: var(--bg-3); color: var(--fg-1); }
+.agro-strip-row b { display: block; font-size: 15px; line-height: 1.6; color: var(--ok-ink); }
+
+.agro-strip-years { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.agro-strip-year { display: grid; gap: 3px; min-width: 0; }
+.agro-strip-year span { font-size: 11.5px; line-height: 1.5; color: var(--fg-3); }
+.agro-strip-year b { font-size: 14px; line-height: 1.6; color: var(--fg-0); overflow-wrap: anywhere; }
+.agro-strip-arrow { font-size: 18px; color: var(--fg-3); }
+
+.agro-layout-warn {
+  margin-top: 11px; display: flex; gap: 9px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.7;
+  background: var(--warn-bg); border: 1.5px solid #edd49a; color: var(--warn-ink);
+}
+.agro-layout-warn svg { flex-shrink: 0; margin-top: 3px; }
+.agro-layout-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--fg-3); }
+
+.agro-firebreak { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.agro-firebreak-list { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 5px; }
+.agro-firebreak-list li { font-size: 13px; line-height: 1.72; color: var(--fg-2); }
+.agro-firebreak-cost { margin: 10px 0 0; font-size: 13px; line-height: 1.7; color: var(--fg-2); }
+
+@media (max-width: 560px) {
+  .agro-layout { padding: 14px; }
+  /* The arrow between the two year-bands turns into a downward step when they stack. */
+  .agro-strip-years { grid-template-columns: 1fr; gap: 8px; }
+  .agro-strip-arrow { transform: rotate(90deg); justify-self: start; }
+}

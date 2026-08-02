@@ -524,7 +524,10 @@ function warningsFor(picks: LayerPick[], canopyShadeMature: number, agro: System
     if (soil?.drainage === 'poor' && p.plant.water === 'low') w.push(`${p.plant.nameTh}ชอบดินระบายน้ำดี แต่ดินแปลงนี้ระบายน้ำช้า · ควรยกร่อง/พูนโคนหรือเลี่ยงพื้นที่ลุ่ม`);
   }
   if (soil?.acidity === 'strong') w.push(`ดินกรดจัด (pH ${soil.ph}) · ควรปรับ pH ด้วยปูนก่อนปลูกไม้ผลที่ไวต่อกรด`);
-  const sun = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol < 0.35);
+  // 0.4, not 0.35 — see SHADE_TOL_SUN_LOVER in lib/layout.ts. At 0.35 this test excluded
+  // ถั่วลิสง (shadeTol exactly 0.35), so the warning missed the exact case the advisory
+  // meeting raised: peanuts shaded out by teak.
+  const sun = picks.find((p) => p.layer !== 'canopy' && p.plant.shadeTol < 0.4);
   if (sun && canopyShadeMature > 0.55) w.push(`${sun.plant.nameTh}ชอบแดด เมื่อเรือนยอดปิด ควรย้ายไปขอบแปลงหรือเปลี่ยนเป็นพืชทนร่มในปีท้ายๆ`);
   if (agro.strata < 0.9) w.push('โครงสร้างวนเกษตรยังไม่ครบชั้น ควรมีไม้ยืนต้นอย่างน้อย 2 ชนิดและพืชคลุมดิน/พืชหัวช่วยปิดหน้าดิน');
   if (agro.shade < 0.62) w.push('ความเข้ากันของร่มเงายังปานกลาง ควรจัดพืชชอบแดดไว้ขอบแปลงหรือใช้ชนิดทนร่มกว่าในระยะเรือนยอดปิด');

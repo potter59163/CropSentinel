@@ -244,7 +244,16 @@ export function ResultPlan({ sys, rank, allSystems = [sys], targetAnnualIncome }
                           this line would be the fabricated-income error the species rebuild
                           exists to remove. But "ผลผลิต 0 กก./ไร่ · ฿0/กก." reads as a broken
                           field, so say what the plant is actually for instead. */}
-                      {p.plant.pricePerKg > 0 ? (
+                      {p.plant.yearsToYield > 10 ? (
+                        // Long-rotation timber. สัก was printing "ผลผลิต 4,000 กก./ไร่ ·
+                        // ฿40/กก." — an annual-looking line for a tree that is felled once
+                        // after 15+ years, implying ฿160,000/rai/yr of income it never pays.
+                        // Same unit error that produced the ฿137,500 ประดู่ป่า record.
+                        <div className="agro-plant-yp is-longrot thai">
+                          ไม้ใช้สอย · ตัดขายได้ราวปีที่ {p.plant.yearsToYield}
+                          {' — '}<b>ไม่มีรายได้ใน 10 ปีนี้</b>
+                        </div>
+                      ) : p.plant.pricePerKg > 0 ? (
                         <div className="agro-plant-yp">ผลผลิต {nf0(p.plant.yieldKgPerRai)} กก./ไร่ · ฿{p.plant.pricePerKg}/กก.</div>
                       ) : (
                         <div className="agro-plant-yp is-service thai">

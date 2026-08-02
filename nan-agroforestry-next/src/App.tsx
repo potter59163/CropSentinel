@@ -20,6 +20,7 @@ import { Splash } from './components/Splash';
 import { Tour, type TourStep } from './components/Tour';
 import { PlanLoading } from './components/PlanLoading';
 import { PlantingSeason } from './components/PlantingSeason';
+import { PlantingLayout } from './components/PlantingLayout';
 import { LocalCultivation } from './components/LocalCultivation';
 import { PlanCompare } from './components/PlanCompare';
 import { snapshotPlan, type PinnedPlan } from './lib/comparison';
@@ -790,6 +791,10 @@ export function App() {
               farmer has to act on, and the 10-yr cashflow above it is meaningless if the
               seedlings go in at the wrong end of the year. */}
           <PlantingSeason climate={climate} />
+
+          {/* Where each species goes, and how to keep fire out. Sits after the season card
+              because the order a farmer acts in is: what to plant -> when -> where. */}
+          <PlantingLayout sys={activeSystem} sizeRai={input.sizeRai} />
 
           {/* Market/feasibility signal, deliberately after the plan and visually distinct from
               the suitability badges — it is a count from government statistics, not a score. */}
