@@ -31,13 +31,32 @@ describe('habit (วิสัย)', () => {
     expect(bamboo.every((p) => p.layer === 'canopy')).toBe(true);
   });
 
-  it('never calls a non-woody plant a tree', () => {
-    const notWoody: Habit[] = ['ไผ่', 'ไม้ล้มลุก', 'ไม้ล้มลุกขนาดใหญ่', 'ไม้เถา', 'หญ้า', 'เฟิร์น'];
-    for (const p of PLANTS) {
-      if (notWoody.includes(p.habit)) {
-        expect(HABIT_META[p.habit].chip, `${p.nameTh} is labelled as a tree`).not.toContain('ไม้ต้น');
-      }
+  it('never puts the word ไม้ on a plant that has no wood', () => {
+    // The objection that produced this rule: a farmer reads ไม้ as WOOD, so labelling a banana
+    // "ไม้ล้มลุกขนาดใหญ่" told them it was a kind of wood. Standard Thai botanical vocabulary
+    // uses ไม้ to mean "plant", but the audience here does not hold that convention.
+    const nonWoody: Habit[] = [
+      'พืชล้มลุก', 'พืชล้มลุกขนาดใหญ่', 'พืชล้มลุกมีเหง้า', 'พืชล้มลุกมีหัว',
+      'เถาล้มลุก', 'ไผ่', 'หญ้า', 'เฟิร์น',
+    ];
+    for (const h of nonWoody) {
+      expect(HABIT_META[h].chip, `${h} still leads with ไม้`).not.toMatch(/^ไม้/);
     }
+    // And the converse: the habits that KEEP ไม้ must genuinely be woody, or the word stops
+    // meaning anything. ไม้เถา holds rattan, which is sold as cane — ไม้ is honest there.
+    const woody: Habit[] = ['ไม้ต้น', 'ไม้พุ่ม', 'ไม้เถา'];
+    for (const h of woody) {
+      expect(HABIT_META[h].note, `${h} does not say it is woody`).toMatch(/เนื้อแข็ง|แก่น/);
+    }
+  });
+
+  it('separates a rhizome crop from a plant that dies off each season', () => {
+    // ขิง ขมิ้น ข่า were all "ไม้ล้มลุก", which reads as a one-season crop to be replanted.
+    // The rhizome IS the plant, it persists, and it is what gets sold — that is the fact a
+    // farmer needs when deciding what goes in the ground.
+    const rhizome = PLANTS.filter((p) => p.habit === 'พืชล้มลุกมีเหง้า');
+    expect(rhizome.map((p) => p.id).sort()).toEqual(['galangal', 'ginger', 'reao', 'turmeric']);
+    expect(HABIT_META['พืชล้มลุกมีเหง้า'].note).toMatch(/เหง้าใต้ดิน/);
   });
 
   it('keeps every layer name free of growth-form claims', () => {

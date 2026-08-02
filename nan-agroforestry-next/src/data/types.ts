@@ -14,15 +14,32 @@ export type ValidationStatus = 'model_suggested' | 'expert_confirmed' | 'needs_r
  * a height band without anyone claiming they are trees — so the layer axis is now positional
  * and the botany lives here, per species, where it is true.
  */
+/**
+ * A NOTE ON THE WORD ไม้, because it is the reason half these values were renamed.
+ *
+ * Standard Thai botanical vocabulary prefixes almost everything with ไม้ — ไม้ล้มลุก, ไม้เถา,
+ * ไม้ล้มลุกขนาดใหญ่ — where ไม้ means simply "plant". The ราชบัณฑิตยสภา definition of ไม้ล้มลุก
+ * is literally "พืชที่ไม่มีเนื้อไม้": a ไม้ with no ไม้. That only parses if you already hold the
+ * convention. A farmer reads ไม้ as WOOD, so the app was telling them a banana and a groundnut
+ * were kinds of wood — which is how this was caught, by a Thai speaker asking
+ * "ละกล้วยเป็นไม้นี่หรอ".
+ *
+ * So the non-woody habits lead with พืช (ordinary Thai agricultural usage, not a coinage) and
+ * the genuinely woody ones keep ไม้, where it is doing honest work. ไม้เถา stays because the
+ * climbers left in it are woody-caned — หวาย is literally sold as cane furniture.
+ */
 export type Habit =
-  | 'ไม้ต้น'            // true woody tree, single main trunk
-  | 'ไม้พุ่ม'           // woody shrub, multi-stemmed
-  | 'ไผ่'               // bamboo — woody clumping GRASS (Poaceae)
-  | 'ไม้ล้มลุก'         // herbaceous, no wood
-  | 'ไม้ล้มลุกขนาดใหญ่' // giant herb — banana's pseudostem is leaf sheaths, not wood
-  | 'ไม้เถา'            // vine / climber
-  | 'หญ้า'              // true grass
-  | 'เฟิร์น';           // pteridophyte — not a flowering plant at all
+  | 'ไม้ต้น'             // true woody tree, single main trunk
+  | 'ไม้พุ่ม'            // woody shrub, multi-stemmed
+  | 'ไม้เถา'             // WOODY climber — rattan, ชะอม, ผักเชียงดา
+  | 'ไผ่'                // bamboo — woody clumping GRASS (Poaceae)
+  | 'พืชล้มลุก'          // herbaceous, no wood
+  | 'พืชล้มลุกขนาดใหญ่'  // giant herb — banana's pseudostem is leaf sheaths, not wood
+  | 'พืชล้มลุกมีเหง้า'   // Zingiberaceae — the rhizome is the plant, and it persists
+  | 'พืชล้มลุกมีหัว'     // cormous herb — taro
+  | 'เถาล้มลุก'          // herbaceous climber — pumpkin, sweet potato, cover legumes
+  | 'หญ้า'               // true grass
+  | 'เฟิร์น';            // pteridophyte — not a flowering plant at all
 
 export interface Plant {
   id: string;
