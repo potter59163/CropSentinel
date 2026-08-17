@@ -461,14 +461,19 @@ function buildSystem(scored: Record<Layer, Scored[]>, input: FarmInput, goal: Go
   const notPicked = (s: Scored) => !canopyPicks.some((p) => p.plant.id === s.plant.id);
   /**
    * A nurse / soil-service tree is a legitimate part of the canopy but must not BE the
-   * canopy. Expanding to 51 species added several — กระถินยักษ์ (fodder, ~6,600 ฿/rai/yr),
-   * แคบ้าน (~2,400), ทองหลางป่า (0, no market at all) — and because they are drought-hardy
-   * with wide elevation bands they score well on suitability and water fit, which is most of
-   * goalRank. On a 400 m plot the top two canopy slots both went to fodder trees while
-   * ส้มสีทอง (~30,600) and ขนุน (~24,000) sat unused. Rather than re-weight goalRank and
-   * disturb behaviour that was validated for the original 21, cap it structurally: at most
-   * ONE low-income species in the canopy, so the farmer always gets a earning tree up top.
-   * A species the farmer picks explicitly bypasses this entirely.
+   * canopy. Expanding to 51 species added several — แคบ้าน (~2,400 ฿/rai/yr), ทองหลางป่า
+   * (0, no market at all) — and because they are drought-hardy with wide elevation bands
+   * they score well on suitability and water fit, which is most of goalRank. On a 400 m
+   * plot the top two canopy slots both went to service trees while ส้มสีทอง (~30,600) and
+   * ขนุน (~24,000) sat unused. Rather than re-weight goalRank and disturb behaviour that
+   * was validated for the original 21, cap it structurally: at most ONE low-income species
+   * in the canopy, so the farmer always gets an earning tree up top. A species the farmer
+   * picks explicitly bypasses this entirely.
+   *
+   * A third species used to sit here too — กระถินยักษ์ — but it was never actually a canopy
+   * tree: its own cultivation note says cut at 50-100 cm before flowering, which is contour
+   * hedgerow management, not a permanent overstory. Moved to layer: 'shrub' in plants.ts,
+   * where it belongs on its own merits rather than being capped here as a workaround.
    */
   const LOW_INCOME_PER_RAI_YR = 10_000;
   const lowIncome = (s: Scored) =>

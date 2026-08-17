@@ -68,3 +68,40 @@ describe('habit (วิสัย)', () => {
     }
   });
 });
+
+/**
+ * Pinning two more layer placements found the same way bamboo was: by reading each species'
+ * own cultivation note against what its assigned layer structurally requires, rather than
+ * trusting the assignment because it shipped that way.
+ */
+describe('layer placement matches how a species is actually grown', () => {
+  const plant = (id: string) => {
+    const p = PLANTS.find((x) => x.id === id);
+    if (!p) throw new Error(`no plant ${id}`);
+    return p;
+  };
+
+  it('keeps a hedgerow-cut fodder tree out of the permanent canopy', () => {
+    // กระถินยักษ์'s own note says cut at 50-100 cm before flowering — contour hedgerow /
+    // alley-cropping management (SALT-style Leucaena hedgerows are documented pruned as low
+    // as 25 cm), not a tree that ever stands as the plot's permanent overstory. It shipped in
+    // 'canopy' regardless, which is why engine.ts once needed a structural cap on low-income
+    // canopy picks to stop it and its peers crowding out real income trees.
+    const krathinyak = plant('krathinyak');
+    expect(krathinyak.layer).toBe('shrub');
+    expect(krathinyak.note).toMatch(/ตัดที่ความสูง/);
+  });
+
+  it('keeps a green-manure cover crop out of the shrub income layer', () => {
+    // ปอเทือง is tilled into the soil 50-150 days after planting — the same role as jackbean,
+    // calopo, centro and hamata, all correctly in groundcover. It shipped in 'shrub', an
+    // outlier among its own functional peer group with nothing in the data to justify it.
+    const sunnhemp = plant('sunnhemp');
+    expect(sunnhemp.layer).toBe('groundcover');
+    expect(sunnhemp.note).toMatch(/ไถกลบ/);
+
+    // Same peer group, same reasoning — if this list ever shrinks, sunnhemp lost its company.
+    const coverCropPeers = ['jackbean', 'calopo', 'centro', 'hamata'].map(plant);
+    expect(coverCropPeers.every((p) => p.layer === 'groundcover')).toBe(true);
+  });
+});

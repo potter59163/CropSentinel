@@ -143,7 +143,9 @@ const P = (
  * being adjusted on a guess.
  */
 export const PLANTS: Plant[] = [
-  // ── ไม้เรือนยอดชั้นบน (canopy) — positional layer: holds a grass (ไผ่) and a giant herb (กล้วย) ──
+  // ── ไม้เรือนยอดชั้นบน (canopy) — positional layer: holds a giant herb (กล้วย, พืชพี่เลี้ยง —
+  // planted deliberately to nurse-shade young trees). ไผ่ itself sits below in 'shrub' — see the
+  // note on the bamboo P() row a few lines down for why it does not belong up here. ──
   P('banana', 'กล้วยน้ำว้า', 'Banana', 'canopy', 'พืชล้มลุกขนาดใหญ่', 'พืชพี่เลี้ยง', 0, 1200, true, 1, 2, 12, 2500, 0.4, 0.4, false, 'high', 4000, 2000, 1, 'banana', 'พี่เลี้ยงให้ร่มเงาไม้ใหญ่ + รายได้ปีแรก เหมาะพื้นที่ร้อนชื้นต่ำ-กลาง'),
   P('mango', 'มะม่วง', 'Mango', 'canopy', 'ไม้ต้น', 'ผลไม้', 0, 800, true, 3, 6, 25, 1000, 0.3, 0.6, false, 'med', 7000, 8000, 1, 'mango', 'ปลูกง่าย ตลาดกว้าง ให้ผลผลิตดีในพื้นที่ต่ำ-กลางที่มีช่วงแล้ง'),
   P('longan', 'ลำไย', 'Longan', 'canopy', 'ไม้ต้น', 'ผลไม้', 100, 1000, true, 4, 7, 30, 900, 0.3, 0.6, false, 'med', 8000, 12500, 1, 'longan', 'พืชเศรษฐกิจภาคเหนือ ต้องการช่วงเย็นช่วยกระตุ้นดอก'),
@@ -196,7 +198,14 @@ export const PLANTS: Plant[] = [
   // their value shows up as the yield of what grows beside them.
 
   // ── new: canopy ──
-  P('krathinyak', 'กระถินยักษ์', 'Giant leucaena (giant ipil-ipil)', 'canopy', 'ไม้ต้น', 'ไม้ใช้สอย/อาหารสัตว์/บำรุงดิน', 0, 800, true, 1, 4, 5.5, 400, 0.2, 0.45, true, 'low', 1000, 1500, 3, undefined, 'ตัดที่ความสูง 50-100 ซม. ก่อนติดฝัก เพื่อกันการแพร่ระบาด และผสมในอาหารสัตว์ไม่เกิน 30%'),
+  // layer: 'shrub', not 'canopy'. The cultivation note below says it plainly: cut at 50-100 cm
+  // before it flowers. That is contour hedgerow / alley-cropping management (SALT-style Leucaena
+  // hedgerows are documented pruned as low as 25 cm — Springer/ILRI/UBC alley-cropping studies),
+  // not a permanent overstory tree. It shipped in 'canopy' regardless, and engine.ts had to add a
+  // structural cap ("at most ONE low-income species in canopy") specifically because this species
+  // and others like it kept winning canopy slots on suitability alone — a workaround for this
+  // placement being wrong, not a fix for it. See the LOW_INCOME_PER_RAI_YR comment in engine.ts.
+  P('krathinyak', 'กระถินยักษ์', 'Giant leucaena (giant ipil-ipil)', 'shrub', 'ไม้ต้น', 'ไม้ใช้สอย/อาหารสัตว์/บำรุงดิน', 0, 800, true, 1, 4, 5.5, 400, 0.2, 0.45, true, 'low', 1000, 1500, 3, undefined, 'ตัดที่ความสูง 50-100 ซม. ก่อนติดฝัก เพื่อกันการแพร่ระบาด และผสมในอาหารสัตว์ไม่เกิน 30%'),
   P('thonglangpa', 'ทองหลางป่า (ทองบก)', 'Forest coral tree', 'canopy', 'ไม้ต้น', 'ไม้บำรุงดิน', 300, 1300, true, 2, 6, 0, 0, 0.3, 0.5, true, 'med', 700, 400, 2, undefined, 'ไม้บังร่มตรึงไนโตรเจนสำหรับแปลงกาแฟ ปลูกด้วยท่อนพันธุ์ใหญ่ปักชำ ตัดแต่งกิ่ง 2 ครั้ง/ปี แล้วสับใบคลุมโคนแทนปุ๋ย ไม่ใช่พืชขาย รายได้มาจากพืชที่ปลูกใต้ร่ม'),
   P('khae-ban', 'แคบ้าน', 'Vegetable hummingbird (Agati)', 'canopy', 'ไม้ต้น', 'ผักพื้นบ้าน/ไม้พี่เลี้ยง', 0, 800, true, 1, 3, 20, 60, 0.15, 0.35, true, 'med', 500, 300, 2, undefined, 'ไม้พี่เลี้ยงโตเร็วที่ตรึงไนโตรเจน เก็บดอกกินและขายตลาดท้องถิ่นได้ตั้งแต่ปีแรก แต่ไม่ทนอากาศต่ำกว่า 10 องศา จึงควรปลูกเฉพาะพื้นที่ต่ำกว่า 800 เมตร'),
   P('jackfruit', 'ขนุน', 'Jackfruit', 'canopy', 'ไม้ต้น', 'ผลไม้', 0, 1200, true, 4, 8, 12, 2000, 0.3, 0.75, false, 'med', 6000, 3000, 1, undefined, 'ปลูกริมแปลงไม่กี่ต้นพอกินพอขายตลาดท้องถิ่น อย่าลงแปลงใหญ่จนกว่าจะมีพ่อค้ารับซื้อแน่นอน'),
@@ -210,7 +219,11 @@ export const PLANTS: Plant[] = [
   // ── new: shrub ──
   P('chaom', 'ชะอม (ผักหละ / ผักขา)', 'Cha-om (climbing wattle)', 'shrub', 'ไม้เถา', 'ผักพื้นบ้าน', 0, 1200, true, 1, 2, 40, 35, 0.35, 0.3, true, 'med', 9000, 3500, 30, undefined, 'ปลูกเป็นแนวรั้วขอบแปลง ตัดแต่งไม่ให้สูงเกิน 2 เมตร กันเถาเลื้อยคลุมไม้อื่น และอย่าปลูกเกิน 1 ไร่ เพราะตลาดในพื้นที่รับซื้อจำกัด'),
   P('thuamahae', 'ถั่วมะแฮะ', 'Pigeon pea', 'shrub', 'ไม้พุ่ม', 'ถั่วและพืชบำรุงดิน', 200, 1600, true, 1, 2, 30, 110, 0.15, 0.25, true, 'low', 800, 900, 1, undefined, 'ปลูกกลางแดด อย่าปลูกใต้ร่มไม้ใหญ่เพราะจะไม่ติดฝัก เน้นบำรุงดินและกินในครัวเรือน เพราะยังไม่มีตลาดรับซื้อแน่นอนในน่าน'),
-  P('sunnhemp', 'ปอเทือง', 'Sunn hemp', 'shrub', 'พืชล้มลุก', 'พืชปุ๋ยสด', 0, 1200, false, 1, 1, 22, 80, 0.2, 0.5, true, 'low', 800, 900, 1, undefined, 'ปลูกฟื้นดินไร่ข้าวโพดเก่า ไถกลบตอนออกดอก 50-60 วันได้ไนโตรเจน หรือปล่อยถึง 120-150 วันเก็บเมล็ดขาย เลือกอย่างใดอย่างหนึ่ง'),
+  // layer: 'groundcover', not 'shrub'. Its own note is the same "ปลูกคลุมดิน...บำรุงดิน" green-manure
+  // role as jackbean, calopo, centro and hamata below — all correctly in groundcover — and Crotalaria
+  // juncea is grown exactly for that (ECHO, NRCS, UF/IFAS: tilled in after flowering as soil amendment).
+  // Shipped in 'shrub' as an outlier among its own peer group with nothing in the data to justify it.
+  P('sunnhemp', 'ปอเทือง', 'Sunn hemp', 'groundcover', 'พืชล้มลุก', 'พืชปุ๋ยสด', 0, 1200, false, 1, 1, 22, 80, 0.2, 0.5, true, 'low', 800, 900, 1, undefined, 'ปลูกฟื้นดินไร่ข้าวโพดเก่า ไถกลบตอนออกดอก 50-60 วันได้ไนโตรเจน หรือปล่อยถึง 120-150 วันเก็บเมล็ดขาย เลือกอย่างใดอย่างหนึ่ง'),
   P('pakwanban', 'ผักหวานบ้าน', 'Katuk (Sweet Leaf)', 'shrub', 'ไม้พุ่ม', 'ผักพื้นบ้าน', 0, 800, true, 1, 2, 50, 40, 0.6, 0.25, false, 'med', 6000, 8000, 24, undefined, 'เก็บยอดขายได้ทุก 10-15 วันตลอดปี ปลูกใต้ร่มเงาไม้ผลได้ดี แต่ต้องทำให้สุกก่อนกินทุกครั้ง ห้ามกินดิบหรือคั้นน้ำดื่ม'),
   P('pakwanpa', 'ผักหวานป่า', 'Wild sweet leaf (pak wan pa)', 'shrub', 'ไม้ต้น', 'ผักพื้นบ้าน', 200, 600, true, 3, 6, 180, 100, 0.6, 0.35, false, 'low', 15000, 3000, 1, undefined, 'ต้องปลูกใต้ไม้พี่เลี้ยง เช่น แค ตะขบ มะขามเทศ ให้ร่มรำไรราว 50% ใน 2-3 ปีแรก ห้ามปลูกใกล้ไผ่หรือมะขาม และห้ามพรวนดินรอบโคนเพราะรากตื้นลอยหน้าดิน'),
   P('pakchiangda', 'ผักเชียงดา', 'Chiang Da (Gymnema)', 'shrub', 'ไม้เถา', 'ผักพื้นบ้าน/สมุนไพร', 200, 1300, true, 1, 3, 40, 80, 0.5, 0.3, false, 'med', 15000, 4000, 10, undefined, 'ปลูกใต้ร่มไม้ผลได้ ทนร่มรำไร แต่ตลาดผักสดยังแคบ ควรหาผู้รับซื้อหรือกลุ่มแปรรูปชาให้ได้ก่อนขยายเกิน 1-2 ไร่'),
