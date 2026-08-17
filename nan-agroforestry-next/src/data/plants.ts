@@ -13,8 +13,15 @@ import type { Plant, Layer, Habit } from './types';
  * The names below follow โครงการ "สร้างป่า สร้างรายได้" (royal initiative, 2556), which uses
  * exactly these FOUR positional layers — ไม้เรือนยอดชั้นบน / ชั้นรอง / ไม้พุ่ม / ไม้ผิวดิน —
  * and was piloted in NAN province itself (อ.บ่อเกลือ และ อ.เฉลิมพระเกียรติ). That model
- * places ไผ่ in ชั้นรอง and กล้วย in ไม้พุ่ม. Using its vocabulary means the layer scheme has
- * a provincial, government precedent rather than being our invention.
+ * places ไผ่ in ชั้นรอง. Using its vocabulary means the layer scheme has a provincial,
+ * government precedent rather than being our invention.
+ *
+ * That placement was not actually followed at first — ไผ่ shipped in `canopy` anyway, next to
+ * สัก and มะม่วง, contradicting the very source cited to justify the scheme. See the note on
+ * the bamboo P() row below. กล้วย remains in `canopy`: its category is พืชพี่เลี้ยง (nurse
+ * crop) — planted deliberately to shade young trees while they establish — which is a
+ * defensible reason to keep it in the top position even though the same source places it in
+ * ไม้พุ่ม, unlike bamboo which carries no such functional justification.
  *
  * Note "ไม้ลงดิน" (the old root label) is not an established Thai term at all; the real ones
  * are ไม้หัวใต้ดิน (ALRO) and ไม้ผิวดิน (สร้างป่า สร้างรายได้).
@@ -25,11 +32,11 @@ import type { Plant, Layer, Habit } from './types';
 export const LAYER_META: Record<Layer, { th: string; en: string; desc: string }> = {
   canopy: {
     th: 'ไม้เรือนยอดชั้นบน', en: 'Upper canopy',
-    desc: 'ชั้นบนสุด · โครงสร้างและร่มเงาของแปลง (บังคับ ≥2 ชนิด) · รวมพืชสูงที่ไม่ใช่ไม้ต้น เช่น ไผ่ กล้วย',
+    desc: 'ชั้นบนสุด · โครงสร้างและร่มเงาถาวรของแปลง (บังคับ ≥2 ชนิด) · รวมพืชสูงที่ไม่ใช่ไม้ต้น เช่น กล้วย',
   },
   shrub: {
     th: 'ไม้ชั้นรอง/ไม้พุ่ม', en: 'Sub-canopy & shrub',
-    desc: 'ชั้นรอง · รายได้ต่อเนื่องใต้ร่มชั้นบน',
+    desc: 'ชั้นรอง · รายได้ต่อเนื่องใต้ร่มชั้นบน · รวมไผ่ ซึ่งโครงการ "สร้างป่า สร้างรายได้" จัดไว้ชั้นนี้เช่นกัน',
   },
   groundcover: {
     th: 'พืชคลุมดิน', en: 'Ground cover',
@@ -144,7 +151,13 @@ export const PLANTS: Plant[] = [
   P('avocado', 'อะโวคาโด', 'Avocado', 'canopy', 'ไม้ต้น', 'ผลไม้', 700, 1600, true, 4, 7, 60, 1200, 0.3, 0.7, false, 'high', 0, 11600, 1, 'avocado', 'ตลาดสุขภาพโตเร็ว เหมาะพื้นที่สูงเย็นและน้ำพอ'),
   P('macadamia', 'แมคคาเดเมีย', 'Macadamia', 'canopy', 'ไม้ต้น', 'ผลไม้เปลือกแข็ง', 800, 1600, true, 5, 8, 200, 160, 0.3, 0.6, false, 'med', 12000, 3500, 1, 'macadamia', 'พืชมูลค่าสูงสำหรับพื้นที่สูงเย็น ใช้เป็นเรือนยอดร่วมกาแฟได้'),
   P('maikhwaen', 'มะแขว่น', 'Mai khwaen', 'canopy', 'ไม้ต้น', 'เครื่องเทศพื้นถิ่น', 800, 1200, true, 4, 7, 300, 120, 0.4, 0.4, false, 'low', 6000, 2000, 1, 'maikhwaen', 'เครื่องเทศเอกลักษณ์น่าน เหมาะพื้นที่สูงราว 800-1000+ ม. และดินระบายน้ำดี'),
-  P('bamboo', 'ไผ่ซางหม่น', 'Bamboo', 'canopy', 'ไผ่', 'ไม้เศรษฐกิจ', 200, 1000, true, 3, 4, 15, 1800, 0.4, 0.5, false, 'med', 5000, 1500, 1, 'bamboo', 'โตเร็ว ยึดดินลาดชัน ขายหน่อ+ลำ'),
+  // layer: 'shrub' (ชั้นรอง), not 'canopy'. โครงการ "สร้างป่า สร้างรายได้" — the model this whole
+  // positional scheme is built on and cited above — places ไผ่ in ชั้นรอง, not ไม้เรือนยอดชั้นบน.
+  // The data shipped in 'canopy' anyway, contradicting the source cited to justify it, until a
+  // farmer looking at the plan asked why bamboo sat with สัก and มะม่วง. Structurally it belongs
+  // here too: a clump spreads by rhizome rather than holding one crown, so it is not the kind of
+  // permanent single-canopy structure the top layer is meant to require (≥2 species, LAYER_META).
+  P('bamboo', 'ไผ่ซางหม่น', 'Bamboo', 'shrub', 'ไผ่', 'ไม้เศรษฐกิจ', 200, 1000, true, 3, 4, 15, 1800, 0.4, 0.5, false, 'med', 5000, 1500, 1, 'bamboo', 'โตเร็ว ยึดดินลาดชัน ขายหน่อ+ลำ'),
   P('teak', 'สัก', 'Teak', 'canopy', 'ไม้ต้น', 'ไม้เศรษฐกิจ', 100, 1000, true, 15, 20, 40, 4000, 0.2, 0.7, false, 'med', 5000, 1200, 1, 'teak', 'ออมระยะยาว มูลค่าไม้สูงเมื่อโต เหมาะพื้นที่มีฤดูแล้งชัดและดินระบายน้ำดี'),
 
   // ── ไม้ชั้นรอง/ไม้พุ่ม (shrub) ──

@@ -113,7 +113,9 @@ describe('bamboo is fuel, not a firebreak', () => {
   // The app recommends ไผ่ often, and a farmer could reasonably assume a living green plant
   // protects against fire. RECOFTC's own fire report lists bamboo clumps as high-risk fuel.
   it('warns whenever the plan contains bamboo', () => {
-    const w = bambooFireWarning([pick({ layer: 'canopy', id: 'bamboo', habit: 'ไผ่' })]);
+    // Real bamboo sits in 'shrub' (see plants.ts), but the warning keys on habit alone —
+    // pinning 'shrub' here so the test would still catch a regression to layer-based logic.
+    const w = bambooFireWarning([pick({ layer: 'shrub', id: 'bamboo', habit: 'ไผ่' })]);
     expect(w).toMatch(/ไผ่ไม่ใช่แนวกันไฟ/);
   });
 

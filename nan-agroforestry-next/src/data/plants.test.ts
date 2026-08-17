@@ -26,9 +26,11 @@ describe('habit (วิสัย)', () => {
 
     const bamboo = PLANTS.filter((p) => p.habit === 'ไผ่');
     expect(bamboo.length).toBeGreaterThan(0);
-    // Bamboo belongs in the tall band on height. That was never the error — calling that band
-    // "ไม้ยืนต้น" was.
-    expect(bamboo.every((p) => p.layer === 'canopy')).toBe(true);
+    // Bamboo sits in the SUB-canopy positional layer, not the top one — matching โครงการ
+    // "สร้างป่า สร้างรายได้", the source this whole positional scheme cites. It shipped in
+    // 'canopy' at first, contradicting that source, until a farmer looking at a plan asked why
+    // it sat with สัก and มะม่วง. Pinned here so that regresses loudly rather than quietly.
+    expect(bamboo.every((p) => p.layer === 'shrub')).toBe(true);
   });
 
   it('never puts the word ไม้ on a plant that has no wood', () => {
