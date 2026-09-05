@@ -1,0 +1,893 @@
+<title>คู่มือใช้งานน่านไง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@600;700&display=swap">
+
+<style>
+  :root {
+    --paper:        #F7F8F6;
+    --paper-raise:  #FFFFFF;
+    --paper-sink:   #EDF1EE;
+    --ink:          #16211C;
+    --ink-2:        #45564D;
+    --ink-3:        #6B7C73;
+    --accent:       #1F6B41;
+    --accent-soft:  #E4F1E9;
+    --accent-line:  #B9DCC8;
+    --on-accent:    #FFFFFF;
+    --amber:        #8A5A06;
+    --amber-soft:   #FCF1DA;
+    --amber-line:   #E9D4A0;
+    --alarm:        #9C3327;
+    --alarm-soft:   #FBE9E5;
+    --rule:         #D9E2DC;
+    --rule-soft:    #E8EEEA;
+
+    --serif: 'Noto Serif Thai', Georgia, serif;
+    --sans:  'IBM Plex Sans Thai', 'Segoe UI', system-ui, sans-serif;
+
+    --measure: 34rem;
+    --shell: 60rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #0E1512;
+      --paper-raise:  #16201B;
+      --paper-sink:   #121B17;
+      --ink:          #E4EDE7;
+      --ink-2:        #A9BBB1;
+      --ink-3:        #7E9188;
+      --accent:       #6FC894;
+      --accent-soft:  #16291F;
+      --accent-line:  #2C4E3A;
+      --on-accent:    #0E1512;
+      --amber:        #E3B667;
+      --amber-soft:   #2A2113;
+      --amber-line:   #4A3A1C;
+      --alarm:        #E88A7B;
+      --alarm-soft:   #2B1714;
+      --rule:         #263029;
+      --rule-soft:    #1C2620;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:        #0E1512;
+    --paper-raise:  #16201B;
+    --paper-sink:   #121B17;
+    --ink:          #E4EDE7;
+    --ink-2:        #A9BBB1;
+    --ink-3:        #7E9188;
+    --accent:       #6FC894;
+    --accent-soft:  #16291F;
+    --accent-line:  #2C4E3A;
+    --on-accent:    #0E1512;
+    --amber:        #E3B667;
+    --amber-soft:   #2A2113;
+    --amber-line:   #4A3A1C;
+    --alarm:        #E88A7B;
+    --alarm-soft:   #2B1714;
+    --rule:         #263029;
+    --rule-soft:    #1C2620;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { width: min(100% - 2.5rem, var(--shell)); margin: 0 auto; }
+
+  /* ── masthead ─────────────────────────────────────────── */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 3.5rem 0 1.6rem;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-size: 11.5px; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent);
+    font-family: var(--sans);
+  }
+  .masthead h1 {
+    font-family: var(--serif); font-weight: 700;
+    font-size: clamp(2.1rem, 6vw, 3.1rem);
+    line-height: 1.25; margin: .5rem 0 .6rem;
+    text-wrap: balance; letter-spacing: -0.01em;
+  }
+  .standfirst {
+    font-size: 1.06rem; color: var(--ink-2);
+    max-width: var(--measure); margin: 0;
+  }
+  .colophon {
+    display: flex; flex-wrap: wrap; gap: .5rem 1.4rem;
+    margin-top: 1.5rem; font-size: 13px; color: var(--ink-3);
+  }
+  .colophon b { color: var(--ink-2); font-weight: 600; }
+  .colophon a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  /* ── table of contents ────────────────────────────────── */
+  .toc {
+    background: var(--paper-sink);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 3rem;
+  }
+  .toc h2 {
+    font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 .9rem;
+  }
+  .toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; }
+  .toc li { display: flex; gap: .8rem; align-items: baseline; font-size: 15px; }
+  .toc .n {
+    color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums;
+    min-width: 1.4rem; flex-shrink: 0;
+  }
+  .toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+  .toc a:hover { border-bottom-color: var(--accent); }
+
+  /* ── sections ─────────────────────────────────────────── */
+  section { margin-bottom: 3.5rem; scroll-margin-top: 1.5rem; }
+
+  h2.sec {
+    font-family: var(--serif); font-weight: 700;
+    font-size: clamp(1.35rem, 3.4vw, 1.7rem);
+    line-height: 1.35; margin: 0 0 .3rem;
+    padding-top: 1.1rem; border-top: 1px solid var(--ink);
+    display: flex; gap: .85rem; align-items: baseline; text-wrap: balance;
+  }
+  h2.sec .num {
+    font-family: var(--sans); font-size: .72em; font-weight: 600;
+    color: var(--accent); font-variant-numeric: tabular-nums; flex-shrink: 0;
+  }
+  .sec-note { color: var(--ink-3); font-size: 14.5px; margin: 0 0 1.6rem; max-width: var(--measure); }
+
+  h3 {
+    font-family: var(--sans); font-weight: 600; font-size: 1.06rem;
+    margin: 2.2rem 0 .6rem; color: var(--ink); text-wrap: balance;
+  }
+  h4 {
+    font-family: var(--sans); font-weight: 600; font-size: .92rem;
+    margin: 1.5rem 0 .4rem; color: var(--ink-2);
+  }
+  p { max-width: var(--measure); margin: 0 0 1rem; }
+  ul, ol { max-width: var(--measure); padding-left: 1.15rem; margin: 0 0 1rem; }
+  li { margin-bottom: .35rem; }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--sans); font-weight: 500; font-size: .93em;
+    background: var(--paper-sink); padding: .08em .38em; border-radius: 3px;
+    border: 1px solid var(--rule-soft);
+  }
+
+  /* ── step blocks ──────────────────────────────────────── */
+  .steps { display: grid; gap: 1.1rem; margin: 1.5rem 0 0; }
+  .step {
+    display: grid; grid-template-columns: 2.6rem 1fr; gap: 0 1.1rem;
+    padding-bottom: 1.1rem; border-bottom: 1px solid var(--rule-soft);
+  }
+  .step:last-child { border-bottom: 0; padding-bottom: 0; }
+  .step .badge {
+    grid-row: 1 / span 2;
+    width: 2.6rem; height: 2.6rem; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--accent); color: var(--on-accent);
+    font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums;
+  }
+  .step h3 { margin: .15rem 0 .35rem; }
+  .step > div:last-child { min-width: 0; }
+  .step p, .step ul { margin-bottom: .6rem; }
+
+  /* ── field list ───────────────────────────────────────── */
+  .fields { display: grid; gap: 0; margin: .9rem 0 1.2rem; max-width: var(--measure); }
+  .field {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    gap: .1rem; padding: .7rem 0; border-top: 1px solid var(--rule-soft);
+  }
+  .field:last-child { border-bottom: 1px solid var(--rule-soft); }
+  .field .fname { font-weight: 600; font-size: .95rem; }
+  .field .fdesc { color: var(--ink-2); font-size: .93rem; line-height: 1.7; }
+  .field .req {
+    display: inline-block; margin-left: .5rem; padding: .05em .5em;
+    font-size: 11px; font-weight: 600; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line);
+    vertical-align: middle;
+  }
+  .field .opt {
+    display: inline-block; margin-left: .5rem; padding: .05em .5em;
+    font-size: 11px; font-weight: 600; border-radius: 999px;
+    background: var(--paper-sink); color: var(--ink-3); border: 1px solid var(--rule);
+    vertical-align: middle;
+  }
+
+  /* ── the four strata: a real structure, used as one ───── */
+  .strata { display: grid; gap: 0; margin: 1.2rem 0 1.6rem; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .stratum {
+    display: grid; grid-template-columns: 4px 1fr; gap: 0;
+    background: var(--paper-raise);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .stratum:last-child { border-bottom: 0; }
+  .stratum .rail { background: var(--accent); }
+  .stratum:nth-child(1) .rail { opacity: 1; }
+  .stratum:nth-child(2) .rail { opacity: .75; }
+  .stratum:nth-child(3) .rail { opacity: .5; }
+  .stratum:nth-child(4) .rail { opacity: .3; }
+  .stratum .body { padding: .85rem 1.1rem; }
+  .stratum .sname { font-weight: 600; font-size: .97rem; }
+  .stratum .sdesc { color: var(--ink-2); font-size: .9rem; line-height: 1.65; }
+  .stratum .seg { color: var(--ink-3); font-size: .87rem; }
+
+  /* ── callouts ─────────────────────────────────────────── */
+  .note, .warn, .tip {
+    border-left: 3px solid; border-radius: 0 4px 4px 0;
+    padding: .9rem 1.1rem; margin: 1.2rem 0; max-width: var(--measure);
+    font-size: .95rem; line-height: 1.75;
+  }
+  .note { border-color: var(--accent); background: var(--accent-soft); }
+  .warn { border-color: var(--amber); background: var(--amber-soft); }
+  .tip  { border-color: var(--rule); background: var(--paper-sink); }
+  .note p, .warn p, .tip p { margin-bottom: .5rem; max-width: none; }
+  .note p:last-child, .warn p:last-child, .tip p:last-child { margin-bottom: 0; }
+  .clabel {
+    display: block; font-size: 11.5px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; margin-bottom: .35rem;
+  }
+  .note .clabel { color: var(--accent); }
+  .warn .clabel { color: var(--amber); }
+  .tip  .clabel { color: var(--ink-3); }
+
+  /* ── tables ───────────────────────────────────────────── */
+  .tablewrap { overflow-x: auto; margin: 1.2rem 0 1.6rem; border: 1px solid var(--rule); border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 34rem; }
+  th, td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.65; }
+  thead th {
+    background: var(--paper-sink); font-weight: 600; font-size: 12.5px;
+    letter-spacing: .04em; color: var(--ink-2); border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .msg { font-weight: 500; color: var(--ink); }
+
+  /* ── provenance chips ─────────────────────────────────── */
+  .chip {
+    display: inline-block; padding: .1em .6em; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .chip.gov  { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); }
+  .chip.part { background: var(--paper-sink);  color: var(--ink-2); border: 1px solid var(--rule); }
+  .chip.est  { background: var(--amber-soft);  color: var(--amber); border: 1px solid var(--amber-line); }
+
+  /* ── key figures ──────────────────────────────────────── */
+  .figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; margin: 1.3rem 0; }
+  .fig { background: var(--paper-raise); padding: 1rem 1.1rem; }
+  .fig .fv { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; color: var(--ink); }
+  .fig .fk { font-size: 12.5px; color: var(--ink-3); margin-top: .2rem; line-height: 1.5; }
+
+  /* ── footer ───────────────────────────────────────────── */
+  footer {
+    border-top: 2px solid var(--ink); margin-top: 1rem;
+    padding: 1.6rem 0 4rem; font-size: 13.5px; color: var(--ink-3);
+  }
+  footer p { max-width: var(--measure); }
+  footer a { color: var(--accent); }
+
+  a:focus-visible, .toc a:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px;
+  }
+
+  @media (max-width: 34rem) {
+    body { font-size: 16px; }
+    .step { grid-template-columns: 2.1rem 1fr; gap: 0 .8rem; }
+    .step .badge { width: 2.1rem; height: 2.1rem; font-size: .88rem; }
+  }
+
+  @media print {
+    :root { --paper: #fff; --paper-raise: #fff; --paper-sink: #f4f6f4; }
+    body { font-size: 10.5pt; line-height: 1.6; }
+    .toc { break-inside: avoid; }
+    section { break-inside: auto; }
+    h2.sec { break-after: avoid; }
+    .step, .note, .warn, .tip, .figs, .strata { break-inside: avoid; }
+    .tablewrap { overflow: visible; border: 1px solid #ccc; }
+    table { min-width: 0; }
+    footer { break-inside: avoid; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <div class="eyebrow">คู่มือการใช้งาน · ฉบับเต็ม</div>
+    <h1>น่านไง — วางแผนวนเกษตรจากแปลงของคุณ</h1>
+    <p class="standfirst">
+      คู่มือสำหรับเกษตรกรและเจ้าหน้าที่ส่งเสริม ครอบคลุมทุกหน้าจอ ตั้งแต่กรอกขนาดแปลง
+      จนถึงการอ่านตัวเลข 10 ปีและรู้ว่าตัวเลขไหนเชื่อได้แค่ไหน
+    </p>
+    <div class="colophon">
+      <span><b>ใช้งานที่</b> <a href="https://nan-agroforestry.vercel.app">nan-agroforestry.vercel.app</a></span>
+      <span><b>ฐานข้อมูลพืช</b> 55 ชนิด</span>
+      <span><b>พื้นที่</b> จังหวัดน่าน</span>
+      <span><b>ปรับปรุง</b> กันยายน 2569</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="สารบัญ">
+    <h2>สารบัญ</h2>
+    <ol>
+      <li><span class="n">1</span><a href="#s1">คู่มือนี้สำหรับใคร</a></li>
+      <li><span class="n">2</span><a href="#s2">เตรียม 3 อย่างก่อนเริ่ม</a></li>
+      <li><span class="n">3</span><a href="#s3">ใช้งาน 4 ขั้น</a></li>
+      <li><span class="n">4</span><a href="#s4">อ่านหน้าผลลัพธ์</a></li>
+      <li><span class="n">5</span><a href="#s5">งานที่ทำบ่อย</a></li>
+      <li><span class="n">6</span><a href="#s6">คำเตือนแต่ละแบบแปลว่าอะไร</a></li>
+      <li><span class="n">7</span><a href="#s7">ข้อจำกัด ที่ต้องบอกทุกครั้ง</a></li>
+      <li><span class="n">8</span><a href="#s8">สำหรับเจ้าหน้าที่ส่งเสริม</a></li>
+      <li><span class="n">9</span><a href="#s9">คำถามที่พบบ่อย</a></li>
+    </ol>
+  </nav>
+
+  <!-- ══ 1 ══════════════════════════════════════════════ -->
+  <section id="s1">
+    <h2 class="sec"><span class="num">1</span>คู่มือนี้สำหรับใคร</h2>
+    <p class="sec-note">อ่านเฉพาะส่วนที่ตรงกับงานของคุณได้ ไม่ต้องอ่านทั้งเล่ม</p>
+
+    <div class="fields">
+      <div class="field">
+        <div class="fname">เกษตรกรที่อยากลองวางแผนแปลงตัวเอง</div>
+        <div class="fdesc">อ่านหัวข้อ 2, 3 และ 4 ก็พอ ใช้เวลาราว 15 นาที ไม่ต้องรู้จักพืชมาก่อน ระบบเลือกให้ได้</div>
+      </div>
+      <div class="field">
+        <div class="fname">เจ้าหน้าที่ส่งเสริม / เจ้าหน้าที่ภาคสนาม</div>
+        <div class="fdesc">อ่านทั้งเล่ม โดยเฉพาะหัวข้อ 6, 7 และ 8 เพราะต้องอธิบายคำเตือนและข้อจำกัดให้เกษตรกรฟังได้</div>
+      </div>
+      <div class="field">
+        <div class="fname">นักวิจัย / ผู้ตรวจสอบวิธีการ</div>
+        <div class="fdesc">คู่มือเล่มนี้อธิบายการใช้งาน ส่วนสูตรคำนวณ แหล่งข้อมูล และข้อจำกัดเชิงวิชาการอยู่ในแท็บ “วิธีการ &amp; ความน่าเชื่อถือ” ในแอป และในไฟล์ <code>docs/METHODOLOGY.md</code></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="clabel">เข้าใจให้ตรงกันก่อน</span>
+      <p>น่านไงเป็น<strong>เครื่องมือช่วยคิด ไม่ใช่คำสั่งให้ปลูก</strong> แผนที่ได้เอาไว้ตั้งต้นคุยกับเจ้าหน้าที่ เพื่อนบ้าน หรือคนในครอบครัว ตัวเลขทุกตัวปรับได้ และควรปรับให้ตรงกับราคาที่ขายได้จริงในพื้นที่ของคุณ</p>
+    </div>
+  </section>
+
+  <!-- ══ 2 ══════════════════════════════════════════════ -->
+  <section id="s2">
+    <h2 class="sec"><span class="num">2</span>เตรียม 3 อย่างก่อนเริ่ม</h2>
+    <p class="sec-note">ไม่ต้องเตรียมเอกสารอะไร แค่รู้ 3 เรื่องนี้ก็เริ่มได้</p>
+
+    <div class="fields">
+      <div class="field">
+        <div class="fname">1 · ขนาดแปลง เป็น “ไร่”</div>
+        <div class="fdesc">ใส่ได้ตั้งแต่ 0.5 ถึง 500 ไร่ ถ้าไม่แน่ใจ ใช้ตัวเลขในเอกสารสิทธิ์หรือประมาณเอาก็ได้ แล้วค่อยแก้ทีหลัง</div>
+      </div>
+      <div class="field">
+        <div class="fname">2 · แปลงอยู่ตรงไหน</div>
+        <div class="fdesc">ถ้ายืนอยู่ในแปลง กดปุ่ม GPS ปุ่มเดียวจบ ถ้าไม่ได้อยู่ เลือกอำเภอในน่านก็ได้ หรือปักหมุดบนแผนที่ดาวเทียม</div>
+      </div>
+      <div class="field">
+        <div class="fname">3 · ตอนนี้แปลงปลูกอะไรอยู่</div>
+        <div class="fdesc">ข้าวโพด ยางพารา มันสำปะหลัง ไม้ผล หรือปล่อยว่าง — เรื่องนี้สำคัญ เพราะระบบเอาไปคิดค่าถางและค่าปรับปรุงดินในปีแรก ถ้าไม่บอก ตัวเลขต้นทุนจะต่ำกว่าความจริง</div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="clabel">ใช้บนมือถือได้</span>
+      <p>ออกแบบมาให้ใช้บนมือถือกลางแปลงได้ ปุ่มใหญ่พอกดด้วยนิ้ว และปุ่ม GPS ดึงทั้งพิกัดและความสูงให้ในครั้งเดียว</p>
+    </div>
+  </section>
+
+  <!-- ══ 3 ══════════════════════════════════════════════ -->
+  <section id="s3">
+    <h2 class="sec"><span class="num">3</span>ใช้งาน 4 ขั้น</h2>
+    <p class="sec-note">แถบด้านซ้ายจะบอกตลอดว่าอยู่ขั้นไหน และยังขาดอะไร กดข้ามไปมาระหว่างขั้นได้ตลอดเวลา</p>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="badge">1</div>
+        <div>
+          <h3>แปลง — ขนาดและพืชเดิม</h3>
+          <div class="fields">
+            <div class="field">
+              <div class="fname">ขนาดแปลง (ไร่) <span class="req">ต้องกรอก</span></div>
+              <div class="fdesc">0.5–500 ไร่ ตัวเลขนี้ใช้คำนวณผลผลิต ต้นทุน และรายได้ทั้งแปลง</div>
+            </div>
+            <div class="field">
+              <div class="fname">การใช้พื้นที่เดิม / โซนในแปลง <span class="opt">มีค่าตั้งต้นให้</span></div>
+              <div class="fdesc">
+                ระบบเติม “ข้าวโพดเลี้ยงสัตว์ เต็มพื้นที่” ไว้ให้ เพราะเป็นกรณีที่พบมากที่สุดในน่าน
+                <strong>ถ้าแปลงคุณไม่ใช่ข้าวโพด ต้องเปลี่ยน</strong> เลือกได้ทั้งข้าวไร่ มันสำปะหลัง ยางพารา ไม้ผลผสม สวนผสม ป่าเดิม พื้นที่ว่าง/เพิ่งถาง และพื้นที่เสื่อมโทรม
+                ถ้าแปลงเดียวแบ่งหลายส่วน กด “เพิ่มโซน” แยกเป็นหลายโซนได้ ระบบจะเตือนถ้าพื้นที่รวมทุกโซนไม่ตรงกับขนาดแปลง
+              </div>
+            </div>
+            <div class="field">
+              <div class="fname">ที่ติดกับแปลง (รอบนอก) เป็นอะไร <span class="opt">ไม่บังคับ</span></div>
+              <div class="fdesc">
+                ไร่ข้าวโพด · ป่า/สวนไม้ยืนต้น · ไร่ร้าง/ไร่เหล่าหญ้าสูง · หรือยังไม่แน่ใจ
+                คำถามนี้กำหนดความกว้างแนวกันไฟที่ระบบจะแนะนำ เพราะ<strong>ความเสี่ยงไฟขึ้นกับที่ข้างเคียงมากกว่าแปลงของเราเอง</strong>
+                แต่ละตัวเลือกมีความยาวเปลวไฟที่วัดได้จริงกำกับไว้
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">2</div>
+        <div>
+          <h3>ตำแหน่ง — แผนที่ GPS อำเภอ</h3>
+          <p>ต้องได้ทั้ง <strong>พิกัด</strong> และ <strong>ความสูง</strong> จึงจะไปต่อได้ มี 3 ทางเลือก</p>
+          <div class="fields">
+            <div class="field">
+              <div class="fname">ก · ใช้ตำแหน่งปัจจุบัน (GPS) — แนะนำ</div>
+              <div class="fdesc">ยืนอยู่ในแปลงแล้วกดปุ่มเดียว ได้ทั้งพิกัดและความสูงอัตโนมัติ ถ้ามือถือไม่อนุญาตให้ใช้ตำแหน่ง จะขึ้นข้อความให้เลือกวิธีอื่นแทน</div>
+            </div>
+            <div class="field">
+              <div class="fname">ข · เลือกอำเภอในน่าน</div>
+              <div class="fdesc">แตะชื่ออำเภอ ระบบตั้งพิกัดและความสูงเฉลี่ยของอำเภอนั้นให้ เช่น เมืองน่าน 210 ม. · ปัว 420 ม. · บ่อเกลือ 950 ม. · เฉลิมพระเกียรติ 1,080 ม. เหมาะกับการวางแผนคร่าว ๆ หรือทำที่บ้าน</div>
+            </div>
+            <div class="field">
+              <div class="fname">ค · ปักหมุดบนแผนที่ดาวเทียม</div>
+              <div class="fdesc">อยู่ในหัวข้อ “ตัวเลือกเพิ่มเติม” ใช้เมื่ออยากระบุแปลงให้ตรงจุด หรือวางแผนแปลงที่ไม่ได้อยู่ในน่าน ปรับความสูงเองได้ (0–2,600 เมตร)</div>
+            </div>
+          </div>
+          <div class="warn">
+            <span class="clabel">ความสูงเปลี่ยนคำแนะนำมากที่สุด</span>
+            <p>พืชหลายชนิดขึ้นได้เฉพาะบางช่วงความสูง เช่น กาแฟอาราบิก้าและแมคคาเดเมียต้องการ 800 ม. ขึ้นไป ส่วนเงาะและลองกองปลูกได้เฉพาะต่ำกว่า 600 ม. ถ้ากรอกความสูงผิดไปหลายร้อยเมตร รายชื่อพืชที่ได้จะเปลี่ยนไปทั้งชุด</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">3</div>
+        <div>
+          <h3>เลือกพืช — 4 ชั้นวนเกษตร</h3>
+          <p><strong>ขั้นนี้ข้ามได้</strong> ถ้าเว้นว่างไว้ ระบบจะเลือกพืชที่เหมาะกับพื้นที่ให้เอง ถ้ามีพืชที่อยากปลูกอยู่แล้ว แตะเลือกได้เลย ระบบจะใส่ให้แน่นอนแล้วออกแบบส่วนที่เหลือรอบ ๆ</p>
+
+          <h4>แปลงแบ่งเป็น 4 ชั้นตามตำแหน่งในเรือนยอด</h4>
+          <div class="strata">
+            <div class="stratum">
+              <div class="rail"></div>
+              <div class="body">
+                <div class="sname">ไม้เรือนยอดชั้นบน</div>
+                <div class="sdesc">ชั้นบนสุด เป็นโครงสร้างและร่มเงาถาวรของแปลง ระบบบังคับให้มีอย่างน้อย 2 ชนิด</div>
+                <div class="seg">เช่น มะม่วง ลำไย อะโวคาโด สัก ยางนา กล้วยน้ำว้า</div>
+              </div>
+            </div>
+            <div class="stratum">
+              <div class="rail"></div>
+              <div class="body">
+                <div class="sname">ไม้ชั้นรอง / ไม้พุ่ม</div>
+                <div class="sdesc">ชั้นรอง ให้รายได้ต่อเนื่องใต้ร่มชั้นบน</div>
+                <div class="seg">เช่น กาแฟ ชาเมี่ยง ไผ่ซางหม่น ผักหวานบ้าน โกโก้ เร่วดง</div>
+              </div>
+            </div>
+            <div class="stratum">
+              <div class="rail"></div>
+              <div class="body">
+                <div class="sname">พืชคลุมดิน</div>
+                <div class="sdesc">คลุมหน้าดิน กันวัชพืช ลดการชะล้างหน้าดินบนที่ลาดชัน</div>
+                <div class="seg">เช่น ถั่วลิสง ฟักทอง สับปะรด ผักกูด หญ้าแฝก ปอเทือง</div>
+              </div>
+            </div>
+            <div class="stratum">
+              <div class="rail"></div>
+              <div class="body">
+                <div class="sname">พืชหัวใต้ดิน</div>
+                <div class="sdesc">ใช้พื้นที่ใต้ดิน ให้รายได้เร็ว เก็บได้ตั้งแต่ปีแรก</div>
+                <div class="seg">ขิง ขมิ้น เผือก ข่า</div>
+              </div>
+            </div>
+          </div>
+
+          <p>ใต้ชื่อพืชแต่ละชนิดมีป้ายบอก<strong>วิสัย</strong> คือบอกว่าจริง ๆ แล้วมันเป็นพืชอะไร เช่น ไผ่ซางหม่นเขียนว่า “ไผ่ (หญ้า)” เพราะไผ่อยู่ในวงศ์หญ้า ไม่ใช่ไม้ยืนต้น และกล้วยเขียนว่า “พืชล้มลุกขนาดใหญ่” เพราะลำต้นเป็นกาบใบซ้อนกัน ไม่มีเนื้อไม้</p>
+
+          <h4>ตัวช่วยค้นหา</h4>
+          <ul>
+            <li>ช่องค้นชื่อพืช พิมพ์ชื่อไทยได้เลย</li>
+            <li>ตัวกรอง: ขึ้นได้ที่ความสูงนี้ · ได้เงินใน 1–2 ปี · บำรุงดิน · ปลูกใต้ร่มได้ · มีราคาอ้างอิงราชการ</li>
+            <li>พืชที่ไม่เหมาะกับความสูงของแปลงจะแสดงจาง ๆ พร้อมบอกช่วงความสูงที่เหมาะ — เลือกได้อยู่ แต่ระบบจะเตือนในผลลัพธ์</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">4</div>
+        <div>
+          <h3>เป้าหมาย — รายได้และสมมติฐาน</h3>
+          <div class="fields">
+            <div class="field">
+              <div class="fname">เป้าหมายของคุณ <span class="req">ต้องเลือก</span></div>
+              <div class="fdesc">
+                <strong>สมดุล</strong> เห็นผลไว + กำไรดี ·
+                <strong>เห็นผลไว</strong> คืนทุนเร็วที่สุด ·
+                <strong>กำไรสูงสุด</strong> มองยาว 10 ปี
+                <br>ระบบสร้าง 3 แผนเหมือนกันทุกครั้ง แต่เป้าหมายที่เลือกจะกำหนดว่า<strong>แผนไหนขึ้นมาเป็นอันแรก</strong>และได้ป้าย “แนะนำ”
+              </div>
+            </div>
+            <div class="field">
+              <div class="fname">เป้าหมายรายได้ต่อปี <span class="opt">ไม่บังคับ</span></div>
+              <div class="fdesc">ถ้าใส่ เช่น 180,000 บาท/ปี ระบบจะบอกในผลลัพธ์ว่าแผนนี้ถึงเป้าหรือยัง และถึงในปีที่เท่าไร</div>
+            </div>
+            <div class="field">
+              <div class="fname">ปรับสมมติฐานรายพืช <span class="opt">แนะนำให้ใส่ถ้ารู้</span></div>
+              <div class="fdesc">
+                เปิดหัวข้อนี้แล้วใส่ทับได้ทีละชนิด: ราคา ฿/กก. · ผลผลิต กก./ไร่ · ต้นทุนปลูก ฿/ไร่ · ต้นทุนดูแล ฿/ไร่/ปี · อัตรารอด (0–1)
+                <br><strong>ตัวเลขที่ระบบใส่ไว้เป็นค่ากลาง ถ้าคุณรู้ราคาที่ขายได้จริงในหมู่บ้าน ใส่ทับเลย จะแม่นกว่ามาก</strong>
+              </div>
+            </div>
+          </div>
+          <p>กด <strong>“ออกแบบระบบ”</strong> รอไม่กี่วินาที ระบบจะดึงข้อมูลดาวเทียม ดิน และภูมิอากาศของจุดที่ปักไว้ แล้วคำนวณให้</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ 4 ══════════════════════════════════════════════ -->
+  <section id="s4">
+    <h2 class="sec"><span class="num">4</span>อ่านหน้าผลลัพธ์</h2>
+    <p class="sec-note">เรียงตามลำดับที่เห็นบนหน้าจอจริง ไม่ต้องอ่านหมดทุกส่วนก็ใช้งานได้ แต่ส่วนที่ควรอ่านทุกครั้งมีเครื่องหมายกำกับไว้</p>
+
+    <h3>3 แผนให้เลือก</h3>
+    <p>ด้านบนมีแท็บ 3 แผน แต่ละแผนมีป้ายบอกจุดเด่นตามตัวเลขจริง ไม่ใช่ป้ายตกแต่ง</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>ป้าย</th><th>หมายความว่า</th></tr></thead>
+        <tbody>
+          <tr><td class="msg">แนะนำ</td><td>แผนที่ตรงกับเป้าหมายที่คุณเลือกในขั้นที่ 4 มากที่สุด</td></tr>
+          <tr><td class="msg">กำไรรวมสูงสุด</td><td>กำไรสะสม 10 ปีสูงที่สุดในบรรดา 3 แผนที่แสดง</td></tr>
+          <tr><td class="msg">คืนทุนเร็วสุด</td><td>ถึงจุดคุ้มทุนก่อนแผนอื่น</td></tr>
+          <tr><td class="msg">ทางเลือก</td><td>ไม่ได้เด่นด้านใดเป็นพิเศษ แต่โครงสร้างแปลงต่างออกไป</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>แผนหนึ่งได้หลายป้ายพร้อมกันได้ และ<strong>แผน “แนะนำ” ไม่จำเป็นต้องกำไรสูงสุดเสมอไป</strong> เพราะการจัดอันดับคิดทั้งความเหมาะสมกับพื้นที่ โครงสร้างวนเกษตร ความเสี่ยง และเศรษฐกิจรวมกัน</p>
+
+    <h3>ตัวเลขหลัก 3 ช่อง <span class="chip gov">อ่านทุกครั้ง</span></h3>
+    <div class="figs">
+      <div class="fig"><div class="fv">ปีที่ 3</div><div class="fk">คืนทุน — ปีที่กำไรสะสมเป็นบวกครั้งแรก ถ้าเกิน 10 ปีจะขึ้นว่า “&gt; 10 ปี”</div></div>
+      <div class="fig"><div class="fv">฿1.1M</div><div class="fk">กำไรสะสม 10 ปี — หักต้นทุนทุกอย่างแล้ว รวมค่าเปลี่ยนผ่านปีแรก</div></div>
+      <div class="fig"><div class="fv">฿111k</div><div class="fk">เฉลี่ยต่อปี — กำไรสะสมหารด้วย 10 ไม่ใช่รายได้ที่จะได้เท่ากันทุกปี</div></div>
+    </div>
+    <div class="warn">
+      <span class="clabel">ตัวเลขตัวอย่าง</span>
+      <p>ตัวเลขข้างบนเป็นตัวอย่างรูปแบบการแสดงผลเท่านั้น ตัวเลขจริงขึ้นกับแปลงของคุณ</p>
+    </div>
+
+    <h3>รายชื่อพืชแยกตามชั้น <span class="chip gov">อ่านทุกครั้ง</span></h3>
+    <p>แต่ละชนิดบอก: ชื่อ · วิสัย · <strong>ป้ายที่มาของตัวเลขเงิน</strong> · พื้นที่ที่ได้รับ · ปีที่เริ่มเก็บ · ราคาและผลผลิตที่ใช้คำนวณ</p>
+    <p>ป้ายที่มาของตัวเลขเงินมี 3 ระดับ ดูให้ดีก่อนตัดสินใจลงเงินก้อนใหญ่</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>ป้าย</th><th>จำนวน</th><th>หมายความว่า</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="chip gov">ตัวเลขราชการ</span></td><td class="num">8 ชนิด</td>
+            <td>ยืนยันชื่อได้ในชุดข้อมูลสำนักงานเศรษฐกิจการเกษตร — ลำไย ลิ้นจี่ มะม่วง สับปะรด ถั่วลิสง ถั่วเขียว เงาะ ลองกอง</td>
+          </tr>
+          <tr>
+            <td><span class="chip part">อ้างอิงบางส่วน</span></td><td class="num">5 ชนิด</td>
+            <td>มีข้อมูลราชการแต่ไม่ตรงพันธุ์หรือไม่ตรงผลิตภัณฑ์ เช่น กาแฟ (ราคาที่เผยแพร่เป็นโรบัสต้า แต่น่านปลูกอาราบิก้า) และชาเมี่ยง (ไฟล์ต้นทุนเป็นชาอัสสัมซึ่งเป็นคนละผลิตภัณฑ์)</td>
+          </tr>
+          <tr>
+            <td><span class="chip est">ประมาณการ</span></td><td class="num">42 ชนิด</td>
+            <td>ไม่มีในสถิติระดับชาติเลย ส่วนใหญ่เป็นพืชพื้นถิ่นและของป่า เช่น มะแขว่น ผักหวานป่า ผักกูด ผักเชียงดา หวาย เร่ว — <strong>ควรใส่ราคาจริงในพื้นที่ทับ</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>ข้อควรระวังก่อนลงมือ <span class="chip gov">อ่านทุกครั้ง</span></h3>
+    <p>กล่องนี้รวมสิ่งที่ระบบตรวจพบว่าอาจมีปัญหาในแปลงนี้โดยเฉพาะ เช่น ดินกรดจัดต้องปรับ pH ก่อนปลูก · พืชชอบแดดจะถูกบังเมื่อเรือนยอดปิด · หรือโครงสร้างวนเกษตรยังไม่ครบชั้น ดูความหมายแต่ละแบบได้ในหัวข้อ 6</p>
+
+    <h3>ต้นทุนเปลี่ยนผ่านแปลงเดิม</h3>
+    <p>ค่าถางและปรับปรุงดินที่หักในปีแรก คำนวณจากพืชเดิมที่ระบุไว้ในขั้นที่ 1 ใต้ตัวเลขมีรายการ <strong>“ปีที่ 0”</strong> คือสิ่งที่ควรทำก่อนลงต้นไม้ เช่น ตรวจ pH ดิน หรือหว่านปอเทืองแล้วไถกลบเพื่อเพิ่มอินทรียวัตถุ</p>
+    <div class="note">
+      <span class="clabel">ถ้าแปลงเดิมเป็นยางพารา</span>
+      <p>ระบบจะบอกว่ายังไม่ต้องโค่นยางก็ได้ เพราะขิง ข่า ขมิ้น กล้วย และสับปะรดปลูกแซมใต้ร่มยางได้เลย และอาจมีสิทธิ์ขอทุนปลูกทดแทนจากกองทุนสงเคราะห์การทำสวนยาง (กยท.)</p>
+    </div>
+
+    <h3>กราฟรายได้ 10 ปี</h3>
+    <p>แท่งเหนือเส้นศูนย์คือปีที่ได้กำไร แท่งใต้เส้นคือปีที่ยังขาดทุน เส้นแนวตั้งคือปีที่คืนทุน <strong>ปีแรกติดลบเสมอ</strong> เป็นเรื่องปกติ เพราะเป็นปีที่ลงทุนแต่ยังไม่มีผลผลิต</p>
+
+    <h3>ถ้าราคาพืชแกว่ง ผลลัพธ์เปลี่ยนอย่างไร</h3>
+    <p>แสดงกำไร 10 ปีและจุดคืนทุนใน 3 กรณี คือราคาตก ราคาปกติ และราคาดี ใช้ดูว่าแผนนี้ทนราคาตกได้แค่ไหน ถ้ากรณีราคาตกยังเป็นบวก แปลว่าแผนค่อนข้างปลอดภัย</p>
+
+    <h3>ดิน / ระบบนิเวศโดยประมาณ</h3>
+    <p>คะแนนรวมจากพืชคลุมดิน พืชตรึงไนโตรเจน และสัดส่วนไม้ยืนต้น เป็นตัวบอกคร่าว ๆ ว่าแผนนี้ดูแลหน้าดินดีแค่ไหน ไม่ใช่ผลตรวจดินจริง</p>
+
+    <h3>เทียบกับการปลูกข้าวโพดต่อ <span class="chip gov">อ่านทุกครั้ง</span></h3>
+    <p>ส่วนนี้ตอบคำถามว่า “ถ้าไม่เปลี่ยนอะไรเลย จะได้เท่าไร” โดยใช้<strong>ผลผลิตข้าวโพดของจังหวัดน่านจริง</strong> 693 กก./ไร่ ซึ่งต่ำกว่าค่าเฉลี่ยประเทศราว 14%</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>ที่มาของตัวเลขข้าวโพด</th><th>ค่า</th><th>แหล่ง</th></tr></thead>
+        <tbody>
+          <tr><td>ผลผลิต</td><td class="num">693 กก./ไร่</td><td>NABC AgriAPI ระดับจังหวัด (น่าน)</td></tr>
+          <tr><td>ราคา</td><td class="num">8.57 บาท/กก.</td><td>สศก. รายเดือน ระดับประเทศ</td></tr>
+          <tr><td>ต้นทุน</td><td class="num">5,365 บาท/ไร่/ปี</td><td>สศก. ปี 2567 (ต้นทุนรวม)</td></tr>
+          <tr><td><strong>กำไรสุทธิ</strong></td><td class="num"><strong>574 บาท/ไร่/ปี</strong></td><td>คำนวณจากสามบรรทัดบน</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warn">
+      <span class="clabel">ทำไมกำไรข้าวโพดดูน้อยจัง</span>
+      <p>เพราะ<strong>ต้นทุนนี้คิดค่าแรงของครอบครัวเป็นเงินด้วย</strong> ตามวิธีของ สศก. ถ้าคุณลงแรงเอง เงินสดที่ต้องจ่ายจริงจะน้อยกว่านี้มาก และกำไรที่เหลือคือส่วนที่ได้<em>เกินค่าแรงตัวเอง</em> ต้นทุนของแผนวนเกษตรคิดแบบเดียวกันทั้งหมด จึงเทียบกันได้ตรง ๆ</p>
+    </div>
+    <p>ส่วนนี้ยังบอกด้วยว่าพื้นที่ปลูกข้าวโพดในน่านลดลงจาก 679,196 ไร่ เหลือ 407,341 ไร่ — เกษตรกรจำนวนมากเปลี่ยนไปแล้ว</p>
+
+    <h3>ปฏิทินปลูกจากฝนของแปลงนี้</h3>
+    <p>บอกเดือนที่ควรเริ่มปลูก จากปริมาณฝนรายเดือนของพิกัดที่ปักไว้ ไม่ใช่ปฏิทินกลางของทั้งจังหวัด</p>
+
+    <h3>ผังปลูกและแนวกันไฟ <span class="chip gov">อ่านทุกครั้ง</span></h3>
+    <p>แสดงเป็น “แถบ” หนึ่งแถบ คือแถวไม้ใหญ่หนึ่งแถวกับช่องว่างข้าง ๆ แล้วทำซ้ำไปทั้งแปลง สิ่งที่ต้องอ่านคือ</p>
+    <ul>
+      <li><strong>ปลูกไม้ใหญ่ขวางความลาดชัน</strong> ไม่ใช่ตามแนวลาดลง เพื่อกันดินพัง</li>
+      <li><strong>ปีที่ 1–5</strong> ปลูกพืชชอบแดดในช่องระหว่างแถว</li>
+      <li><strong>ตั้งแต่ปีที่ 6</strong> เรือนยอดเริ่มปิด ต้องเปลี่ยนเป็นพืชทนร่ม</li>
+      <li>ถ้ามีพืชชอบแดดที่จะถูกบัง ระบบจะระบุชื่อให้ตรง ๆ</li>
+    </ul>
+    <p>ส่วนแนวกันไฟจะบอกความกว้างที่ควรทำ พื้นที่ที่ต้องเสียไป และ<strong>ระบุด้วยว่าตัวเลขรายได้ในแผนหักพื้นที่ส่วนนี้ออกไปแล้ว</strong></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>ที่ติดกับแปลง</th><th>ความยาวเปลวไฟที่วัดได้</th><th>แนวกันไฟที่แนะนำ</th></tr></thead>
+        <tbody>
+          <tr><td>ป่า / สวนไม้ยืนต้น</td><td class="num">1.34 ม.</td><td class="num">8 ม.</td></tr>
+          <tr><td>ไร่ข้าวโพด / ไร่หมุนเวียน</td><td class="num">1.42 ม.</td><td class="num">8 ม.</td></tr>
+          <tr><td>ไร่ร้าง / ไร่เหล่าหญ้าสูง</td><td class="num">12.82 ม.</td><td class="num">10 ม. <strong>ยังไม่พอ</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warn">
+      <span class="clabel">เรื่องที่แนวกันไฟอย่างเดียวแก้ไม่ได้</span>
+      <p>ถ้าที่ติดแปลงเป็นไร่เหล่า เปลวไฟสูงกว่าแนวกันไฟที่กว้างที่สุดที่รายย่อยทำได้ ระบบจะบอกตรง ๆ ว่า<strong>ต้องคุยกับเจ้าของที่ข้างเคียงและผู้ใหญ่บ้าน/อบต. เรื่องจัดการเชื้อเพลิงร่วมกัน</strong> ไม่ใช่ขยายแนวให้กว้างขึ้นอีก</p>
+      <p>และถ้าแผนมีไผ่ ระบบจะเตือนว่า<strong>ไผ่ไม่ใช่แนวกันไฟ</strong> กอไผ่สะสมใบแห้งและลำแห้ง ซึ่งเป็นเชื้อเพลิงอย่างดี</p>
+    </div>
+
+    <h3>ชันโรง (ผึ้งจิ๋วไร้เหล็กใน)</h3>
+    <p>แสดงเมื่อแผนมีพืชที่ให้เกสรพอ บอกจำนวนรังที่แนะนำ (ราว 4 รัง/ไร่) ต้นทุนตั้งรัง และรายได้ที่คาดว่าจะได้ แยกเป็นน้ำผึ้ง ชันโรง และการขายรัง <strong>รายได้ส่วนใหญ่มาจากการขายรัง</strong> ซึ่งต้องมีผู้รับซื้อในพื้นที่ก่อน</p>
+
+    <h3>การปลูกในพื้นที่จริง</h3>
+    <p>สถิติจากกรมส่งเสริมการเกษตรว่าพืชในแผนนี้มีคนปลูกจริงในน่านมากน้อยแค่ไหน ใช้ดูว่าจะหาต้นพันธุ์ คนแนะนำ และผู้รับซื้อได้ง่ายหรือยาก</p>
+  </section>
+
+  <!-- ══ 5 ══════════════════════════════════════════════ -->
+  <section id="s5">
+    <h2 class="sec"><span class="num">5</span>งานที่ทำบ่อย</h2>
+
+    <h3>เทียบสองแผนแบบเห็นพร้อมกัน</h3>
+    <ol>
+      <li>เปิดแผนที่ถูกใจ กด <strong>“เทียบกับแผนอื่น”</strong> — ระบบเก็บตัวเลขแผนนี้ไว้</li>
+      <li>ระบบพากลับไปหน้าเลือกพืชให้อัตโนมัติ เปลี่ยนพืชที่อยากลอง</li>
+      <li>กดออกแบบใหม่ จะเห็นตารางเทียบสองแผนพร้อมกัน ทั้งกำไร จุดคืนทุน และพืชที่ต่างกัน</li>
+    </ol>
+
+    <h3>ส่งแผนให้คนอื่นดู</h3>
+    <p>กด <strong>“คัดลอกลิงก์แผน”</strong> แล้วส่งทางไลน์ได้เลย คนที่เปิดลิงก์จะเห็นแผนเดียวกัน ระบบจะคำนวณใหม่ให้อัตโนมัติเมื่อเปิด</p>
+
+    <h3>แก้ข้อมูลแล้วคำนวณใหม่</h3>
+    <p>กด <strong>“แก้ไขข้อมูล”</strong> ที่มุมบน กลับไปแก้ขั้นไหนก็ได้ ข้อมูลเดิมยังอยู่ครบ</p>
+
+    <h3>เริ่มกับเกษตรกรรายใหม่</h3>
+    <p>กด <strong>“เกษตรกรรายใหม่”</strong> ล้างข้อมูลทั้งหมดทันที — พิกัด ความสูง โซนพืชเดิม พืชที่เลือก และราคาที่ปรับไว้ <strong>สำคัญมากสำหรับเจ้าหน้าที่ที่ลงพื้นที่หลายรายต่อวัน</strong> ถ้าไม่กด ข้อมูลของรายก่อนจะติดไปกับรายถัดไป</p>
+
+    <h3>ใส่ราคาจริงของตัวเอง</h3>
+    <p>กลับไปขั้นที่ 4 เปิดหัวข้อ “ปรับสมมติฐาน” แล้วใส่ราคาที่ขายได้จริง ผลผลิตจริง หรือต้นทุนจริง ระบบจะคำนวณใหม่ทั้งแผน นี่เป็นวิธีที่ทำให้ตัวเลขแม่นขึ้นมากที่สุด</p>
+  </section>
+
+  <!-- ══ 6 ══════════════════════════════════════════════ -->
+  <section id="s6">
+    <h2 class="sec"><span class="num">6</span>คำเตือนแต่ละแบบแปลว่าอะไร</h2>
+    <p class="sec-note">ระบบเตือนเมื่อเจอเรื่องที่ควรรู้ก่อนลงมือ ไม่ใช่ข้อผิดพลาด</p>
+
+    <h4>คำเตือนเกี่ยวกับแปลงและพืช</h4>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>ข้อความที่เห็น</th><th>แปลว่า</th><th>ควรทำอะไร</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="msg">…เหมาะกับพื้นที่นี้ปานกลาง</td>
+            <td>พืชชนิดนั้นขึ้นได้ แต่ไม่ใช่จุดที่ดีที่สุดของมัน</td>
+            <td>ปลูกได้ แต่อย่าลงพื้นที่ใหญ่ทั้งหมดกับชนิดนี้</td>
+          </tr>
+          <tr>
+            <td class="msg">…มีข้อมูลโมเดลน้อย ความแม่นยำต่ำ</td>
+            <td>เป็นพืชที่ไม่มีแบบจำลองรองรับ ใช้ช่วงความสูงตามตำราแทน</td>
+            <td>ถามคนในพื้นที่ว่าเคยปลูกได้ไหม ก่อนตัดสินใจ</td>
+          </tr>
+          <tr>
+            <td class="msg">ดินกรดจัด ควรปรับ pH ด้วยปูนก่อนปลูก</td>
+            <td>ดินเปรี้ยวเกินไปสำหรับพืชหลายชนิด พบบ่อยในดินไร่ข้าวโพดเก่า</td>
+            <td>ใส่ปูนโดโลไมต์ปรับ pH ก่อน อย่าเพิ่งลงไม้ผลราคาแพง</td>
+          </tr>
+          <tr>
+            <td class="msg">…ชอบดินระบายน้ำดี แต่ดินแปลงนี้ระบายน้ำไม่ดี</td>
+            <td>เสี่ยงรากเน่าในหน้าฝน</td>
+            <td>ยกร่อง ทำทางระบายน้ำ หรือเปลี่ยนเป็นพืชทนน้ำขัง</td>
+          </tr>
+          <tr>
+            <td class="msg">…ชอบแดด เมื่อเรือนยอดปิดควรย้าย</td>
+            <td>พืชชนิดนี้จะถูกไม้ใหญ่บังตั้งแต่ราวปีที่ 6</td>
+            <td>วางแผนย้ายไปช่องที่ยังโล่ง หรือเปลี่ยนเป็นพืชทนร่มตามผังปลูก</td>
+          </tr>
+          <tr>
+            <td class="msg">โครงสร้างวนเกษตรยังไม่ครบชั้น</td>
+            <td>แผนขาดพืชบางชั้น ทำให้ใช้พื้นที่ไม่เต็มที่</td>
+            <td>กลับไปเพิ่มพืชในชั้นที่ขาด หรือปล่อยให้ระบบเลือกให้</td>
+          </tr>
+          <tr>
+            <td class="msg">คะแนนคลุมดินยังต่ำ</td>
+            <td>หน้าดินเปิดมาก เสี่ยงชะล้างบนที่ลาดชัน</td>
+            <td>เพิ่มพืชคลุมดินหรือพืชตรึงไนโตรเจน เช่น ปอเทือง ถั่วพร้า หญ้าแฝก</td>
+          </tr>
+          <tr>
+            <td class="msg">ถ้าปีนี้ยังพ่นยาคุมหญ้าข้าวโพดอยู่ ให้เลื่อนพืชคลุมดิน</td>
+            <td>สารตกค้างในดินจะฆ่าพืชคลุมดินที่หว่านใหม่</td>
+            <td>เว้นระยะตามที่ระบบแนะนำก่อนหว่าน</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>คำเตือนเกี่ยวกับข้อมูลที่ดึงมา</h4>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>ข้อความที่เห็น</th><th>แปลว่า</th><th>ควรทำอะไร</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="msg">ไม่พบกลุ่มชุดดิน LDD สำหรับพิกัดนี้</td>
+            <td>จุดที่ปักอยู่นอกพื้นที่ที่กรมพัฒนาที่ดินสำรวจไว้ ระบบใช้ข้อมูลดินสำรองแทน</td>
+            <td>ใช้ต่อได้ แต่คำแนะนำเรื่องดินจะหยาบกว่าปกติ</td>
+          </tr>
+          <tr>
+            <td class="msg">ไม่พบข้อมูลดิน SoilGrids</td>
+            <td>ดึงข้อมูลดินไม่สำเร็จ ระบบใช้คะแนนกลางแทน</td>
+            <td>ลองใหม่อีกครั้ง หรือปักหมุดใหม่ให้ตรงแปลงมากขึ้น</td>
+          </tr>
+          <tr>
+            <td class="msg">GISTDA ใช้งานไม่ได้</td>
+            <td>ดึงข้อมูลไฟป่า น้ำท่วม และเขตอนุรักษ์ไม่สำเร็จชั่วคราว</td>
+            <td>คำแนะนำเรื่องไฟและเขตป่าจะหายไป ควรลองใหม่ภายหลัง</td>
+          </tr>
+          <tr>
+            <td class="msg">ข้อมูลภูมิอากาศใช้งานไม่ได้</td>
+            <td>ดึง NASA POWER ไม่สำเร็จ</td>
+            <td>ปฏิทินปลูกและความเหมาะสมของพืชจะแม่นน้อยลง ควรลองใหม่</td>
+          </tr>
+          <tr>
+            <td class="msg">ใช้ราคาที่ผู้ดูแลระบบตั้งไว้ … ชนิด</td>
+            <td>มีคนตั้งราคาทับค่าอ้างอิงในระบบไว้</td>
+            <td>ถ้าเป็นเจ้าหน้าที่ ตรวจในหน้าผู้ดูแลว่าราคาที่ตั้งไว้ยังถูกต้อง</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ 7 ══════════════════════════════════════════════ -->
+  <section id="s7">
+    <h2 class="sec"><span class="num">7</span>ข้อจำกัด ที่ต้องบอกทุกครั้ง</h2>
+    <p class="sec-note">เจ้าหน้าที่ควรพูดเรื่องเหล่านี้ทุกครั้งที่เปิดแผนให้เกษตรกรดู</p>
+
+    <div class="warn">
+      <span class="clabel">ข้อที่สำคัญที่สุด</span>
+      <p><strong>ยังไม่เคยมีการเก็บผลลัพธ์จริงจากแปลงที่ใช้แผนนี้มาเทียบกับที่ทำนายไว้</strong> ความแม่นยำของตัวเลขรายได้จึงยังไม่เคยถูกทดสอบกับแปลงจริงแม้แปลงเดียว ใช้เป็นการเปรียบเทียบทิศทางได้ แต่ไม่ควรใช้เป็นตัวเลขไปกู้เงิน</p>
+    </div>
+
+    <div class="fields">
+      <div class="field">
+        <div class="fname">ราคาส่วนใหญ่เป็นราคาระดับประเทศ</div>
+        <div class="fdesc">ราคาที่จุดรับซื้อในหมู่บ้านมักต่ำกว่าค่าเฉลี่ยประเทศ ควรใส่ราคาที่ขายได้จริงทับเสมอ</div>
+      </div>
+      <div class="field">
+        <div class="fname">42 จาก 55 ชนิดไม่มีตัวเลขเศรษฐกิจระดับชาติ</div>
+        <div class="fdesc">พืชพื้นถิ่นและของป่าอยู่นอกระบบสถิติทั้งหมด ตัวเลขเป็นการประมาณจากรายงานท้องถิ่นที่หาได้</div>
+      </div>
+      <div class="field">
+        <div class="fname">แบบจำลองบอก “ย่านนี้ปลูกได้ไหม” ได้ดีกว่า “แปลงนี้ดีกว่าแปลงข้าง ๆ ไหม”</div>
+        <div class="fdesc">มีแบบจำลองรองรับ 20 ชนิด อีก 35 ชนิดใช้ช่วงความสูงตามตำรา และความแม่นยำที่ตรวจสอบอย่างเข้มงวดแล้วอยู่ที่ราว 0.72</div>
+      </div>
+      <div class="field">
+        <div class="fname">ไม่ใช่ใบรับรองสิทธิ์ที่ดิน</div>
+        <div class="fdesc">ระบบตรวจเขตรักษาพันธุ์สัตว์ป่าและป่าสงวนได้บางส่วน แต่<strong>ยังไม่ได้ตรวจอุทยานแห่งชาติ ป่าไม้ถาวร และลุ่มน้ำชั้น 1A</strong> — การที่ระบบไม่พบข้อห้าม ไม่เท่ากับปลูกได้ ต้องให้เจ้าหน้าที่ป่าไม้ตรวจซ้ำเสมอ</div>
+      </div>
+      <div class="field">
+        <div class="fname">ไม่มีตัวเลขคาร์บอนเครดิต</div>
+        <div class="fdesc">ถอดออกโดยตั้งใจ เพราะตรวจแล้วพบว่าแปลง 5–15 ไร่ในน่านขายคาร์บอนเครดิตไม่ได้จริง ค่ารับรองปีแรกสูงกว่ารายได้คาร์บอนสิบปีรวมกัน</div>
+      </div>
+      <div class="field">
+        <div class="fname">ตัวเลขผลผลิตในระบบปลูกผสมยังไม่ได้ปรับเทียบ</div>
+        <div class="fdesc">ระบบลดผลผลิตของพืชชั้นล่างลงเหลือ 70% เมื่อปลูกผสม ซึ่งเป็นค่าที่ตั้งจากการตัดสินใจ ไม่ใช่จากการวัดในแปลงจริง</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 8 ══════════════════════════════════════════════ -->
+  <section id="s8">
+    <h2 class="sec"><span class="num">8</span>สำหรับเจ้าหน้าที่ส่งเสริม</h2>
+
+    <h3>ใช้ตอนลงพื้นที่</h3>
+    <ol>
+      <li>กด <strong>“เกษตรกรรายใหม่”</strong> ก่อนเริ่มทุกราย เพื่อล้างข้อมูลของรายก่อน</li>
+      <li>ให้เกษตรกรกด GPS เองในแปลงของเขา จะได้ทั้งพิกัดและความสูงที่ตรงที่สุด</li>
+      <li>ถามพืชเดิมให้ชัด เพราะกระทบต้นทุนปีแรกโดยตรง</li>
+      <li>เปิดหัวข้อ “ปรับสมมติฐาน” แล้ว<strong>ใส่ราคาที่เขาขายได้จริง</strong>ต่อหน้าเขา ให้เห็นว่าตัวเลขเปลี่ยนอย่างไร</li>
+      <li>อ่าน “ข้อควรระวังก่อนลงมือ” ให้ฟังทุกข้อ อย่าข้าม</li>
+      <li>กด “คัดลอกลิงก์แผน” ส่งเข้าไลน์กลุ่มหมู่บ้าน เพื่อให้กลับมาดูได้ภายหลัง</li>
+    </ol>
+
+    <div class="tip">
+      <span class="clabel">เตรียมพร้อมสัญญาณอ่อน</span>
+      <p>ระบบต้องต่ออินเทอร์เน็ตเพื่อดึงข้อมูลดาวเทียมและดิน ถ้าพื้นที่สัญญาณไม่ดี ให้รันแผนตั้งแต่ตอนอยู่ในตัวอำเภอโดยเลือกอำเภอแทน GPS แล้วพิมพ์ผลติดตัวไป</p>
+    </div>
+
+    <h3>หน้าผู้ดูแลระบบ — จัดการราคาพืช</h3>
+    <p>เข้าที่ <code>/admin/prices</code> ใช้ตั้งราคาที่ตรงกับตลาดในพื้นที่ให้ใช้ร่วมกันทั้งจังหวัด แทนที่จะให้เกษตรกรกรอกเองทีละคน</p>
+    <ul>
+      <li>ทุกแถวบอก <strong>ราคาอ้างอิงในระบบ</strong> คู่กับ <strong>ราคาที่ใช้จริง</strong> และเปอร์เซ็นต์ที่ต่างกัน</li>
+      <li>ป้ายสีบอกว่ากำลังตั้งทับตัวเลขระดับไหน — ทับ “ตัวเลขราชการ” ควรมีเหตุผลชัดเจน</li>
+      <li>ช่อง “วันที่ของราคา” ใส่วันที่ของรายงานหรือแหล่งราคา ไม่ใช่วันที่กรอก</li>
+      <li>ปุ่ม <strong>“คืนค่า”</strong> รายตัว และ <strong>“คืนค่าทั้งหมด”</strong> ซึ่งจะแสดงรายการทั้งหมดให้ตรวจก่อนยืนยัน</li>
+    </ul>
+    <div class="warn">
+      <span class="clabel">ก่อนกดคืนค่าทั้งหมด</span>
+      <p>ราคาที่ตั้งทับไว้บางตัวอาจเป็น<strong>ราคาจริงที่เก็บมาจากพื้นที่</strong> เมื่อลบแล้วจะไม่มีบันทึกเหลือ ให้จดไว้ก่อนกดยืนยันทุกครั้ง</p>
+    </div>
+  </section>
+
+  <!-- ══ 9 ══════════════════════════════════════════════ -->
+  <section id="s9">
+    <h2 class="sec"><span class="num">9</span>คำถามที่พบบ่อย</h2>
+
+    <h4>ไม่รู้จักพืชเลย ใช้ได้ไหม</h4>
+    <p>ได้ ข้ามขั้นที่ 3 ไปเลย ระบบจะเลือกพืชที่เหมาะกับความสูง ดิน และภูมิอากาศของแปลงให้เอง</p>
+
+    <h4>ทำไมแผน “แนะนำ” กำไรน้อยกว่าแผนอื่น</h4>
+    <p>เพราะการจัดอันดับคิดหลายอย่างรวมกัน ไม่ใช่กำไรอย่างเดียว ทั้งความเหมาะสมกับพื้นที่ โครงสร้างวนเกษตร ความเสี่ยง และการคลุมดิน ถ้าต้องการกำไรอย่างเดียว เลือกเป้าหมาย “กำไรสูงสุด” ในขั้นที่ 4 แล้วแผนที่ทำเงินสุดจะขึ้นมาเป็นอันแรก</p>
+
+    <h4>ปีแรกทำไมติดลบ</h4>
+    <p>ปกติ ปีแรกคือปีที่จ่ายค่าถาง ค่าปรับปรุงดิน และค่าต้นพันธุ์ แต่ยังไม่มีผลผลิต จุดที่ควรดูคือปีที่คืนทุน ซึ่งแสดงไว้ในตัวเลขหลักช่องแรก</p>
+
+    <h4>แปลงอยู่นอกจังหวัดน่าน ใช้ได้ไหม</h4>
+    <p>ใช้ได้ ปักหมุดบนแผนที่ได้ทุกที่ แต่ฐานข้อมูลพืช 55 ชนิดและค่าอ้างอิงต่าง ๆ คัดมาสำหรับน่านโดยเฉพาะ ยิ่งห่างจากน่านมาก ความแม่นยำยิ่งลดลง</p>
+
+    <h4>ทำไมพืชที่อยากปลูกไม่อยู่ในรายการ</h4>
+    <p>ฐานข้อมูลมี 55 ชนิดที่ผ่านการตรวจสอบชื่อวิทยาศาสตร์และข้อมูลเศรษฐกิจแล้ว ชนิดที่ยังไม่มีคือชนิดที่ยังหาข้อมูลที่เชื่อถือได้ไม่พอ แจ้งเจ้าหน้าที่ไว้เพื่อพิจารณาเพิ่มในรอบถัดไปได้</p>
+
+    <h4>ตัวเลขในแอปต่างจากที่เพื่อนบ้านทำได้จริง</h4>
+    <p>เป็นไปได้และไม่แปลก เพราะราคาและผลผลิตในระบบเป็นค่ากลาง <strong>ให้เชื่อตัวเลขจากแปลงจริงมากกว่า</strong> แล้วใส่ทับในหัวข้อ “ปรับสมมติฐาน” ระบบจะคำนวณใหม่ให้ทั้งแผน</p>
+
+    <h4>อยากรู้ว่าคำนวณยังไง</h4>
+    <p>เปิดแท็บ <strong>“วิธีการ &amp; ความน่าเชื่อถือ”</strong> ในแอป มีทั้งสูตร แหล่งข้อมูล ความแม่นยำของแบบจำลองรายชนิด และรายการข้อจำกัดทั้งหมด</p>
+  </section>
+
+  <footer>
+    <p>
+      <strong>น่านไง</strong> — เครื่องมือสนับสนุนการตัดสินใจวางแผนวนเกษตร จังหวัดน่าน ·
+      พัฒนาร่วมกับ RECOFTC · ข้อมูลจาก GISTDA, NASA POWER, SoilGrids, กรมพัฒนาที่ดิน,
+      สำนักงานเศรษฐกิจการเกษตร, กรมวิชาการเกษตร และ GBIF
+    </p>
+    <p>
+      คู่มือฉบับนี้อธิบายการใช้งาน สำหรับระเบียบวิธี สูตรคำนวณ และการตรวจสอบความถูกต้อง
+      ดูที่แท็บ “วิธีการ &amp; ความน่าเชื่อถือ” ในแอป หรือไฟล์ <code>docs/METHODOLOGY.md</code>
+    </p>
+  </footer>
+
+</div>
